@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>חי שיווק – קטלוג מוצרים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14213D; --bg:#F6F7F9; --card:#FFFFFF; --line:#E5E8EE;
+  --green:#16A34A; --green-dark:#128A3E; --amber:#D97706; --red:#DC2626;
+  --muted:#6B7280;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Assistant',sans-serif; background:var(--bg); color:var(--ink); font-size:16px}
+h1,h2,h3,.logo{font-family:'Rubik',sans-serif}
+button{font-family:inherit; cursor:pointer; border:none; background:none; font-size:inherit}
+input,select,textarea{font-family:inherit; font-size:16px}
+img{display:block; max-width:100%}
+
+/* Header */
+header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; padding:10px 14px; box-shadow:0 2px 10px rgba(20,33,61,.25)}
+.hrow{display:flex; align-items:center; justify-content:space-between; gap:10px; max-width:1100px; margin:0 auto}
+.logo{font-size:24px; font-weight:800; letter-spacing:-.5px; white-space:nowrap}
+.logo b{color:#4ADE80}
+.searchwrap{flex:1; max-width:520px; position:relative}
+.searchwrap input{width:100%; border:none; border-radius:99px; padding:9px 40px 9px 14px; background:#fff; color:var(--ink)}
+.searchwrap svg{position:absolute; top:50%; right:13px; transform:translateY(-50%); width:17px; height:17px; stroke:var(--muted)}
+.vat{background:#1E2E52; color:#C6D3F0; text-align:center; font-size:12.5px; padding:4px}
+
+/* Category chips */
+.chips{display:flex; gap:8px; overflow-x:auto; padding:12px 14px; max-width:1100px; margin:0 auto; scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto; background:var(--card); border:1.5px solid var(--line); border-radius:99px; padding:7px 15px; font-weight:600; font-size:14px; color:var(--ink); transition:.15s}
+.chip.on{background:var(--ink); border-color:var(--ink); color:#fff}
+
+main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
+.sect{margin-top:18px}
+.secthead{display:flex; align-items:center; gap:8px; margin-bottom:10px}
+.secthead h2{font-size:19px; font-weight:700}
+.secthead .tag{font-size:12px; font-weight:700; border-radius:6px; padding:2px 8px; color:#fff}
+.tag.sale{background:var(--amber)} .tag.new{background:var(--green)}
+
+/* Product grid */
+.grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
+.pcard{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; position:relative}
+.pimg{aspect-ratio:1; background:#fff; display:flex; align-items:center; justify-content:center; padding:10px}
+.pimg img{max-height:100%; object-fit:contain}
+.pimg .noimg{color:#C3C9D4; font-size:13px}
+.pbody{padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; flex:1}
+.pname{font-weight:700; font-size:14.5px; line-height:1.25; min-height:2.4em}
+.psku{color:var(--muted); font-size:12px}
+.prices{display:flex; align-items:baseline; gap:7px; margin-top:2px}
+.pprice{font-family:'Rubik'; font-weight:700; font-size:17px}
+.pold{color:var(--muted); text-decoration:line-through; font-size:13px}
+.ptier{font-size:12px; color:var(--green-dark); font-weight:600; background:#EAF7EF; border-radius:6px; padding:2px 7px; width:fit-content}
+.addbtn{margin-top:auto; background:var(--green); color:#fff; font-weight:700; border-radius:9px; padding:9px; transition:.15s}
+.addbtn:active{transform:scale(.97)}
+.addbtn.inc{background:#EAF7EF; color:var(--green-dark); display:flex; align-items:center; justify-content:space-between; padding:5px 8px}
+.addbtn.inc b{font-size:17px; padding:2px 12px}
+.badge{position:absolute; top:8px; right:8px; z-index:2; font-size:11.5px; font-weight:700; color:#fff; border-radius:6px; padding:3px 8px}
+.badge.sale{background:var(--amber)} .badge.new{background:var(--green)}
+.oos .pimg{filter:grayscale(1); opacity:.55}
+.oosband{position:absolute; top:42%; left:0; right:0; background:rgba(220,38,38,.92); color:#fff; text-align:center; font-weight:700; padding:5px; font-size:13.5px; z-index:2}
+.oosbtn{margin-top:auto; background:#F1F2F5; color:#9AA1AE; font-weight:700; border-radius:9px; padding:9px; cursor:not-allowed}
+
+/* Cart bar & drawer */
+.cartbar{position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--ink); color:#fff; padding:11px 16px; display:none; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 -3px 14px rgba(0,0,0,.18)}
+.cartbar.show{display:flex}
+.cartbar .sum{font-family:'Rubik'; font-weight:700; font-size:17px}
+.cartbar button{background:var(--green); color:#fff; font-weight:700; border-radius:99px; padding:10px 22px}
+.overlay{position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:60; display:none}
+.overlay.show{display:block}
+.drawer{position:fixed; bottom:0; left:0; right:0; z-index:70; background:#fff; border-radius:18px 18px 0 0; max-height:82vh; display:flex; flex-direction:column; transform:translateY(105%); transition:.25s}
+.drawer.show{transform:none}
+.dhead{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line)}
+.dhead h3{font-size:18px}
+.dlist{overflow-y:auto; padding:6px 16px; flex:1}
+.drow{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line)}
+.drow img{width:52px; height:52px; object-fit:contain; border:1px solid var(--line); border-radius:9px; background:#fff}
+.dinfo{flex:1; min-width:0}
+.dinfo .n{font-weight:700; font-size:14px}
+.dinfo .s{color:var(--muted); font-size:12px}
+.qty{display:flex; align-items:center; gap:2px; background:#F1F2F5; border-radius:99px}
+.qty button{width:30px; height:30px; font-size:17px; font-weight:700; color:var(--ink)}
+.qty b{min-width:22px; text-align:center; font-size:14px}
+.dsum{padding:13px 16px; border-top:1px solid var(--line)}
+.dsum .row{display:flex; justify-content:space-between; font-weight:700; font-size:17px; margin-bottom:10px}
+.wabtn{width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:var(--green); color:#fff; font-weight:700; font-size:16.5px; border-radius:12px; padding:13px}
+.wabtn svg{width:21px; height:21px; fill:#fff}
+
+footer{background:var(--ink); color:#B9C4DC; text-align:center; padding:26px 16px 34px; margin-top:36px; font-size:14px}
+footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
+.empty{text-align:center; color:var(--muted); padding:44px 0; font-size:15px}
+
+/* Admin */
+.adminbar{background:var(--amber); color:#fff; text-align:center; font-weight:700; padding:7px; font-size:14px}
+.awrap{max-width:1100px; margin:0 auto; padding:16px 14px 60px}
+.abtns{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
+.abtn{background:var(--ink); color:#fff; font-weight:700; border-radius:9px; padding:10px 16px; font-size:14.5px}
+.abtn.g{background:var(--green)} .abtn.o{background:#fff; color:var(--ink); border:1.5px solid var(--line)}
+.atable{width:100%; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.arow{display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line)}
+.arow:last-child{border-bottom:none}
+.arow img{width:44px; height:44px; object-fit:contain; border:1px solid var(--line); border-radius:8px}
+.ainfo{flex:1; min-width:0}
+.ainfo .n{font-weight:700; font-size:14px}
+.ainfo .m{color:var(--muted); font-size:12px}
+.aact{display:flex; gap:6px}
+.aact button{font-size:13px; font-weight:700; border-radius:7px; padding:6px 11px}
+.ed{background:#EAF0FB; color:#1D4ED8} .dl{background:#FDECEC; color:var(--red)}
+.oostag{font-size:11px; font-weight:700; color:var(--red); background:#FDECEC; border-radius:5px; padding:2px 6px}
+.modal{position:fixed; inset:0; z-index:80; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 12px}
+.modal.show{display:flex}
+.mbox{background:#fff; border-radius:16px; width:100%; max-width:480px; padding:20px}
+.mbox h3{margin-bottom:14px; font-size:18px}
+.fld{margin-bottom:12px}
+.fld label{display:block; font-weight:700; font-size:13.5px; margin-bottom:5px}
+.fld input,.fld select{width:100%; border:1.5px solid var(--line); border-radius:9px; padding:9px 12px; background:#fff}
+.fld .hint{font-size:12px; color:var(--muted); margin-top:3px}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.chk{display:flex; align-items:center; gap:8px; font-weight:600; font-size:14.5px; margin-bottom:9px}
+.chk input{width:18px; height:18px}
+.mact{display:flex; gap:8px; margin-top:16px}
+.mact .save{flex:1; background:var(--green); color:#fff; font-weight:700; border-radius:10px; padding:12px}
+.mact .cancel{background:#F1F2F5; color:var(--ink); font-weight:700; border-radius:10px; padding:12px 18px}
+.imgprev{width:84px; height:84px; object-fit:contain; border:1.5px dashed var(--line); border-radius:10px; margin-top:6px; background:#fff}
+.loginbox{max-width:340px; margin:80px auto; background:#fff; border:1px solid var(--line); border-radius:16px; padding:26px; text-align:center}
+.loginbox h2{margin-bottom:14px}
+.loginbox input{width:100%; border:1.5px solid var(--line); border-radius:9px; padding:11px; text-align:center; font-size:18px; letter-spacing:3px}
+.loginbox button{width:100%; margin-top:12px; background:var(--ink); color:#fff; font-weight:700; border-radius:10px; padding:12px}
+.err{color:var(--red); font-size:13.5px; margin-top:8px; font-weight:600}
+.toast{position:fixed; bottom:86px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-weight:600; border-radius:99px; padding:9px 20px; z-index:90; font-size:14px; opacity:0; transition:.25s; pointer-events:none; white-space:nowrap}
+.toast.show{opacity:1}
+
+/* Print catalog */
+#printcat{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printcat, #printcat *{visibility:visible}
+  #printcat{display:block; position:absolute; top:0; left:0; right:0}
+  .pc-head{text-align:center; padding:18px 0 8px; border-bottom:3px solid #14213D; margin-bottom:14px}
+  .pc-head h1{font-size:30px}
+  .pc-head p{color:#555; font-size:13px}
+  .pc-cat{font-size:19px; font-weight:700; margin:16px 0 8px; border-right:5px solid #16A34A; padding-right:9px; page-break-after:avoid}
+  .pc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
+  .pc-card{border:1px solid #ddd; border-radius:9px; padding:8px; text-align:center; page-break-inside:avoid}
+  .pc-card img{height:88px; object-fit:contain; margin:0 auto 5px}
+  .pc-card .n{font-weight:700; font-size:12.5px}
+  .pc-card .s{color:#777; font-size:10.5px}
+  .pc-card .p{font-weight:700; font-size:14px; margin-top:2px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="printcat"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+
+const WA_NUMBER = "972528864040";
+const ADMIN_PASS = "4040";
+const GH_OWNER = "Chaishivuk";
+const GH_REPO = "Chai-shivuk";
+const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/";
+
+let DB = null, cart = {}, view = {cat:"home", q:""};
+let pendingImgs = {};   // repo path -> base64 body awaiting upload
+
+function ghToken(){ try{ return localStorage.getItem("gh-token") || ""; }catch(e){ return ""; } }
+function setGhToken(t){ try{ localStorage.setItem("gh-token", t.trim()); }catch(e){} }
+function ghHeaders(){ return {"Authorization": "Bearer " + ghToken(), "Accept": "application/vnd.github+json"}; }
+
+async function loadDB(){
+  try{
+    const r = await fetch("data.json?t=" + Date.now(), {cache: "no-store"});
+    if(!r.ok) throw new Error(r.status);
+    DB = await r.json();
+  }catch(e){
+    document.getElementById("app").innerHTML =
+      '<div class="empty">שגיאה בטעינת הקטלוג – בדוק חיבור לאינטרנט ורענן את הדף</div>';
+    throw e;
+  }
+}
+async function ghGetSha(path){
+  const r = await fetch(GH_API + path + "?t=" + Date.now(), {headers: ghHeaders(), cache: "no-store"});
+  if(r.status === 404) return null;
+  if(!r.ok) throw new Error("get " + r.status);
+  return (await r.json()).sha;
+}
+async function ghPut(path, b64, msg){
+  const sha = await ghGetSha(path);
+  const body = {message: msg, content: b64, branch: "main"};
+  if(sha) body.sha = sha;
+  const r = await fetch(GH_API + path, {method: "PUT", headers: ghHeaders(), body: JSON.stringify(body)});
+  if(!r.ok) throw new Error("put " + r.status);
+}
+function b64Unicode(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+async function saveDB(){
+  if(!ghToken()){ toast("חסר מפתח גישה – התחבר מחדש לניהול"); return false; }
+  toast("שומר...");
+  try{
+    for(const [path, b64] of Object.entries(pendingImgs)){
+      await ghPut(path, b64, "עדכון תמונה");
+    }
+    pendingImgs = {};
+    await ghPut("data.json", b64Unicode(JSON.stringify(DB)), "עדכון קטלוג");
+    toast("נשמר! השינוי יופיע לכולם תוך כדקה");
+    return true;
+  }catch(e){
+    toast("שגיאה בשמירה – בדוק את החיבור והמפתח");
+    return false;
+  }
+}
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nis = n => "₪" + Number(n).toLocaleString("he-IL");
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+function effPrice(p, qty){
+  let base = (p.sale != null) ? p.sale : p.price;
+  if(p.tier && qty >= p.tier.qty) base = Math.min(base, p.tier.price);
+  return base;
+}
+function newSku(){
+  let s;
+  do{ s = String(Math.floor(1000 + Math.random()*9000)); }
+  while(DB.products.some(p => p.sku === s));
+  return s;
+}
+function catName(id){ const c = DB.categories.find(c => c.id === id); return c ? c.name : ""; }
+
+/* ---------- customer render ---------- */
+let adminMode = false, logoTaps = 0, logoTimer = null;
+function isAdminRoute(){ return adminMode || location.hash === "#admin"; }
+
+function render(){
+  if(isAdminRoute()){ renderAdmin(); return; }
+  const app = $("#app");
+  const chips = [
+    {id:"home", name:"ראשי"},
+    {id:"all", name:"כל המוצרים"},
+    ...DB.categories
+  ].map(c => `<button class="chip ${view.cat===c.id?"on":""}" data-cat="${c.id}">${esc(c.name)}</button>`).join("");
+
+  let body = "";
+  const q = view.q.trim();
+  if(q){
+    const found = DB.products.filter(p =>
+      p.name.includes(q) || p.sku.includes(q));
+    body = section(`תוצאות חיפוש (${found.length})`, "", found);
+  } else if(view.cat === "home"){
+    const sale = DB.products.filter(p => p.sale != null);
+    const nw = DB.products.filter(p => p.isNew);
+    body =
+      (sale.length ? section("מבצעים", "sale", sale) : "") +
+      (nw.length ? section("מוצרים חדשים", "new", nw) : "") +
+      DB.categories.map(c => {
+        const ps = DB.products.filter(p => p.cat === c.id);
+        return ps.length ? section(c.name, "", ps) : "";
+      }).join("");
+    if(!body) body = `<div class="empty">הקטלוג יעודכן בקרוב</div>`;
+  } else if(view.cat === "all"){
+    body = section("כל המוצרים", "", DB.products);
+  } else {
+    const ps = DB.products.filter(p => p.cat === view.cat);
+    body = ps.length ? section(catName(view.cat), "", ps)
+                     : `<div class="empty">אין עדיין מוצרים בקטגוריה זו</div>`;
+  }
+
+  app.innerHTML = `
+  <header>
+    <div class="hrow">
+      <div class="logo">חי <b>שיווק</b></div>
+      <div class="searchwrap">
+        <input id="search" placeholder="חיפוש לפי שם או מק&quot;ט..." value="${esc(view.q)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      </div>
+    </div>
+  </header>
+  <div class="vat">המחירים כוללים מע"מ</div>
+  <nav class="chips">${chips}</nav>
+  <main>${body}</main>
+  <footer>
+    <div class="big">למכירה בכמויות – צרו קשר</div>
+    <div>וואטסאפ: 052-886-4040 · חי שיווק</div>
+  </footer>
+  <div class="cartbar" id="cartbar">
+    <div><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div></div>
+    <button id="opencart">לצפייה בהזמנה</button>
+  </div>
+  <div class="overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
+    <div class="dlist" id="dlist"></div>
+    <div class="dsum">
+      <div class="row"><span>סה"כ לתשלום</span><b id="dtotal"></b></div>
+      <button class="wabtn" id="sendwa">
+        <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.83 14.12c-.25.7-1.44 1.34-2 1.42-.51.08-1.16.11-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.6-.37.8-.37.2 0 .4 0 .57.01.18.01.43-.07.67.51.25.6.85 2.07.92 2.22.08.15.13.33.03.53-.1.2-.15.32-.3.5-.15.18-.31.4-.45.53-.15.15-.31.31-.13.61.18.3.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.52.3.15.48.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.17 1.42z"/></svg>
+        שליחת ההזמנה בוואטסאפ
+      </button>
+    </div>
+  </div>`;
+
+  bindCustomer();
+  updateCartUI();
+}
+
+function section(title, tag, products){
+  const tg = tag ? `<span class="tag ${tag}">${tag==="sale"?"מבצע":"חדש"}</span>` : "";
+  return `<div class="sect">
+    <div class="secthead"><h2>${esc(title)}</h2>${tg}</div>
+    <div class="grid">${products.map(card).join("")}</div>
+  </div>`;
+}
+
+function card(p){
+  const qty = cart[p.id] || 0;
+  const img = p.img ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy">` : `<span class="noimg">ללא תמונה</span>`;
+  const badge = p.sale != null ? `<span class="badge sale">מבצע</span>` : (p.isNew ? `<span class="badge new">חדש</span>` : "");
+  const prices = p.sale != null
+    ? `<span class="pprice">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
+    : `<span class="pprice">${nis(p.price)}</span>`;
+  const tier = p.tier ? `<span class="ptier">מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</span>` : "";
+  if(!p.stock){
+    return `<div class="pcard oos">
+      ${badge}<div class="oosband">אזל במלאי</div>
+      <div class="pimg">${img}</div>
+      <div class="pbody">
+        <div class="pname">${esc(p.name)}</div>
+        <div class="psku">מק"ט ${p.sku}</div>
+        <div class="prices">${prices}</div>
+        <button class="oosbtn" disabled>לא זמין</button>
+      </div>
+    </div>`;
+  }
+  const btn = qty === 0
+    ? `<button class="addbtn" data-add="${p.id}">הוסף לסל</button>`
+    : `<div class="addbtn inc"><button data-add="${p.id}" style="font-size:19px;font-weight:800;padding:2px 12px">+</button><b>${qty}</b><button data-sub="${p.id}" style="font-size:19px;font-weight:800;padding:2px 12px">−</button></div>`;
+  return `<div class="pcard">
+    ${badge}
+    <div class="pimg">${img}</div>
+    <div class="pbody">
+      <div class="pname">${esc(p.name)}</div>
+      <div class="psku">מק"ט ${p.sku}</div>
+      <div class="prices">${prices}</div>
+      ${tier}
+      ${btn}
+    </div>
+  </div>`;
+}
+
+function bindCustomer(){
+  document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
+    view.cat = b.dataset.cat; view.q = ""; render(); window.scrollTo(0,0);
+  });
+  const s = $("#search");
+  s.oninput = () => { view.q = s.value; renderKeepFocus(); };
+  document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
+    cart[b.dataset.add] = (cart[b.dataset.add] || 0) + 1; render();
+  });
+  document.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => {
+    const id = b.dataset.sub;
+    cart[id] = Math.max(0, (cart[id]||0) - 1);
+    if(!cart[id]) delete cart[id];
+    render();
+  });
+  document.querySelector(".logo").onclick = () => {
+    logoTaps++;
+    clearTimeout(logoTimer);
+    logoTimer = setTimeout(() => logoTaps = 0, 1500);
+    if(logoTaps >= 5){ logoTaps = 0; adminMode = true; render(); window.scrollTo(0,0); }
+  };
+  $("#opencart").onclick = openCart;
+  $("#closecart").onclick = closeCart;
+  $("#overlay").onclick = closeCart;
+  $("#sendwa").onclick = sendWA;
+}
+function renderKeepFocus(){
+  const pos = $("#search").selectionStart;
+  render();
+  const s = $("#search"); s.focus(); s.setSelectionRange(pos, pos);
+}
+
+/* ---------- cart ---------- */
+function cartItems(){
+  return Object.entries(cart).map(([id, qty]) => {
+    const p = DB.products.find(x => x.id === id);
+    return p ? {p, qty} : null;
+  }).filter(Boolean);
+}
+function cartTotal(){
+  return cartItems().reduce((t, {p, qty}) => t + effPrice(p, qty) * qty, 0);
+}
+function updateCartUI(){
+  const items = cartItems();
+  const n = items.reduce((t, i) => t + i.qty, 0);
+  const bar = $("#cartbar");
+  if(!bar) return;
+  if(n === 0){ bar.classList.remove("show"); closeCart(); return; }
+  bar.classList.add("show");
+  $("#cbcount").textContent = n + " פריטים";
+  $("#cbsum").textContent = nis(cartTotal());
+}
+function openCart(){
+  const list = $("#dlist");
+  list.innerHTML = cartItems().map(({p, qty}) => `
+    <div class="drow">
+      ${p.img ? `<img src="${p.img}">` : `<div style="width:52px;height:52px;border:1px solid var(--line);border-radius:9px"></div>`}
+      <div class="dinfo">
+        <div class="n">${esc(p.name)}</div>
+        <div class="s">מק"ט ${p.sku} · ${nis(effPrice(p, qty))} ליח'</div>
+      </div>
+      <div class="qty">
+        <button data-cadd="${p.id}">+</button><b>${qty}</b><button data-csub="${p.id}">−</button>
+      </div>
+    </div>`).join("");
+  $("#dtotal").textContent = nis(cartTotal());
+  list.querySelectorAll("[data-cadd]").forEach(b => b.onclick = () => { cart[b.dataset.cadd]++; openCart(); updateCartUI(); });
+  list.querySelectorAll("[data-csub]").forEach(b => b.onclick = () => {
+    const id = b.dataset.csub;
+    cart[id] = Math.max(0, cart[id]-1); if(!cart[id]) delete cart[id];
+    if(!Object.keys(cart).length){ closeCart(); render(); return; }
+    openCart(); updateCartUI();
+  });
+  $("#overlay").classList.add("show");
+  $("#drawer").classList.add("show");
+}
+function closeCart(){
+  const o = $("#overlay"), d = $("#drawer");
+  if(o) o.classList.remove("show");
+  if(d) d.classList.remove("show");
+}
+function sendWA(){
+  const items = cartItems();
+  if(!items.length) return;
+  let lines = ["הזמנה חדשה - חי שיווק", ""];
+  items.forEach(({p, qty}) => {
+    lines.push(`${p.name} | מק"ט ${p.sku} | ${nis(effPrice(p, qty))} × ${qty}`);
+  });
+  lines.push("", `סה"כ: ${nis(cartTotal())}`);
+  const url = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
+  window.open(url, "_blank");
+}
+
+/* ---------- admin ---------- */
+let adminAuthed = false;
+
+function renderAdmin(){
+  const app = $("#app");
+  if(!adminAuthed){
+    app.innerHTML = `
+      <div class="adminbar">אזור ניהול – חי שיווק</div>
+      <div class="loginbox">
+        <h2>כניסת מנהל</h2>
+        <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
+        <button id="login">כניסה</button>
+        <div class="err" id="loginerr"></div>
+      </div>`;
+    $("#login").onclick = tryLogin;
+    $("#pw").onkeydown = e => { if(e.key === "Enter") tryLogin(); };
+    return;
+  }
+  if(!ghToken()){ renderTokenGate(); return; }
+  const rows = DB.products.map(p => `
+    <div class="arow">
+      ${p.img ? `<img src="${p.img}">` : `<div style="width:44px;height:44px;border:1px solid var(--line);border-radius:8px"></div>`}
+      <div class="ainfo">
+        <div class="n">${esc(p.name)} ${p.stock ? "" : '<span class="oostag">אזל</span>'}</div>
+        <div class="m">מק"ט ${p.sku} · ${esc(catName(p.cat))} · ${nis(p.sale != null ? p.sale : p.price)}</div>
+      </div>
+      <div class="aact">
+        <button class="ed" data-edit="${p.id}">עריכה</button>
+        <button class="dl" data-del="${p.id}">מחיקה</button>
+      </div>
+    </div>`).join("");
+  app.innerHTML = `
+    <div class="adminbar">אזור ניהול – חי שיווק</div>
+    <div class="awrap">
+      <div class="abtns">
+        <button class="abtn g" id="addp">+ מוצר חדש</button>
+        <button class="abtn" id="pdf">ייצוא PDF</button>
+        <button class="abtn" id="xls">ייצוא Excel</button>
+        <button class="abtn o" id="tostore">לאתר הלקוחות</button>
+      </div>
+      <div class="atable">${rows || '<div class="empty">אין מוצרים עדיין</div>'}</div>
+    </div>
+    <div class="modal" id="modal"></div>`;
+  $("#addp").onclick = () => openEditor(null);
+  $("#pdf").onclick = exportPDF;
+  $("#xls").onclick = exportXLS;
+  $("#tostore").onclick = () => { adminMode = false; if(location.hash) location.hash = ""; render(); window.scrollTo(0,0); };
+  document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEditor(b.dataset.edit));
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    const p = DB.products.find(x => x.id === b.dataset.del);
+    if(!confirm(`למחוק את "${p.name}"?`)) return;
+    DB.products = DB.products.filter(x => x.id !== p.id);
+    if(await saveDB()){ toast("המוצר נמחק"); render(); }
+  });
+}
+function tryLogin(){
+  if($("#pw").value === ADMIN_PASS){ adminAuthed = true; render(); }
+  else $("#loginerr").textContent = "סיסמה שגויה";
+}
+function renderTokenGate(){
+  $("#app").innerHTML = `
+    <div class="adminbar">אזור ניהול – חי שיווק</div>
+    <div class="loginbox">
+      <h2>חיבור ראשוני</h2>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
+      <input id="tok" placeholder="github_pat_..." style="letter-spacing:0;direction:ltr;font-size:13px">
+      <button id="savetok">שמירה והמשך</button>
+      <div class="err" id="tokerr"></div>
+    </div>`;
+  $("#savetok").onclick = () => {
+    const t = $("#tok").value.trim();
+    if(!t.startsWith("github_pat")){ $("#tokerr").textContent = "המפתח לא תקין"; return; }
+    setGhToken(t); render();
+  };
+}
+
+function openEditor(id){
+  const p = id ? DB.products.find(x => x.id === id) : null;
+  const cats = DB.categories.map(c =>
+    `<option value="${c.id}" ${p && p.cat === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+  const m = $("#modal");
+  m.innerHTML = `<div class="mbox">
+    <h3>${p ? "עריכת מוצר" : "מוצר חדש"}</h3>
+    <div class="fld"><label>שם המוצר</label><input id="f_name" value="${p ? esc(p.name) : ""}"></div>
+    <div class="two">
+      <div class="fld"><label>מחיר (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
+      <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
+    </div>
+    <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku()}"><div class="hint">נוצר אוטומטית – אפשר לשנות</div></div>
+    <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
+    <div class="chk"><input type="checkbox" id="f_new" ${p && p.isNew ? "checked" : ""}><label for="f_new">מוצר חדש</label></div>
+    <div class="chk"><input type="checkbox" id="f_issale" ${p && p.sale != null ? "checked" : ""}><label for="f_issale">במבצע</label></div>
+    <div class="fld" id="salewrap" style="display:${p && p.sale != null ? "block" : "none"}"><label>מחיר מבצע (₪)</label><input id="f_sale" type="number" inputmode="decimal" value="${p && p.sale != null ? p.sale : ""}"></div>
+    <div class="chk"><input type="checkbox" id="f_istier" ${p && p.tier ? "checked" : ""}><label for="f_istier">מחיר מיוחד לכמות</label></div>
+    <div class="two" id="tierwrap" style="display:${p && p.tier ? "grid" : "none"}">
+      <div class="fld"><label>מכמות של</label><input id="f_tqty" type="number" inputmode="numeric" value="${p && p.tier ? p.tier.qty : ""}"></div>
+      <div class="fld"><label>מחיר ליח' (₪)</label><input id="f_tprice" type="number" inputmode="decimal" value="${p && p.tier ? p.tier.price : ""}"></div>
+    </div>
+    <div class="fld"><label>תמונה</label><input id="f_img" type="file" accept="image/*">
+      <img class="imgprev" id="f_prev" src="${p && p.img ? p.img : ""}" style="${p && p.img ? "" : "display:none"}">
+    </div>
+    <div class="mact">
+      <button class="save" id="f_save">שמירה</button>
+      <button class="cancel" id="f_cancel">ביטול</button>
+    </div>
+  </div>`;
+  m.classList.add("show");
+  let imgData = p ? p.img : null;
+  $("#f_issale").onchange = e => $("#salewrap").style.display = e.target.checked ? "block" : "none";
+  $("#f_istier").onchange = e => $("#tierwrap").style.display = e.target.checked ? "grid" : "none";
+  $("#f_img").onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    imgData = await shrinkImage(f);
+    const pv = $("#f_prev"); pv.src = imgData; pv.style.display = "block";
+  };
+  $("#f_cancel").onclick = () => m.classList.remove("show");
+  $("#f_save").onclick = async () => {
+    const name = $("#f_name").value.trim();
+    const price = parseFloat($("#f_price").value);
+    if(!name || !(price > 0)){ toast("חסר שם או מחיר"); return; }
+    const obj = {
+      id: p ? p.id : "p" + Date.now(),
+      name,
+      sku: $("#f_sku").value.trim() || newSku(),
+      cat: $("#f_cat").value,
+      price,
+      img: imgData,
+      stock: $("#f_stock").checked,
+      isNew: $("#f_new").checked,
+      sale: $("#f_issale").checked ? (parseFloat($("#f_sale").value) || null) : null,
+      tier: $("#f_istier").checked ? {
+        qty: parseInt($("#f_tqty").value) || 0,
+        price: parseFloat($("#f_tprice").value) || 0
+      } : null
+    };
+    if(obj.tier && (!obj.tier.qty || !obj.tier.price)) obj.tier = null;
+    if(imgData && imgData.startsWith("data:")){
+      const path = "images/" + obj.id + ".jpg";
+      pendingImgs[path] = imgData.split(",")[1];
+      obj.img = path;
+    } else {
+      obj.img = imgData;
+    }
+    if(p){ DB.products = DB.products.map(x => x.id === p.id ? obj : x); }
+    else { DB.products.push(obj); }
+    if(await saveDB()){ toast("נשמר"); m.classList.remove("show"); render(); }
+  };
+}
+
+function shrinkImage(file){
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 500, sc = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL("image/jpeg", .78));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* ---------- exports ---------- */
+function exportPDF(){
+  const pc = $("#printcat");
+  pc.innerHTML = `
+    <div class="pc-head"><h1>חי שיווק – קטלוג מוצרים</h1>
+      <p>המחירים כוללים מע"מ · להזמנות: 052-886-4040</p></div>` +
+    DB.categories.map(c => {
+      const ps = DB.products.filter(p => p.cat === c.id && p.stock);
+      if(!ps.length) return "";
+      return `<div class="pc-cat">${esc(c.name)}</div><div class="pc-grid">` +
+        ps.map(p => `<div class="pc-card">
+          ${p.img ? `<img src="${p.img}">` : ""}
+          <div class="n">${esc(p.name)}</div>
+          <div class="s">מק"ט ${p.sku}</div>
+          <div class="p">${nis(p.sale != null ? p.sale : p.price)}</div>
+        </div>`).join("") + `</div>`;
+    }).join("");
+  window.print();
+}
+
+function exportXLS(){
+  const go = () => {
+    const rows = DB.products.map(p => ({
+      "שם המוצר": p.name,
+      "מק\"ט": p.sku,
+      "קטגוריה": catName(p.cat),
+      "מחיר": p.price,
+      "מחיר מבצע": p.sale != null ? p.sale : "",
+      "כמות למחיר מיוחד": p.tier ? p.tier.qty : "",
+      "מחיר לכמות": p.tier ? p.tier.price : "",
+      "במלאי": p.stock ? "כן" : "לא"
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "קטלוג");
+    XLSX.writeFile(wb, "chai-shivuk-catalog.xlsx");
+  };
+  if(window.XLSX){ go(); return; }
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload = go;
+  s.onerror = () => toast("שגיאה בטעינת הייצוא");
+  document.head.appendChild(s);
+}
+
+/* ---------- boot ---------- */
+window.addEventListener("hashchange", render);
+(async function(){
+  await loadDB();
+  render();
+})();
+</script>
+</body>
+</html>
