@@ -577,7 +577,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 5</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -617,7 +617,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 5</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -692,7 +692,7 @@ function openSettings(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 5</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -903,7 +903,7 @@ async function exportOrderForm(){
               fr.readAsDataURL(blob);
             });
             const imgId = wb.addImage({base64: b64, extension: "jpeg"});
-            ws.addImage(imgId, {tl: {col: 0, row: r.number - 1}, br: {col: 1, row: r.number}, editAs: "oneCell"});
+            ws.addImage(imgId, {tl: {col: 0.06, row: r.number - 1 + 0.04}, ext: {width: 72, height: 66}});
           }catch(e){}
         }
       }
@@ -915,7 +915,18 @@ async function exportOrderForm(){
     tot.getCell(6).numFmt = '₪#,##0';
     tot.getCell(6).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFDCFCE7"}};
     const out = await wb.xlsx.writeBuffer();
-    const blob = new Blob([out], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    // fix: some viewers (Google Sheets) read the image size from the shape, which ExcelJS leaves at 0x0
+    if(!window.JSZip) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const zip = await JSZip.loadAsync(out);
+    const EMU = px => Math.round(px * 9525);
+    const dnames = Object.keys(zip.files).filter(nm => /^xl\/drawings\/drawing\d+\.xml$/.test(nm));
+    for(const nm of dnames){
+      let x = await zip.file(nm).async("string");
+      x = x.replace(/<a:off x="0" y="0"\/><a:ext cx="0" cy="0"\/>/g,
+        '<a:off x="0" y="0"/><a:ext cx="' + EMU(72) + '" cy="' + EMU(66) + '"/>');
+      zip.file(nm, x);
+    }
+    const blob = await zip.generateAsync({type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "chai-shivuk-order-form.xlsx";
@@ -1032,10 +1043,15 @@ window.addEventListener("popstate", () => {
     history.back();
   }
 });
+document.addEventListener("pointerdown", () => {
+  if(!window.__histArmed){
+    window.__histArmed = 1;
+    history.pushState({}, "");
+  }
+}, true);
 (async function(){
   await loadDB();
   render();
-  history.pushState({}, "");
 })();
 </script>
 </body>
