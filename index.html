@@ -838,7 +838,9 @@ function openCatManager(){
   const rows = DB.categories.map(c => {
     const cnt = DB.products.filter(p => p.cat === c.id).length;
     const subs = (c.subs || []).map(s =>
-      `<span style="display:inline-flex;align-items:center;gap:5px;background:#EAF0FB;border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:600">
+      `<span style="display:inline-flex;align-items:center;gap:6px;background:#EAF0FB;border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:600">
+        <button data-ssup="${c.id}:${s.id}" style="color:#1D4ED8;font-weight:800;font-size:11px">▲</button>
+        <button data-ssdown="${c.id}:${s.id}" style="color:#1D4ED8;font-weight:800;font-size:11px">▼</button>
         <span data-srename="${c.id}:${s.id}" style="cursor:pointer">${esc(s.name)}</span>
         <button data-sdel="${c.id}:${s.id}" style="color:var(--red);font-weight:800">✕</button>
       </span>`).join(" ");
@@ -905,6 +907,20 @@ function openCatManager(){
     c.subs = c.subs || [];
     c.subs.push({id: "s" + Date.now(), name: name.trim()});
     openCatManager();
+  });
+  document.querySelectorAll("[data-ssup]").forEach(b => b.onclick = () => {
+    saveNames();
+    const [cid, sid] = b.dataset.ssup.split(":");
+    const c = DB.categories.find(x => x.id === cid);
+    const i = c.subs.findIndex(x => x.id === sid);
+    if(i > 0){ [c.subs[i-1], c.subs[i]] = [c.subs[i], c.subs[i-1]]; openCatManager(); }
+  });
+  document.querySelectorAll("[data-ssdown]").forEach(b => b.onclick = () => {
+    saveNames();
+    const [cid, sid] = b.dataset.ssdown.split(":");
+    const c = DB.categories.find(x => x.id === cid);
+    const i = c.subs.findIndex(x => x.id === sid);
+    if(i >= 0 && i < c.subs.length - 1){ [c.subs[i+1], c.subs[i]] = [c.subs[i], c.subs[i+1]]; openCatManager(); }
   });
   document.querySelectorAll("[data-srename]").forEach(el => el.onclick = () => {
     const [cid, sid] = el.dataset.srename.split(":");
