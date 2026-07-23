@@ -193,7 +193,7 @@ const GH_OWNER = "Chaishivuk";
 const GH_REPO = "Chai-shivuk";
 const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/";
 
-let DB = null, cart = {}, view = {cat:"home", q:"", page:"list", pid:null};
+let DB = null, cart = {}, view = {cat:"home", q:"", page:"list", pid:null, sub:null};
 let pendingImgs = {};   // repo path -> base64 body awaiting upload
 
 function ghToken(){ try{ return localStorage.getItem("gh-token") || ""; }catch(e){ return ""; } }
@@ -266,6 +266,7 @@ function newSku(){
   return s;
 }
 function catName(id){ const c = DB.categories.find(c => c.id === id); return c ? c.name : ""; }
+function catSubs(id){ const c = DB.categories.find(c => c.id === id); return (c && c.subs) ? c.subs : []; }
 
 /* ---------- customer render ---------- */
 let adminMode = false, logoTaps = 0, logoTimer = null;
@@ -302,9 +303,18 @@ function render(){
   } else if(view.cat === "all"){
     body = section("כל המוצרים", "", DB.products);
   } else {
-    const ps = DB.products.filter(p => p.cat === view.cat);
-    body = ps.length ? section(catName(view.cat), "", ps)
-                     : `<div class="empty">אין עדיין מוצרים בקטגוריה זו</div>`;
+    let ps = DB.products.filter(p => p.cat === view.cat);
+    const subs = catSubs(view.cat);
+    let subchips = "";
+    if(subs.length){
+      subchips = `<div class="chips" style="padding:12px 0 0;margin:0;max-width:none">
+        <button class="chip ${!view.sub ? "on" : ""}" data-subchip="">הכל</button>
+        ${subs.map(s => `<button class="chip ${view.sub === s.id ? "on" : ""}" data-subchip="${s.id}">${esc(s.name)}</button>`).join("")}
+      </div>`;
+      if(view.sub) ps = ps.filter(p => p.sub === view.sub);
+    }
+    body = subchips + (ps.length ? section(catName(view.cat), "", ps)
+                     : `<div class="empty">אין מוצרים תואמים</div>`);
   }
 
   app.innerHTML = `
@@ -392,7 +402,10 @@ function card(p){
 
 function bindCustomer(){
   document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
-    view.cat = b.dataset.cat; view.q = ""; render(); window.scrollTo(0,0);
+    view.cat = b.dataset.cat; view.q = ""; view.sub = null; render(); window.scrollTo(0,0);
+  });
+  document.querySelectorAll("[data-subchip]").forEach(b => b.onclick = () => {
+    view.sub = b.dataset.subchip || null; render();
   });
   const s = $("#search");
   s.oninput = () => { view.q = s.value; renderKeepFocus(); };
@@ -719,6 +732,7 @@ function openEditor(id){
       <div class="fld"><label>מחיר כולל מע"מ (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
+    <div class="fld" id="subfld" style="display:none"><label>תת קטגוריה</label><select id="f_sub"></select></div>
     <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku()}"><div class="hint">נוצר אוטומטית – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
     <div class="chk"><input type="checkbox" id="f_new" ${p && p.isNew ? "checked" : ""}><label for="f_new">מוצר חדש</label></div>
@@ -758,6 +772,16 @@ function openEditor(id){
     for(const f of e.target.files){ extraImgs.push(await shrinkImage(f)); }
     e.target.value = ""; paintMore();
   };
+  const fillSubs = () => {
+    const subs = catSubs($("#f_cat").value);
+    const cur = p ? p.sub : null;
+    if(!subs.length){ $("#subfld").style.display = "none"; $("#f_sub").innerHTML = ""; return; }
+    $("#subfld").style.display = "block";
+    $("#f_sub").innerHTML = `<option value="">ללא</option>` +
+      subs.map(s => `<option value="${s.id}" ${cur === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+  };
+  fillSubs();
+  $("#f_cat").onchange = fillSubs;
   $("#f_issale").onchange = e => $("#salewrap").style.display = e.target.checked ? "block" : "none";
   $("#f_istier").onchange = e => $("#tierwrap").style.display = e.target.checked ? "grid" : "none";
   $("#f_img").onchange = async e => {
@@ -793,6 +817,7 @@ function openEditor(id){
     } else {
       obj.img = imgData;
     }
+    obj.sub = ($("#f_sub") && $("#f_sub").value) ? $("#f_sub").value : null;
     obj.desc = $("#f_desc").value.trim();
     obj.imgs = extraImgs.map((s, i) => {
       if(s.startsWith("data:")){
@@ -812,10 +837,19 @@ function openCatManager(){
   const m = $("#modal");
   const rows = DB.categories.map(c => {
     const cnt = DB.products.filter(p => p.cat === c.id).length;
-    return `<div class="catrow">
-      <input value="${esc(c.name)}" data-cname="${c.id}">
+    const subs = (c.subs || []).map(s =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;background:#EAF0FB;border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:600">
+        <span data-srename="${c.id}:${s.id}" style="cursor:pointer">${esc(s.name)}</span>
+        <button data-sdel="${c.id}:${s.id}" style="color:var(--red);font-weight:800">✕</button>
+      </span>`).join(" ");
+    return `<div class="catrow" style="flex-wrap:wrap">
+      <input value="${esc(c.name)}" data-cname="${c.id}" style="min-width:120px">
       <span style="font-size:12px;color:var(--muted);white-space:nowrap">${cnt} מוצרים</span>
       <button class="dl" data-cdel="${c.id}" ${cnt ? "disabled title='אי אפשר למחוק קטגוריה עם מוצרים'" : ""}>מחיקה</button>
+      <div style="width:100%;display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:4px 0 2px">
+        ${subs}
+        <button class="ed" data-sadd="${c.id}" style="font-size:12px;padding:3px 10px">+ תת קטגוריה</button>
+      </div>
     </div>`;
   }).join("");
   m.innerHTML = `<div class="mbox">
@@ -842,6 +876,30 @@ function openCatManager(){
   document.querySelectorAll("[data-cdel]").forEach(b => b.onclick = () => {
     if(!confirm("למחוק את הקטגוריה?")) return;
     DB.categories = DB.categories.filter(c => c.id !== b.dataset.cdel);
+    openCatManager();
+  });
+  document.querySelectorAll("[data-sadd]").forEach(b => b.onclick = () => {
+    const name = prompt("שם תת הקטגוריה:");
+    if(!name || !name.trim()) return;
+    const c = DB.categories.find(x => x.id === b.dataset.sadd);
+    c.subs = c.subs || [];
+    c.subs.push({id: "s" + Date.now(), name: name.trim()});
+    openCatManager();
+  });
+  document.querySelectorAll("[data-srename]").forEach(el => el.onclick = () => {
+    const [cid, sid] = el.dataset.srename.split(":");
+    const c = DB.categories.find(x => x.id === cid);
+    const s = (c.subs || []).find(x => x.id === sid);
+    const name = prompt("שם חדש לתת הקטגוריה:", s.name);
+    if(name && name.trim()){ s.name = name.trim(); openCatManager(); }
+  });
+  document.querySelectorAll("[data-sdel]").forEach(b => b.onclick = () => {
+    const [cid, sid] = b.dataset.sdel.split(":");
+    const c = DB.categories.find(x => x.id === cid);
+    const n = DB.products.filter(p => p.sub === sid).length;
+    if(!confirm(n ? `למחוק? ${n} מוצרים משויכים לתת קטגוריה זו (הם יישארו בקטגוריה הראשית)` : "למחוק את תת הקטגוריה?")) return;
+    c.subs = (c.subs || []).filter(x => x.id !== sid);
+    DB.products.forEach(p => { if(p.sub === sid) p.sub = null; });
     openCatManager();
   });
   $("#catsave").onclick = async () => {
