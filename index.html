@@ -155,6 +155,23 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
   .pc-card .s{color:#777; font-size:10.5px}
   .pc-card .p{font-weight:700; font-size:14px; margin-top:2px}
 }
+/* Product page */
+.backbtn{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:7px 16px;font-weight:700;margin:14px 0 4px}
+.pp{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:10px}
+.ppmainwrap{background:#fff;display:flex;align-items:center;justify-content:center;padding:16px;min-height:230px}
+.ppmainwrap img{max-height:300px;object-fit:contain}
+.ppthumbs{display:flex;gap:8px;padding:0 14px 12px;overflow-x:auto}
+.ppthumbs img{width:58px;height:58px;object-fit:contain;border:2px solid var(--line);border-radius:9px;background:#fff;cursor:pointer}
+.ppthumbs img.on{border-color:var(--green)}
+.ppbody{padding:16px;border-top:1px solid var(--line)}
+.ppbody h1{font-size:21px;margin-bottom:4px}
+.ppdesc{margin-top:12px;font-size:15px;line-height:1.65;color:#333;white-space:pre-line;border-top:1px solid var(--line);padding-top:12px}
+.ppadd{margin-top:14px}
+.ppadd .addbtn{width:100%;padding:12px;font-size:16px}
+/* Category manager */
+.catrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.catrow input{flex:1;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px}
+.catrow .dl:disabled{opacity:.35;cursor:not-allowed}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
 </style>
 </head>
@@ -172,7 +189,7 @@ const GH_OWNER = "Chaishivuk";
 const GH_REPO = "Chai-shivuk";
 const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/";
 
-let DB = null, cart = {}, view = {cat:"home", q:""};
+let DB = null, cart = {}, view = {cat:"home", q:"", page:"list", pid:null};
 let pendingImgs = {};   // repo path -> base64 body awaiting upload
 
 function ghToken(){ try{ return localStorage.getItem("gh-token") || ""; }catch(e){ return ""; } }
@@ -251,6 +268,7 @@ function isAdminRoute(){ return adminMode || location.hash === "#admin"; }
 
 function render(){
   if(isAdminRoute()){ renderAdmin(); return; }
+  if(view.page === "product"){ renderProduct(); return; }
   const app = $("#app");
   const chips = [
     {id:"home", name:"ראשי"},
@@ -340,7 +358,7 @@ function card(p){
   if(!p.stock){
     return `<div class="pcard oos">
       ${badge}<div class="oosband">אזל במלאי</div>
-      <div class="pimg">${img}</div>
+      <div class="pimg" data-open="${p.id}">${img}</div>
       <div class="pbody">
         <div class="pname">${esc(p.name)}</div>
         <div class="psku">מק"ט ${p.sku}</div>
@@ -354,9 +372,9 @@ function card(p){
     : `<div class="addbtn inc"><button data-add="${p.id}" style="font-size:19px;font-weight:800;padding:2px 12px">+</button><b>${qty}</b><button data-sub="${p.id}" style="font-size:19px;font-weight:800;padding:2px 12px">−</button></div>`;
   return `<div class="pcard">
     ${badge}
-    <div class="pimg">${img}</div>
+    <div class="pimg" data-open="${p.id}">${img}</div>
     <div class="pbody">
-      <div class="pname">${esc(p.name)}</div>
+      <div class="pname" data-open="${p.id}">${esc(p.name)}</div>
       <div class="psku">מק"ט ${p.sku}</div>
       <div class="prices">${prices}</div>
       ${tier}
@@ -371,6 +389,9 @@ function bindCustomer(){
   });
   const s = $("#search");
   s.oninput = () => { view.q = s.value; renderKeepFocus(); };
+  document.querySelectorAll("[data-open]").forEach(el => el.onclick = () => {
+    view.page = "product"; view.pid = el.dataset.open; render(); window.scrollTo(0,0);
+  });
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
     cart[b.dataset.add] = (cart[b.dataset.add] || 0) + 1; render();
   });
@@ -390,6 +411,83 @@ function bindCustomer(){
   $("#closecart").onclick = closeCart;
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
+}
+function renderProduct(){
+  const p = DB.products.find(x => x.id === view.pid);
+  if(!p){ view.page = "list"; render(); return; }
+  const qty = cart[p.id] || 0;
+  const imgs = [p.img, ...(p.imgs || [])].filter(Boolean);
+  const badge = p.sale != null ? `<span class="tag sale">מבצע</span>` : (p.isNew ? `<span class="tag new">חדש</span>` : "");
+  const prices = p.sale != null
+    ? `<span class="pprice" style="font-size:22px">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
+    : `<span class="pprice" style="font-size:22px">${nis(p.price)}</span>`;
+  const tier = p.tier ? `<div class="ptier" style="margin-top:6px">מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</div>` : "";
+  let btn;
+  if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button>`;
+  else btn = qty === 0
+    ? `<button class="addbtn" data-add="${p.id}">הוסף לסל</button>`
+    : `<div class="addbtn inc"><button data-add="${p.id}" style="font-size:20px;font-weight:800;padding:2px 14px">+</button><b>${qty}</b><button data-sub="${p.id}" style="font-size:20px;font-weight:800;padding:2px 14px">−</button></div>`;
+  $("#app").innerHTML = `
+  <header><div class="hrow">
+    <div class="logo">חי <b>שיווק</b></div>
+  </div></header>
+  <div class="vat">המחירים כוללים מע"מ</div>
+  <main>
+    <button class="backbtn" id="ppback">→ חזרה לקטלוג</button>
+    <div class="pp">
+      <div class="ppmainwrap"><img id="ppmain" src="${imgs[0] || ""}" alt="${esc(p.name)}"></div>
+      ${imgs.length > 1 ? `<div class="ppthumbs">${imgs.map((s,i) => `<img src="${s}" data-th="${i}" class="${i===0?"on":""}">`).join("")}</div>` : ""}
+      <div class="ppbody">
+        <div style="display:flex;align-items:center;gap:8px">${badge}<span class="psku">מק"ט ${p.sku}</span></div>
+        <h1>${esc(p.name)}</h1>
+        <div class="prices">${prices}</div>
+        ${tier}
+        <div class="ppadd">${btn}</div>
+        ${p.desc ? `<div class="ppdesc">${esc(p.desc)}</div>` : ""}
+      </div>
+    </div>
+  </main>
+  <footer>
+    <div class="big">למכירה בכמויות – צרו קשר</div>
+    <div>וואטסאפ: 052-886-4040 · חי שיווק</div>
+  </footer>
+  <div class="cartbar" id="cartbar">
+    <div><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div></div>
+    <button id="opencart">לצפייה בהזמנה</button>
+  </div>
+  <div class="overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
+    <div class="dlist" id="dlist"></div>
+    <div class="dsum">
+      <div class="row"><span>סה"כ לתשלום</span><b id="dtotal"></b></div>
+      <button class="wabtn" id="sendwa">שליחת ההזמנה בוואטסאפ</button>
+    </div>
+  </div>`;
+  $("#ppback").onclick = () => { view.page = "list"; render(); };
+  document.querySelector(".logo").onclick = () => {
+    logoTaps++; clearTimeout(logoTimer);
+    logoTimer = setTimeout(() => logoTaps = 0, 1500);
+    if(logoTaps >= 5){ logoTaps = 0; adminMode = true; view.page = "list"; render(); window.scrollTo(0,0); }
+  };
+  document.querySelectorAll("[data-th]").forEach(t => t.onclick = () => {
+    $("#ppmain").src = imgs[+t.dataset.th];
+    document.querySelectorAll("[data-th]").forEach(x => x.classList.remove("on"));
+    t.classList.add("on");
+  });
+  document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
+    cart[b.dataset.add] = (cart[b.dataset.add] || 0) + 1; render();
+  });
+  document.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => {
+    const id = b.dataset.sub;
+    cart[id] = Math.max(0, (cart[id]||0) - 1); if(!cart[id]) delete cart[id];
+    render();
+  });
+  $("#opencart").onclick = openCart;
+  $("#closecart").onclick = closeCart;
+  $("#overlay").onclick = closeCart;
+  $("#sendwa").onclick = sendWA;
+  updateCartUI();
 }
 function renderKeepFocus(){
   const pos = $("#search").selectionStart;
@@ -449,11 +547,15 @@ function closeCart(){
 function sendWA(){
   const items = cartItems();
   if(!items.length) return;
-  let lines = ["הזמנה חדשה - חי שיווק", ""];
-  items.forEach(({p, qty}) => {
-    lines.push(`${p.name} | מק"ט ${p.sku} | ${nis(effPrice(p, qty))} × ${qty}`);
+  const n = items.reduce((t, i) => t + i.qty, 0);
+  let lines = ["🛒 הזמנה חדשה – חי שיווק", "――――――――――――"];
+  items.forEach(({p, qty}, i) => {
+    lines.push(`${i + 1}. ${p.name}`);
+    lines.push(`    מק"ט ${p.sku} | ${qty} יח' × ${nis(effPrice(p, qty))} = ${nis(effPrice(p, qty) * qty)}`);
   });
-  lines.push("", `סה"כ: ${nis(cartTotal())}`);
+  lines.push("――――――――――――");
+  lines.push(`סה"כ פריטים: ${n}`);
+  lines.push(`💰 סה"כ לתשלום: ${nis(cartTotal())}`);
   const url = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
   window.open(url, "_blank");
 }
@@ -494,14 +596,18 @@ function renderAdmin(){
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
-        <button class="abtn" id="pdf">ייצוא PDF</button>
-        <button class="abtn" id="xls">ייצוא Excel</button>
+        <button class="abtn" id="cats">ניהול קטגוריות</button>
+        <button class="abtn" id="orderxls">טופס הזמנה (אקסל)</button>
+        <button class="abtn" id="pdf">קטלוג PDF</button>
+        <button class="abtn" id="xls">אקסל נתונים</button>
         <button class="abtn o" id="tostore">לאתר הלקוחות</button>
       </div>
       <div class="atable">${rows || '<div class="empty">אין מוצרים עדיין</div>'}</div>
     </div>
     <div class="modal" id="modal"></div>`;
   $("#addp").onclick = () => openEditor(null);
+  $("#cats").onclick = openCatManager;
+  $("#orderxls").onclick = exportOrderForm;
   $("#pdf").onclick = exportPDF;
   $("#xls").onclick = exportXLS;
   $("#tostore").onclick = () => { adminMode = false; if(location.hash) location.hash = ""; render(); window.scrollTo(0,0); };
@@ -556,8 +662,15 @@ function openEditor(id){
       <div class="fld"><label>מכמות של</label><input id="f_tqty" type="number" inputmode="numeric" value="${p && p.tier ? p.tier.qty : ""}"></div>
       <div class="fld"><label>מחיר ליח' (₪)</label><input id="f_tprice" type="number" inputmode="decimal" value="${p && p.tier ? p.tier.price : ""}"></div>
     </div>
-    <div class="fld"><label>תמונה</label><input id="f_img" type="file" accept="image/*">
+    <div class="fld"><label>תמונה ראשית</label><input id="f_img" type="file" accept="image/*">
       <img class="imgprev" id="f_prev" src="${p && p.img ? p.img : ""}" style="${p && p.img ? "" : "display:none"}">
+    </div>
+    <div class="fld"><label>תמונות נוספות (לעמוד המוצר)</label><input id="f_more" type="file" accept="image/*" multiple>
+      <div id="morewrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+    </div>
+    <div class="fld"><label>תיאור מפורט (יופיע בעמוד המוצר)</label>
+      <textarea id="f_desc" rows="5" style="width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;font-size:15px">${p && p.desc ? esc(p.desc) : ""}</textarea>
+      <div class="hint">מפרט, הסברים, הגדרות – כל שורה חדשה תוצג כשורה נפרדת</div>
     </div>
     <div class="mact">
       <button class="save" id="f_save">שמירה</button>
@@ -566,6 +679,18 @@ function openEditor(id){
   </div>`;
   m.classList.add("show");
   let imgData = p ? p.img : null;
+  let extraImgs = p && p.imgs ? [...p.imgs] : [];
+  function paintMore(){
+    $("#morewrap").innerHTML = extraImgs.map((s, i) =>
+      `<div style="position:relative"><img src="${s}" style="width:58px;height:58px;object-fit:contain;border:1.5px solid var(--line);border-radius:8px;background:#fff">
+       <button data-rmimg="${i}" style="position:absolute;top:-7px;left:-7px;background:var(--red);color:#fff;border-radius:99px;width:20px;height:20px;font-size:12px;line-height:1">✕</button></div>`).join("");
+    document.querySelectorAll("[data-rmimg]").forEach(b => b.onclick = () => { extraImgs.splice(+b.dataset.rmimg, 1); paintMore(); });
+  }
+  paintMore();
+  $("#f_more").onchange = async e => {
+    for(const f of e.target.files){ extraImgs.push(await shrinkImage(f)); }
+    e.target.value = ""; paintMore();
+  };
   $("#f_issale").onchange = e => $("#salewrap").style.display = e.target.checked ? "block" : "none";
   $("#f_istier").onchange = e => $("#tierwrap").style.display = e.target.checked ? "grid" : "none";
   $("#f_img").onchange = async e => {
@@ -601,10 +726,125 @@ function openEditor(id){
     } else {
       obj.img = imgData;
     }
+    obj.desc = $("#f_desc").value.trim();
+    obj.imgs = extraImgs.map((s, i) => {
+      if(s.startsWith("data:")){
+        const path = "images/" + obj.id + "-e" + Date.now() + i + ".jpg";
+        pendingImgs[path] = s.split(",")[1];
+        return path;
+      }
+      return s;
+    });
     if(p){ DB.products = DB.products.map(x => x.id === p.id ? obj : x); }
     else { DB.products.push(obj); }
     if(await saveDB()){ toast("נשמר"); m.classList.remove("show"); render(); }
   };
+}
+
+function openCatManager(){
+  const m = $("#modal");
+  const rows = DB.categories.map(c => {
+    const cnt = DB.products.filter(p => p.cat === c.id).length;
+    return `<div class="catrow">
+      <input value="${esc(c.name)}" data-cname="${c.id}">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap">${cnt} מוצרים</span>
+      <button class="dl" data-cdel="${c.id}" ${cnt ? "disabled title='אי אפשר למחוק קטגוריה עם מוצרים'" : ""}>מחיקה</button>
+    </div>`;
+  }).join("");
+  m.innerHTML = `<div class="mbox">
+    <h3>ניהול קטגוריות</h3>
+    ${rows}
+    <div class="catrow" style="border-bottom:none">
+      <input id="newcat" placeholder="שם קטגוריה חדשה">
+      <button class="ed" id="addcat">+ הוספה</button>
+    </div>
+    <div class="hint" style="font-size:12px;color:var(--muted)">מחיקת קטגוריה אפשרית רק כשאין בה מוצרים (העבר אותם קודם לקטגוריה אחרת)</div>
+    <div class="mact">
+      <button class="save" id="catsave">שמירת שינויים</button>
+      <button class="cancel" id="catcancel">סגירה</button>
+    </div>
+  </div>`;
+  m.classList.add("show");
+  $("#catcancel").onclick = () => m.classList.remove("show");
+  $("#addcat").onclick = () => {
+    const name = $("#newcat").value.trim();
+    if(!name){ toast("כתוב שם לקטגוריה"); return; }
+    DB.categories.push({id: "c" + Date.now(), name});
+    openCatManager();
+  };
+  document.querySelectorAll("[data-cdel]").forEach(b => b.onclick = () => {
+    if(!confirm("למחוק את הקטגוריה?")) return;
+    DB.categories = DB.categories.filter(c => c.id !== b.dataset.cdel);
+    openCatManager();
+  });
+  $("#catsave").onclick = async () => {
+    document.querySelectorAll("[data-cname]").forEach(inp => {
+      const c = DB.categories.find(x => x.id === inp.dataset.cname);
+      if(c && inp.value.trim()) c.name = inp.value.trim();
+    });
+    if(await saveDB()){ m.classList.remove("show"); render(); }
+  };
+}
+
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportOrderForm(){
+  toast("מכין קובץ הזמנה...");
+  try{
+    if(!window.ExcelJS) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js");
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("הזמנה", {views: [{rightToLeft: true}]});
+    ws.columns = [{width: 13}, {width: 36}, {width: 10}, {width: 12}, {width: 14}, {width: 13}];
+    const title = ws.addRow(["חי שיווק – טופס הזמנה"]); title.font = {bold: true, size: 16};
+    ws.addRow(["המחירים כוללים מע\"מ · מלאו כמות בעמודה \"כמות להזמנה\" ושלחו אלינו: 052-886-4040"]);
+    ws.addRow([]);
+    const head = ws.addRow(["תמונה", "שם המוצר", "מק\"ט", "מחיר", "כמות להזמנה", "סה\"כ"]);
+    head.font = {bold: true};
+    head.eachCell(c => c.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFE5E8EE"}});
+    const dataRows = [];
+    for(const c of DB.categories){
+      const ps = DB.products.filter(p => p.cat === c.id && p.stock);
+      if(!ps.length) continue;
+      const cr = ws.addRow([c.name]); cr.font = {bold: true, size: 13};
+      cr.getCell(1).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFDCFCE7"}};
+      ws.mergeCells(cr.number, 1, cr.number, 6);
+      for(const p of ps){
+        const price = p.sale != null ? p.sale : p.price;
+        const r = ws.addRow(["", p.name + (p.tier ? " (מעל " + p.tier.qty + " יח' – ₪" + p.tier.price + " ליח')" : ""), p.sku, price, "", ""]);
+        r.height = 46;
+        r.getCell(6).value = {formula: "D" + r.number + "*E" + r.number};
+        r.getCell(5).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFFFF7E0"}};
+        dataRows.push(r.number);
+        if(p.img){
+          try{
+            const buf = await (await fetch(p.img)).arrayBuffer();
+            const imgId = wb.addImage({buffer: buf, extension: "jpeg"});
+            ws.addImage(imgId, {tl: {col: 0.15, row: r.number - 1 + 0.08}, ext: {width: 62, height: 52}});
+          }catch(e){}
+        }
+      }
+    }
+    ws.addRow([]);
+    const tot = ws.addRow(["", "", "", "", "סה\"כ לתשלום:", ""]);
+    tot.font = {bold: true, size: 13};
+    tot.getCell(6).value = {formula: dataRows.length ? "SUM(" + dataRows.map(n => "F" + n).join(",") + ")" : "0"};
+    tot.getCell(6).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFDCFCE7"}};
+    const out = await wb.xlsx.writeBuffer();
+    const blob = new Blob([out], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "chai-shivuk-order-form.xlsx";
+    a.click();
+    toast("קובץ ההזמנה ירד");
+  }catch(e){
+    toast("שגיאה ביצירת הקובץ");
+  }
 }
 
 function shrinkImage(file){
