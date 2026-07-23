@@ -61,7 +61,6 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .prices{display:flex; align-items:baseline; gap:7px; margin-top:2px}
 .pprice{font-family:'Rubik'; font-weight:700; font-size:17px}
 .pold{color:var(--muted); text-decoration:line-through; font-size:13px}
-.pincl{font-size:12px;color:var(--muted);margin-top:-2px}
 .ptier{font-size:12px; color:var(--green-dark); font-weight:600; background:#EAF7EF; border-radius:6px; padding:2px 7px; width:fit-content}
 .addbtn{margin-top:auto; background:var(--green); color:#fff; font-weight:700; border-radius:9px; padding:9px; transition:.15s}
 .addbtn:active{transform:scale(.97)}
@@ -251,8 +250,6 @@ async function saveDB(){
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const nis = n => "₪" + Number(n).toLocaleString("he-IL", {maximumFractionDigits: 2});
-const vatRate = () => (DB && DB.settings && DB.settings.vat != null) ? Number(DB.settings.vat) : 18;
-const incVat = n => Math.round(n * (100 + vatRate())) / 100;
 function toast(msg){
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 1800);
@@ -320,12 +317,12 @@ function render(){
       </div>
     </div>
   </header>
-  <div class="vat">המחירים מוצגים לפני מע"מ · ליד כל מחיר מופיע גם המחיר כולל מע"מ</div>
+  <div class="vat">המחירים כוללים מע"מ</div>
   <nav class="chips">${chips}</nav>
   <main>${body}</main>
   <footer>
     <div class="big">למכירה בכמויות – צרו קשר</div>
-    <div>וואטסאפ: 052-886-4040</div>
+    <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
   </footer>
   <div class="cartbar" id="cartbar">
@@ -337,9 +334,7 @@ function render(){
     <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
-      <div class="row" style="font-size:14.5px;font-weight:600"><span>סה"כ לפני מע"מ</span><span id="dpre"></span></div>
-      <div class="row" style="font-size:14.5px;font-weight:600"><span id="dvatlbl">מע"מ</span><span id="dvat"></span></div>
-      <div class="row"><span>סה"כ כולל מע"מ</span><b id="dtotal"></b></div>
+      <div class="row"><span>סה"כ לתשלום (כולל מע"מ)</span><b id="dtotal"></b></div>
       <button class="wabtn" id="sendwa">
         <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.83 14.12c-.25.7-1.44 1.34-2 1.42-.51.08-1.16.11-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.6-.37.8-.37.2 0 .4 0 .57.01.18.01.43-.07.67.51.25.6.85 2.07.92 2.22.08.15.13.33.03.53-.1.2-.15.32-.3.5-.15.18-.31.4-.45.53-.15.15-.31.31-.13.61.18.3.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.52.3.15.48.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.17 1.42z"/></svg>
         שליחת ההזמנה בוואטסאפ
@@ -375,7 +370,6 @@ function card(p){
         <div class="pname">${esc(p.name)}</div>
         <div class="psku">מק"ט ${p.sku}</div>
         <div class="prices">${prices}</div>
-        <div class="pincl">כולל מע"מ: ${nis(incVat(p.sale != null ? p.sale : p.price))}</div>
         <button class="oosbtn" disabled>לא זמין</button>
       </div>
     </div>`;
@@ -390,7 +384,6 @@ function card(p){
       <div class="pname" data-open="${p.id}">${esc(p.name)}</div>
       <div class="psku">מק"ט ${p.sku}</div>
       <div class="prices">${prices}</div>
-      <div class="pincl">כולל מע"מ: ${nis(incVat(p.sale != null ? p.sale : p.price))}</div>
       ${tier}
       ${btn}
     </div>
@@ -446,7 +439,7 @@ function renderProduct(){
     <div class="bsd">בס"ד</div>
     <div class="logo">חי <b>שיווק</b></div>
   </div></header>
-  <div class="vat">המחירים מוצגים לפני מע"מ · ליד כל מחיר מופיע גם המחיר כולל מע"מ</div>
+  <div class="vat">המחירים כוללים מע"מ</div>
   <main>
     <button class="backbtn" id="ppback">→ חזרה לקטלוג</button>
     <div class="pp">
@@ -456,7 +449,6 @@ function renderProduct(){
         <div style="display:flex;align-items:center;gap:8px">${badge}<span class="psku">מק"ט ${p.sku}</span></div>
         <h1>${esc(p.name)}</h1>
         <div class="prices">${prices}</div>
-        <div class="pincl" style="font-size:14px">כולל מע"מ: ${nis(incVat(p.sale != null ? p.sale : p.price))}</div>
         ${tier}
         <div class="ppadd">${btn}</div>
         ${p.desc ? `<div class="ppdesc">${esc(p.desc)}</div>` : ""}
@@ -465,7 +457,7 @@ function renderProduct(){
   </main>
   <footer>
     <div class="big">למכירה בכמויות – צרו קשר</div>
-    <div>וואטסאפ: 052-886-4040</div>
+    <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
   </footer>
   <div class="cartbar" id="cartbar">
@@ -477,9 +469,7 @@ function renderProduct(){
     <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
-      <div class="row" style="font-size:14.5px;font-weight:600"><span>סה"כ לפני מע"מ</span><span id="dpre"></span></div>
-      <div class="row" style="font-size:14.5px;font-weight:600"><span id="dvatlbl">מע"מ</span><span id="dvat"></span></div>
-      <div class="row"><span>סה"כ כולל מע"מ</span><b id="dtotal"></b></div>
+      <div class="row"><span>סה"כ לתשלום (כולל מע"מ)</span><b id="dtotal"></b></div>
       <button class="wabtn" id="sendwa">שליחת ההזמנה בוואטסאפ</button>
     </div>
   </div>`;
@@ -531,8 +521,8 @@ function updateCartUI(){
   if(!bar) return;
   if(n === 0){ bar.classList.remove("show"); closeCart(); return; }
   bar.classList.add("show");
-  $("#cbcount").textContent = n + ' פריטים · כולל מע"מ';
-  $("#cbsum").textContent = nis(incVat(cartTotal()));
+  $("#cbcount").textContent = n + " פריטים";
+  $("#cbsum").textContent = nis(cartTotal());
 }
 function openCart(){
   const list = $("#dlist");
@@ -547,11 +537,7 @@ function openCart(){
         <button data-cadd="${p.id}">+</button><b>${qty}</b><button data-csub="${p.id}">−</button>
       </div>
     </div>`).join("");
-  const _pre = cartTotal(), _incl = incVat(_pre);
-  $("#dpre").textContent = nis(_pre);
-  $("#dvatlbl").textContent = 'מע"מ ' + vatRate() + "%";
-  $("#dvat").textContent = nis(Math.round((_incl - _pre) * 100) / 100);
-  $("#dtotal").textContent = nis(_incl);
+  $("#dtotal").textContent = nis(cartTotal());
   list.querySelectorAll("[data-cadd]").forEach(b => b.onclick = () => { cart[b.dataset.cadd]++; openCart(); updateCartUI(); });
   list.querySelectorAll("[data-csub]").forEach(b => b.onclick = () => {
     const id = b.dataset.csub;
@@ -577,11 +563,8 @@ function sendWA(){
     lines.push(`    מק"ט ${p.sku} | ${qty} יח' × ${nis(effPrice(p, qty))} = ${nis(effPrice(p, qty) * qty)}`);
   });
   lines.push("――――――――――――");
-  const pre = cartTotal(), incl = incVat(pre);
   lines.push(`סה"כ פריטים: ${n}`);
-  lines.push(`סה"כ לפני מע"מ: ${nis(pre)}`);
-  lines.push(`מע"מ ${vatRate()}%: ${nis(Math.round((incl - pre) * 100) / 100)}`);
-  lines.push(`💰 סה"כ כולל מע"מ: ${nis(incl)}`);
+  lines.push(`💰 סה"כ לתשלום: ${nis(cartTotal())} (כולל מע"מ)`);
   lines = lines.map(l => "\u200F" + l);
   const url = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
   window.open(url, "_blank");
@@ -627,7 +610,7 @@ function renderAdmin(){
       ${p.img ? `<img src="${p.img}">` : `<div style="width:44px;height:44px;border:1px solid var(--line);border-radius:8px"></div>`}
       <div class="ainfo">
         <div class="n">${esc(p.name)} ${p.stock ? "" : '<span class="oostag">אזל</span>'}</div>
-        <div class="m">מק"ט ${p.sku} · ${esc(catName(p.cat))} · ${nis(p.sale != null ? p.sale : p.price)} <span style="color:#94A0B4">(כולל מע"מ ${nis(incVat(p.sale != null ? p.sale : p.price))})</span></div>
+        <div class="m">מק"ט ${p.sku} · ${esc(catName(p.cat))} · ${nis(p.sale != null ? p.sale : p.price)}</div>
       </div>
       <div class="aact">
         <button class="dl" data-del="${p.id}">מחיקה</button>
@@ -692,27 +675,19 @@ async function tryLogin(){
 function openSettings(){
   const m = $("#modal");
   m.innerHTML = `<div class="mbox"><h3>הגדרות</h3>
-    <div class="fld"><label>אחוז מע"מ (%)</label><input id="s_vat" type="number" inputmode="decimal" value="${vatRate()}">
-      <div class="hint">משמש לחישוב "כולל מע"מ" בכל האתר והקבצים</div></div>
-    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
-    <div class="fld"><label>סיסמה חדשה לניהול (לא חובה)</label><input id="np1" type="password"></div>
+    <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password"></div>
     <div class="fld"><label>אימות סיסמה</label><input id="np2" type="password"></div>
     <div class="mact"><button class="save" id="setsave">שמירה</button><button class="cancel" id="setcancel">ביטול</button></div>
   </div>`;
   m.classList.add("show");
   $("#setcancel").onclick = () => m.classList.remove("show");
   $("#setsave").onclick = async () => {
-    const v = parseFloat($("#s_vat").value);
-    if(!(v >= 0 && v <= 50)){ toast("אחוז מע\"מ לא תקין"); return; }
-    DB.settings = DB.settings || {};
-    DB.settings.vat = v;
     const a = $("#np1").value.trim(), b = $("#np2").value.trim();
-    if(a || b){
-      if(a.length < 4){ toast("סיסמה קצרה מדי – לפחות 4 תווים"); return; }
-      if(a !== b){ toast("הסיסמאות לא זהות"); return; }
-      DB.settings.passHash = await sha256(a);
-    }
-    if(await saveDB()){ m.classList.remove("show"); toast("ההגדרות נשמרו"); render(); }
+    if(a.length < 4){ toast("סיסמה קצרה מדי – לפחות 4 תווים"); return; }
+    if(a !== b){ toast("הסיסמאות לא זהות"); return; }
+    DB.settings = DB.settings || {};
+    DB.settings.passHash = await sha256(a);
+    if(await saveDB()){ m.classList.remove("show"); toast("הסיסמה עודכנה"); }
   };
 }
 function renderTokenGate(){
@@ -741,18 +716,18 @@ function openEditor(id){
     <h3>${p ? "עריכת מוצר" : "מוצר חדש"}</h3>
     <div class="fld"><label>שם המוצר</label><input id="f_name" value="${p ? esc(p.name) : ""}"></div>
     <div class="two">
-      <div class="fld"><label>מחיר לפני מע"מ (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"><div class="hint" id="vh_price"></div></div>
+      <div class="fld"><label>מחיר כולל מע"מ (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
     <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku()}"><div class="hint">נוצר אוטומטית – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
     <div class="chk"><input type="checkbox" id="f_new" ${p && p.isNew ? "checked" : ""}><label for="f_new">מוצר חדש</label></div>
     <div class="chk"><input type="checkbox" id="f_issale" ${p && p.sale != null ? "checked" : ""}><label for="f_issale">במבצע</label></div>
-    <div class="fld" id="salewrap" style="display:${p && p.sale != null ? "block" : "none"}"><label>מחיר מבצע לפני מע"מ (₪)</label><input id="f_sale" type="number" inputmode="decimal" value="${p && p.sale != null ? p.sale : ""}"><div class="hint" id="vh_sale"></div></div>
+    <div class="fld" id="salewrap" style="display:${p && p.sale != null ? "block" : "none"}"><label>מחיר מבצע (₪)</label><input id="f_sale" type="number" inputmode="decimal" value="${p && p.sale != null ? p.sale : ""}"></div>
     <div class="chk"><input type="checkbox" id="f_istier" ${p && p.tier ? "checked" : ""}><label for="f_istier">מחיר מיוחד לכמות</label></div>
     <div class="two" id="tierwrap" style="display:${p && p.tier ? "grid" : "none"}">
       <div class="fld"><label>מכמות של</label><input id="f_tqty" type="number" inputmode="numeric" value="${p && p.tier ? p.tier.qty : ""}"></div>
-      <div class="fld"><label>מחיר ליח' לפני מע"מ (₪)</label><input id="f_tprice" type="number" inputmode="decimal" value="${p && p.tier ? p.tier.price : ""}"></div>
+      <div class="fld"><label>מחיר ליח' (₪)</label><input id="f_tprice" type="number" inputmode="decimal" value="${p && p.tier ? p.tier.price : ""}"></div>
     </div>
     <div class="fld"><label>תמונה ראשית</label><input id="f_img" type="file" accept="image/*">
       <img class="imgprev" id="f_prev" src="${p && p.img ? p.img : ""}" style="${p && p.img ? "" : "display:none"}">
@@ -784,13 +759,6 @@ function openEditor(id){
     e.target.value = ""; paintMore();
   };
   $("#f_issale").onchange = e => $("#salewrap").style.display = e.target.checked ? "block" : "none";
-  const vh = () => {
-    const pv = parseFloat($("#f_price").value);
-    $("#vh_price").textContent = pv > 0 ? 'כולל מע"מ: ' + nis(incVat(pv)) : "";
-    const sv = parseFloat($("#f_sale").value);
-    $("#vh_sale").textContent = sv > 0 ? 'כולל מע"מ: ' + nis(incVat(sv)) : "";
-  };
-  $("#f_price").oninput = vh; $("#f_sale").oninput = vh; vh();
   $("#f_istier").onchange = e => $("#tierwrap").style.display = e.target.checked ? "grid" : "none";
   $("#f_img").onchange = async e => {
     const f = e.target.files[0]; if(!f) return;
@@ -901,9 +869,9 @@ async function exportOrderForm(){
     const ws = wb.addWorksheet("הזמנה", {views: [{rightToLeft: true}]});
     ws.columns = [{width: 13}, {width: 36}, {width: 10}, {width: 12}, {width: 14}, {width: 13}];
     const title = ws.addRow(["חי שיווק – טופס הזמנה"]); title.font = {bold: true, size: 16};
-    ws.addRow(["המחירים לפני מע\"מ · מלאו כמות בעמודה \"כמות להזמנה\" ושלחו: וואטסאפ 052-886-4040 או מייל Ys0533126330@gmail.com"]);
+    ws.addRow(["המחירים כוללים מע\"מ · מלאו כמות בעמודה \"כמות להזמנה\" ושלחו: וואטסאפ 052-886-4040 או מייל Ys0533126330@gmail.com"]);
     ws.addRow([]);
-    const head = ws.addRow(["תמונה", "שם המוצר", "מק\"ט", "מחיר לפני מע\"מ", "כמות להזמנה", "סה\"כ"]);
+    const head = ws.addRow(["תמונה", "שם המוצר", "מק\"ט", "מחיר", "כמות להזמנה", "סה\"כ"]);
     head.font = {bold: true};
     head.eachCell(c => c.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFE5E8EE"}});
     const dataRows = [];
@@ -917,7 +885,7 @@ async function exportOrderForm(){
       for(const p of ps){
         const price = p.sale != null ? p.sale : p.price;
         const r = ws.addRow(["", p.name + (p.tier ? " (מעל " + p.tier.qty + " יח' – ₪" + p.tier.price + " ליח')" : ""), p.sku, price, "", ""]);
-        r.height = 52;
+        r.height = 58;
         r.alignment = {vertical: "middle", wrapText: true};
         r.getCell(4).numFmt = '₪#,##0';
         r.getCell(6).value = {formula: "D" + r.number + "*E" + r.number};
@@ -935,26 +903,16 @@ async function exportOrderForm(){
               fr.readAsDataURL(blob);
             });
             const imgId = wb.addImage({base64: b64, extension: "jpeg"});
-            ws.addImage(imgId, {tl: {col: 0.08, row: r.number - 1 + 0.06}, br: {col: 0.92, row: r.number - 0.06}, editAs: "oneCell"});
+            ws.addImage(imgId, {tl: {col: 0, row: r.number - 1}, br: {col: 1, row: r.number}, editAs: "oneCell"});
           }catch(e){}
         }
       }
     }
     ws.addRow([]);
-    const sumF = dataRows.length ? "SUM(" + dataRows.map(n => "F" + n).join(",") + ")" : "0";
-    const preR = ws.addRow(["", "", "", "", "סה\"כ לפני מע\"מ:", ""]);
-    preR.font = {bold: true};
-    preR.getCell(6).value = {formula: sumF};
-    preR.getCell(6).numFmt = '₪#,##0.00';
-    const vr = vatRate();
-    const vatR = ws.addRow(["", "", "", "", 'מע"מ ' + vr + "%:", ""]);
-    vatR.font = {bold: true};
-    vatR.getCell(6).value = {formula: "F" + preR.number + "*" + (vr / 100)};
-    vatR.getCell(6).numFmt = '₪#,##0.00';
-    const tot = ws.addRow(["", "", "", "", "סה\"כ כולל מע\"מ:", ""]);
+    const tot = ws.addRow(["", "", "", "", "סה\"כ לתשלום (כולל מע\"מ):", ""]);
     tot.font = {bold: true, size: 13};
-    tot.getCell(6).value = {formula: "F" + preR.number + "+F" + vatR.number};
-    tot.getCell(6).numFmt = '₪#,##0.00';
+    tot.getCell(6).value = {formula: dataRows.length ? "SUM(" + dataRows.map(n => "F" + n).join(",") + ")" : "0"};
+    tot.getCell(6).numFmt = '₪#,##0';
     tot.getCell(6).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFDCFCE7"}};
     const out = await wb.xlsx.writeBuffer();
     const blob = new Blob([out], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
@@ -1011,7 +969,7 @@ function exportPDF(){
   const pc = $("#printcat");
   pc.innerHTML = `
     <div class="pc-head"><h1>חי שיווק – קטלוג מוצרים</h1>
-      <p>המחירים לפני מע"מ · להזמנות: וואטסאפ 052-886-4040 · מייל Ys0533126330@gmail.com</p></div>` +
+      <p>המחירים כוללים מע"מ · להזמנות: וואטסאפ 052-886-4040 · מייל Ys0533126330@gmail.com</p></div>` +
     DB.categories.map(c => {
       const ps = DB.products.filter(p => p.cat === c.id && p.stock);
       if(!ps.length) return "";
@@ -1020,7 +978,7 @@ function exportPDF(){
           ${p.img ? `<img src="${p.img}">` : ""}
           <div class="n">${esc(p.name)}</div>
           <div class="s">מק"ט ${p.sku}</div>
-          <div class="p">${nis(p.sale != null ? p.sale : p.price)} <span style="font-weight:400;font-size:10px;color:#555">| כולל מע"מ ${nis(incVat(p.sale != null ? p.sale : p.price))}</span></div>
+          <div class="p">${nis(p.sale != null ? p.sale : p.price)}</div>
         </div>`).join("") + `</div>`;
     }).join("");
   window.print();
@@ -1033,7 +991,6 @@ function exportXLS(){
       "מק\"ט": p.sku,
       "קטגוריה": catName(p.cat),
       "מחיר": p.price,
-      "מחיר כולל מע\"מ": incVat(p.sale != null ? p.sale : p.price),
       "מחיר מבצע": p.sale != null ? p.sale : "",
       "כמות למחיר מיוחד": p.tier ? p.tier.qty : "",
       "מחיר לכמות": p.tier ? p.tier.price : "",
@@ -1054,9 +1011,31 @@ function exportXLS(){
 
 /* ---------- boot ---------- */
 window.addEventListener("hashchange", render);
+let backArmed = false;
+window.addEventListener("popstate", () => {
+  const d = $("#drawer");
+  if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
+  if(view.page === "product"){ view.page = "list"; render(); history.pushState({}, ""); return; }
+  if(adminMode || location.hash === "#admin"){
+    adminMode = false;
+    if(location.hash) location.hash = "";
+    render(); window.scrollTo(0, 0);
+    history.pushState({}, "");
+    return;
+  }
+  if(!backArmed){
+    backArmed = true;
+    toast("לחיצה נוספת על חזור תצא מהאתר");
+    setTimeout(() => backArmed = false, 2000);
+    history.pushState({}, "");
+  } else {
+    history.back();
+  }
+});
 (async function(){
   await loadDB();
   render();
+  history.pushState({}, "");
 })();
 </script>
 </body>
