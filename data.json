@@ -2533,11 +2533,35 @@
    "desc": "",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p155",
+   "name": "גיימקס קונסולת משחקים כשרה - כ-400 משחקים",
+   "sku": "6701",
+   "cat": "c1784852242376",
+   "price": 0,
+   "img": "images/p155.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": null,
+   "desc": "",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
  "settings": {},
  "log": [
+  {
+   "t": "2026-07-30T20:00:00Z",
+   "act": "add",
+   "id": "p155",
+   "name": "גיימקס קונסולת משחקים כשרה - כ-400 משחקים",
+   "cat": "c1784852242376",
+   "price": 0
+  },
   {
    "t": "2026-07-30T19:01:20Z",
    "act": "add",
