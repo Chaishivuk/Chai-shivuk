@@ -144,6 +144,16 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 
 .sortbar{align-items:center; gap:7px}
 .disclaim{margin-top:10px; font-size:12px; color:#8E9BB5}
+.ppcolors{margin-top:12px}
+.ppcolors .cl{font-size:13px; color:var(--muted); font-weight:700; margin-bottom:6px}
+.colrow{display:flex; flex-wrap:wrap; gap:7px}
+.colchip{border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:7px 13px; font-size:14px; font-weight:600; color:var(--ink)}
+.colchip.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+.colchip.off{opacity:.45; text-decoration:line-through}
+.dcol{font-size:12px; color:var(--muted); font-weight:600}
+.crow{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed var(--line)}
+.crow:last-child{border-bottom:0}
+.crow .cn{flex:1}
 .logrow.clickable{cursor:pointer}
 .logrow.clickable:active{background:#F3F6FB}
 .sortlbl{font-size:13px; color:var(--muted); font-weight:600; padding-inline-end:2px}
@@ -413,7 +423,7 @@ function section(title, tag, products){
 }
 
 function card(p){
-  const qty = cart[p.id] || 0;
+  const qty = pidQty(p.id);
   const img = p.img ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy">` : `<span class="noimg">ללא תמונה</span>`;
   const badge = p.sale != null ? `<span class="badge sale">מבצע</span>` : (p.isNew ? `<span class="badge new">חדש</span>` : "");
   const prices = p.sale != null
@@ -461,16 +471,13 @@ function bindCustomer(){
   const s = $("#search");
   s.oninput = () => { view.q = s.value; renderKeepFocus(); };
   document.querySelectorAll("[data-open]").forEach(el => el.onclick = () => {
-    view.page = "product"; view.pid = el.dataset.open; render(); window.scrollTo(0,0);
+    view.page = "product"; view.pid = el.dataset.open; view.color = null; render(); window.scrollTo(0,0);
   });
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
-    cart[b.dataset.add] = (cart[b.dataset.add] || 0) + 1; render();
+    bumpProduct(b.dataset.add, 1); render();
   });
   document.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => {
-    const id = b.dataset.sub;
-    cart[id] = Math.max(0, (cart[id]||0) - 1);
-    if(!cart[id]) delete cart[id];
-    render();
+    bumpProduct(b.dataset.sub, -1); render();
   });
   document.querySelector(".logo").onclick = () => {
     logoTaps++;
@@ -486,7 +493,19 @@ function bindCustomer(){
 function renderProduct(){
   const p = DB.products.find(x => x.id === view.pid);
   if(!p){ view.page = "list"; render(); return; }
-  const qty = cart[p.id] || 0;
+  const cols = Array.isArray(p.colors) ? p.colors : [];
+  if(view.color && !cols.some(c => c.n === view.color && c.s !== false)) view.color = null;
+  const key = ckey(p.id, view.color);
+  const qty = cart[key] || 0;
+  const colorsBox = cols.length ? `<div class="ppcolors">
+      <div class="cl">צבע:</div>
+      <div class="colrow">
+        <button class="colchip ${!view.color ? "on" : ""}" data-col="">לא משנה</button>
+        ${cols.map(c => c.s === false
+          ? `<button class="colchip off" disabled>${esc(c.n)} · אזל</button>`
+          : `<button class="colchip ${view.color === c.n ? "on" : ""}" data-col="${esc(c.n)}">${esc(c.n)}</button>`).join("")}
+      </div>
+    </div>` : "";
   const imgs = [p.img, ...(p.imgs || [])].filter(Boolean);
   const badge = p.sale != null ? `<span class="tag sale">מבצע</span>` : (p.isNew ? `<span class="tag new">חדש</span>` : "");
   const prices = p.sale != null
@@ -496,8 +515,8 @@ function renderProduct(){
   let btn;
   if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button>`;
   else btn = qty === 0
-    ? `<button class="addbtn" data-add="${p.id}">הוסף לסל</button>`
-    : `<div class="addbtn inc"><button data-add="${p.id}" style="font-size:20px;font-weight:800;padding:2px 14px">+</button><b>${qty}</b><button data-sub="${p.id}" style="font-size:20px;font-weight:800;padding:2px 14px">−</button></div>`;
+    ? `<button class="addbtn" data-addk="${esc(key)}">הוסף לסל</button>`
+    : `<div class="addbtn inc"><button data-addk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">+</button><b>${qty}</b><button data-subk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">−</button></div>`;
   $("#app").innerHTML = `
   <header><div class="hcol" style="gap:0">
     <div class="bsd">בס"ד</div>
@@ -514,6 +533,7 @@ function renderProduct(){
         <h1>${esc(p.name)}</h1>
         <div class="prices">${prices}</div>
         ${tier}
+        ${colorsBox}
         <div class="ppadd">${btn}</div>
         ${p.desc ? `<div class="ppdesc">${esc(p.desc)}</div>` : ""}
       </div>
@@ -549,13 +569,14 @@ function renderProduct(){
     document.querySelectorAll("[data-th]").forEach(x => x.classList.remove("on"));
     t.classList.add("on");
   });
-  document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
-    cart[b.dataset.add] = (cart[b.dataset.add] || 0) + 1; render();
+  document.querySelectorAll("[data-col]").forEach(b => b.onclick = () => {
+    view.color = b.dataset.col || null; render();
   });
-  document.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => {
-    const id = b.dataset.sub;
-    cart[id] = Math.max(0, (cart[id]||0) - 1); if(!cart[id]) delete cart[id];
-    render();
+  document.querySelectorAll("[data-addk]").forEach(b => b.onclick = () => {
+    bump(b.dataset.addk, 1); render();
+  });
+  document.querySelectorAll("[data-subk]").forEach(b => b.onclick = () => {
+    bump(b.dataset.subk, -1); render();
   });
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
@@ -570,10 +591,26 @@ function renderKeepFocus(){
 }
 
 /* ---------- cart ---------- */
+function ckey(pid, color){ return color ? pid + "::" + color : pid; }
+function kpid(k){ const i = k.indexOf("::"); return i < 0 ? k : k.slice(0, i); }
+function kcol(k){ const i = k.indexOf("::"); return i < 0 ? null : k.slice(i + 2); }
+function pidKeys(pid){ return Object.keys(cart).filter(k => kpid(k) === pid); }
+function pidQty(pid){ return pidKeys(pid).reduce((t, k) => t + cart[k], 0); }
+function bump(k, d){
+  cart[k] = Math.max(0, (cart[k] || 0) + d);
+  if(!cart[k]) delete cart[k];
+}
+/* grid +/- : act on the single existing line when there is exactly one */
+function bumpProduct(pid, d){
+  const ks = pidKeys(pid);
+  if(ks.length === 1){ bump(ks[0], d); return; }
+  if(d < 0 && ks.length && !cart[pid]) { bump(ks[ks.length - 1], d); return; }
+  bump(pid, d);
+}
 function cartItems(){
-  return Object.entries(cart).map(([id, qty]) => {
-    const p = DB.products.find(x => x.id === id);
-    return p ? {p, qty} : null;
+  return Object.entries(cart).map(([k, qty]) => {
+    const p = DB.products.find(x => x.id === kpid(k));
+    return p ? {p, qty, color: kcol(k), key: k} : null;
   }).filter(Boolean);
 }
 function cartTotal(){
@@ -591,22 +628,21 @@ function updateCartUI(){
 }
 function openCart(){
   const list = $("#dlist");
-  list.innerHTML = cartItems().map(({p, qty}) => `
+  list.innerHTML = cartItems().map(({p, qty, color, key}) => `
     <div class="drow">
       ${p.img ? `<img src="${p.img}">` : `<div style="width:52px;height:52px;border:1px solid var(--line);border-radius:9px"></div>`}
       <div class="dinfo">
-        <div class="n">${esc(p.name)}</div>
+        <div class="n">${esc(p.name)}${color ? ` <span class="dcol">צבע: ${esc(color)}</span>` : ""}</div>
         <div class="s">מק"ט ${p.sku} · ${nis(effPrice(p, qty))} ליח'</div>
       </div>
       <div class="qty">
-        <button data-cadd="${p.id}">+</button><b>${qty}</b><button data-csub="${p.id}">−</button>
+        <button data-cadd="${esc(key)}">+</button><b>${qty}</b><button data-csub="${esc(key)}">−</button>
       </div>
     </div>`).join("");
   $("#dtotal").textContent = nis(cartTotal());
-  list.querySelectorAll("[data-cadd]").forEach(b => b.onclick = () => { cart[b.dataset.cadd]++; openCart(); updateCartUI(); });
+  list.querySelectorAll("[data-cadd]").forEach(b => b.onclick = () => { bump(b.dataset.cadd, 1); openCart(); updateCartUI(); });
   list.querySelectorAll("[data-csub]").forEach(b => b.onclick = () => {
-    const id = b.dataset.csub;
-    cart[id] = Math.max(0, cart[id]-1); if(!cart[id]) delete cart[id];
+    bump(b.dataset.csub, -1);
     if(!Object.keys(cart).length){ closeCart(); render(); return; }
     openCart(); updateCartUI();
   });
@@ -623,8 +659,8 @@ function sendWA(){
   if(!items.length) return;
   const n = items.reduce((t, i) => t + i.qty, 0);
   let lines = ["🛒 הזמנה חדשה – חי שיווק", "――――――――――――"];
-  items.forEach(({p, qty}, i) => {
-    lines.push(`${i + 1}. ${p.name}`);
+  items.forEach(({p, qty, color}, i) => {
+    lines.push(`${i + 1}. ${p.name}${color ? " – צבע: " + color : ""}`);
     lines.push(`    מק"ט ${p.sku} | ${qty} יח' × ${nis(effPrice(p, qty))} = ${nis(effPrice(p, qty) * qty)}`);
   });
   lines.push("――――――――――――");
@@ -832,6 +868,18 @@ function openEditor(id){
       <div class="fld"><label>מכמות של</label><input id="f_tqty" type="number" inputmode="numeric" value="${p && p.tier ? p.tier.qty : ""}"></div>
       <div class="fld"><label>מחיר ליח' (₪)</label><input id="f_tprice" type="number" inputmode="decimal" value="${p && p.tier ? p.tier.price : ""}"></div>
     </div>
+    <div id="colorsblock" style="display:none">
+      <div class="chk"><input type="checkbox" id="f_iscolors" ${p && Array.isArray(p.colors) && p.colors.length ? "checked" : ""}><label for="f_iscolors">לדגם זה יש צבעים נוספים</label></div>
+      <div class="fld" id="colorswrap" style="display:${p && Array.isArray(p.colors) && p.colors.length ? "block" : "none"}">
+        <label>צבעים זמינים</label>
+        <div id="colorslist"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="f_cnew" placeholder="שם צבע – למשל שחור" style="flex:1">
+          <button class="abtn" id="f_cadd" style="flex:0 0 auto;padding:8px 14px">+ הוסף</button>
+        </div>
+        <div class="hint">צבע שלא מסומן "במלאי" יוצג ללקוח באפור ולא ניתן לבחירה</div>
+      </div>
+    </div>
     <div class="fld"><label>תמונה ראשית</label><input id="f_img" type="file" accept="image/*">
       <img class="imgprev" id="f_prev" src="${p && p.img ? p.img : ""}" style="${p && p.img ? "" : "display:none"}">
     </div>
@@ -861,6 +909,35 @@ function openEditor(id){
     for(const f of e.target.files){ extraImgs.push(await shrinkImage(f)); }
     e.target.value = ""; paintMore();
   };
+  let colors = (p && Array.isArray(p.colors)) ? p.colors.map(c => ({n: c.n, s: c.s !== false})) : [];
+  function paintColors(){
+    const box = $("#colorslist");
+    if(!box) return;
+    box.innerHTML = colors.length ? colors.map((c, i) => `
+      <div class="crow">
+        <span class="cn">${esc(c.n)}</span>
+        <label style="font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:4px">
+          <input type="checkbox" data-cstock="${i}" ${c.s ? "checked" : ""}>במלאי
+        </label>
+        <button data-crm="${i}" style="background:var(--red);color:#fff;border-radius:7px;padding:3px 9px;font-size:12px">מחיקה</button>
+      </div>`).join("") : `<div class="hint">לא הוגדרו צבעים</div>`;
+    box.querySelectorAll("[data-cstock]").forEach(cb => cb.onchange = () => { colors[+cb.dataset.cstock].s = cb.checked; });
+    box.querySelectorAll("[data-crm]").forEach(b => b.onclick = () => { colors.splice(+b.dataset.crm, 1); paintColors(); });
+  }
+  paintColors();
+  const addColor = () => {
+    const inp = $("#f_cnew"), v = inp.value.trim();
+    if(!v) return;
+    if(colors.some(c => c.n === v)){ toast("הצבע כבר קיים"); return; }
+    colors.push({n: v, s: true}); inp.value = ""; paintColors();
+  };
+  $("#f_cadd").onclick = addColor;
+  $("#f_cnew").onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); addColor(); } };
+  $("#f_iscolors").onchange = e => $("#colorswrap").style.display = e.target.checked ? "block" : "none";
+  const toggleColors = () => {
+    $("#colorsblock").style.display = ($("#f_cat").value === "phones") ? "block" : "none";
+  };
+  toggleColors();
   const fillSubs = () => {
     const subs = catSubs($("#f_cat").value);
     const cur = p ? p.sub : null;
@@ -870,7 +947,7 @@ function openEditor(id){
       subs.map(s => `<option value="${s.id}" ${cur === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
   };
   fillSubs();
-  $("#f_cat").onchange = fillSubs;
+  $("#f_cat").onchange = () => { fillSubs(); toggleColors(); };
   $("#f_issale").onchange = e => $("#salewrap").style.display = e.target.checked ? "block" : "none";
   $("#f_istier").onchange = e => $("#tierwrap").style.display = e.target.checked ? "grid" : "none";
   $("#f_img").onchange = async e => {
@@ -906,6 +983,9 @@ function openEditor(id){
     } else {
       obj.img = imgData;
     }
+    obj.colors = ($("#f_cat").value === "phones" && $("#f_iscolors").checked)
+      ? colors.filter(c => c.n && c.n.trim()).map(c => ({n: c.n.trim(), s: !!c.s}))
+      : [];
     obj.sub = ($("#f_sub") && $("#f_sub").value) ? $("#f_sub").value : null;
     obj.desc = $("#f_desc").value.trim();
     obj.imgs = extraImgs.map((s, i) => {
