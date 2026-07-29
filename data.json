@@ -2405,11 +2405,83 @@
    "desc": "",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p147",
+   "name": "סוללות XtraCell Alkaline קומבו 8AA + 4AAA",
+   "sku": "7294",
+   "cat": "powerbanks",
+   "price": 0,
+   "img": "images/p147.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": null,
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p148",
+   "name": "מטען נייד Macaron Lighthouse Power עם תצוגה",
+   "sku": "9004",
+   "cat": "powerbanks",
+   "price": 0,
+   "img": "images/p148.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "pb-bank",
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p149",
+   "name": "מטען נייד Smart Power Box עם תצוגה",
+   "sku": "4024",
+   "cat": "powerbanks",
+   "price": 0,
+   "img": "images/p149.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "pb-bank",
+   "desc": "",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
  "settings": {},
  "log": [
+  {
+   "t": "2026-07-30T18:00:40Z",
+   "act": "add",
+   "id": "p149",
+   "name": "מטען נייד Smart Power Box עם תצוגה",
+   "cat": "powerbanks",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T18:00:20Z",
+   "act": "add",
+   "id": "p148",
+   "name": "מטען נייד Macaron Lighthouse Power עם תצוגה",
+   "cat": "powerbanks",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T18:00:00Z",
+   "act": "add",
+   "id": "p147",
+   "name": "סוללות XtraCell Alkaline קומבו 8AA + 4AAA",
+   "cat": "powerbanks",
+   "price": 0
+  },
   {
    "t": "2026-07-30T17:01:20Z",
    "act": "add",
