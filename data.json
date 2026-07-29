@@ -183,6 +183,10 @@
     {
      "id": "sh-tools",
      "name": "כלים"
+    },
+    {
+     "id": "sh-clock",
+     "name": "שעונים"
     }
    ]
   },
@@ -2725,11 +2729,59 @@
    "desc": "",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p167",
+   "name": "שעון מעורר המעורר עם מצב שבת מאושר",
+   "sku": "9046",
+   "cat": "misc",
+   "price": 0,
+   "img": "images/p167.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "sh-clock",
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p168",
+   "name": "שעון מעורר דיגיטלי LED מראה",
+   "sku": "7710",
+   "cat": "misc",
+   "price": 0,
+   "img": "images/p168.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "sh-clock",
+   "desc": "",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
  "settings": {},
  "log": [
+  {
+   "t": "2026-07-30T23:00:20Z",
+   "act": "add",
+   "id": "p168",
+   "name": "שעון מעורר דיגיטלי LED מראה",
+   "cat": "misc",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T23:00:00Z",
+   "act": "add",
+   "id": "p167",
+   "name": "שעון מעורר המעורר עם מצב שבת מאושר",
+   "cat": "misc",
+   "price": 0
+  },
   {
    "t": "2026-07-30T22:01:00Z",
    "act": "add",
