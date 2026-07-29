@@ -143,6 +143,9 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .toast.show{opacity:1}
 
 .sortbar{align-items:center; gap:7px}
+.disclaim{margin-top:10px; font-size:12px; color:#8E9BB5}
+.logrow.clickable{cursor:pointer}
+.logrow.clickable:active{background:#F3F6FB}
 .sortlbl{font-size:13px; color:var(--muted); font-weight:600; padding-inline-end:2px}
 .logbox{max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:10px; margin-bottom:12px}
 .logrow{display:flex; gap:8px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--line); font-size:13px}
@@ -153,6 +156,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .lact.del{background:#FEE2E2; color:#991B1B}
 .logrow .lname{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .logrow .ltime{flex:0 0 auto; color:var(--muted); font-size:11.5px; direction:ltr}
+.logrow .ledit{flex:0 0 auto; color:var(--muted); font-size:13px}
 /* Print catalog */
 #printcat{display:none}
 @media print{
@@ -291,6 +295,18 @@ function sortBar(){
     <button class="chip ${o("desc")}" data-sort="desc">מהיקר לזול ↓</button>
   </div>`;
 }
+function recentAdded(limit){
+  const log = Array.isArray(DB.log) ? DB.log : [];
+  const out = [], seen = {};
+  for(const e of log){
+    if(e.act !== "add" || seen[e.id]) continue;
+    const p = DB.products.find(x => x.id === e.id);
+    if(!p) continue;
+    seen[e.id] = 1; out.push(p);
+    if(out.length >= (limit || 40)) break;
+  }
+  return out;
+}
 function logAct(act, p){
   DB.log = Array.isArray(DB.log) ? DB.log : [];
   DB.log.unshift({t: new Date().toISOString(), act, id: p.id, name: p.name, cat: p.cat, price: p.price});
@@ -365,6 +381,7 @@ function render(){
     <div class="big">למכירה בכמויות – צרו קשר</div>
     <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
+    <div class="disclaim">* התמונות להמחשה בלבד</div>
   </footer>
   <div class="cartbar" id="cartbar">
     <div><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div></div>
@@ -506,6 +523,7 @@ function renderProduct(){
     <div class="big">למכירה בכמויות – צרו קשר</div>
     <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
+    <div class="disclaim">* התמונות להמחשה בלבד</div>
   </footer>
   <div class="cartbar" id="cartbar">
     <div><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div></div>
@@ -637,7 +655,8 @@ function renderAdmin(){
   }
   if(!ghToken()){ renderTokenGate(); return; }
   let list = DB.products;
-  if(adminView.cat === "new") list = list.filter(p => p.isNew);
+  if(adminView.cat === "recent") list = recentAdded();
+  else if(adminView.cat === "new") list = list.filter(p => p.isNew);
   else if(adminView.cat === "sale") list = list.filter(p => p.sale != null);
   else if(adminView.cat === "oos") list = list.filter(p => !p.stock);
   else if(adminView.cat !== "all") list = list.filter(p => p.cat === adminView.cat);
@@ -645,6 +664,7 @@ function renderAdmin(){
   if(q) list = list.filter(p => p.name.includes(q) || p.sku.includes(q));
   const groups = [
     {id: "all", name: "כל המוצרים", n: DB.products.length},
+    {id: "recent", name: "נוספו לאחרונה", n: recentAdded().length},
     {id: "new", name: "מוצרים חדשים", n: DB.products.filter(p => p.isNew).length},
     {id: "sale", name: "מבצעים", n: DB.products.filter(p => p.sale != null).length},
     {id: "oos", name: "אזל מלאי", n: DB.products.filter(p => !p.stock).length},
@@ -747,13 +767,16 @@ function openHistory(){
   const rows = log.map(e => {
     const d = new Date(e.t);
     const when = isNaN(d) ? "" : d.toLocaleDateString("he-IL") + " " + d.toLocaleTimeString("he-IL", {hour: "2-digit", minute: "2-digit"});
-    return `<div class="logrow">
+    const alive = e.act !== "del" && DB.products.some(x => x.id === e.id);
+    return `<div class="logrow ${alive ? "clickable" : ""}" ${alive ? `data-hedit="${e.id}"` : ""}>
       <span class="lact ${e.act}">${lbl[e.act] || e.act}</span>
       <span class="lname">${esc(e.name)}${e.cat ? ` · ${esc(catName(e.cat))}` : ""}</span>
       <span class="ltime">${when}</span>
+      ${alive ? '<span class="ledit">✎</span>' : ""}
     </div>`;
   }).join("");
   m.innerHTML = `<div class="mbox"><h3>היסטוריית מוצרים (${log.length})</h3>
+    <div class="hint" style="margin-bottom:8px">לחיצה על שורה פותחת את המוצר לעריכה</div>
     <div class="logbox">${rows || '<div class="empty" style="padding:18px">אין רשומות עדיין</div>'}</div>
     <div class="mact">
       <button class="cancel" id="hback">← חזרה להגדרות</button>
@@ -762,6 +785,7 @@ function openHistory(){
   </div>`;
   m.classList.add("show");
   $("#hback").onclick = openSettings;
+  m.querySelectorAll("[data-hedit]").forEach(r => r.onclick = () => openEditor(r.dataset.hedit));
   if($("#hclear")) $("#hclear").onclick = async () => {
     if(!confirm("לנקות את כל ההיסטוריה?")) return;
     DB.log = [];
