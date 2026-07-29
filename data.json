@@ -2071,5 +2071,111 @@
   }
  ],
  "version": 2,
- "settings": {}
+ "settings": {},
+ "log": [
+  {
+   "t": "2026-07-30T10:04:00Z",
+   "act": "add",
+   "id": "p125",
+   "name": "אוזניות Soundcore P41i ANC TWS",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:03:40Z",
+   "act": "add",
+   "id": "p124",
+   "name": "אוזניות ספורט Bounce אלחוטיות בלוטוס",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:03:20Z",
+   "act": "add",
+   "id": "p123",
+   "name": "אוזניות JBL Tune 110 חוט In-Ear",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:03:00Z",
+   "act": "add",
+   "id": "p122",
+   "name": "אוזניות Apple AirPods Pro 2 TWS",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:02:40Z",
+   "act": "add",
+   "id": "p121",
+   "name": "אוזניות קשת P9 בלוטוס",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:02:20Z",
+   "act": "add",
+   "id": "p120",
+   "name": "אוזניות JBL Tune 230NC TWS ANC",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:02:00Z",
+   "act": "add",
+   "id": "p119",
+   "name": "אוזניות Soundcore Liberty 4 Pro ANC TWS",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:01:40Z",
+   "act": "add",
+   "id": "p118",
+   "name": "אוזניות קשת JBL Tune 520BT בלוטוס",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:01:20Z",
+   "act": "add",
+   "id": "p117",
+   "name": "אוזניות ספורט Awei B932BL Neckband בלוטוס",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:01:00Z",
+   "act": "add",
+   "id": "p116",
+   "name": "אוזניות Soundcore K20i by Anker TWS",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:00:40Z",
+   "act": "add",
+   "id": "p115",
+   "name": "אוזניות JBL Wave 200 TWS בלוטוס",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:00:20Z",
+   "act": "add",
+   "id": "p114",
+   "name": "אוזניות קשת Solma SL-E190 בלוטוס Hi-Fi",
+   "cat": "headsets",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T10:00:00Z",
+   "act": "add",
+   "id": "p113",
+   "name": "אוזניות Apple AirPods 3 TWS",
+   "cat": "headsets",
+   "price": 0
+  }
+ ]
 }

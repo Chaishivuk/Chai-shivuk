@@ -142,6 +142,17 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .toast{position:fixed; bottom:86px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-weight:600; border-radius:99px; padding:9px 20px; z-index:90; font-size:14px; opacity:0; transition:.25s; pointer-events:none; white-space:nowrap}
 .toast.show{opacity:1}
 
+.sortbar{align-items:center; gap:7px}
+.sortlbl{font-size:13px; color:var(--muted); font-weight:600; padding-inline-end:2px}
+.logbox{max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:10px; margin-bottom:12px}
+.logrow{display:flex; gap:8px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--line); font-size:13px}
+.logrow:last-child{border-bottom:0}
+.logrow .lact{flex:0 0 auto; font-weight:700; border-radius:6px; padding:2px 7px; font-size:11.5px}
+.lact.add{background:#DCFCE7; color:#166534}
+.lact.edit{background:#FEF3C7; color:#92400E}
+.lact.del{background:#FEE2E2; color:#991B1B}
+.logrow .lname{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.logrow .ltime{flex:0 0 auto; color:var(--muted); font-size:11.5px; direction:ltr}
 /* Print catalog */
 #printcat{display:none}
 @media print{
@@ -193,7 +204,7 @@ const GH_OWNER = "Chaishivuk";
 const GH_REPO = "Chai-shivuk";
 const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/";
 
-let DB = null, cart = {}, view = {cat:"home", q:"", page:"list", pid:null, sub:null};
+let DB = null, cart = {}, view = {cat:"home", q:"", page:"list", pid:null, sub:null, sort:null};
 let pendingImgs = {};   // repo path -> base64 body awaiting upload
 
 function ghToken(){ try{ return localStorage.getItem("gh-token") || ""; }catch(e){ return ""; } }
@@ -265,6 +276,26 @@ function newSku(){
   while(DB.products.some(p => p.sku === s));
   return s;
 }
+function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
+function sortList(ps){
+  if(view.sort === "asc")  return ps.slice().sort((a,b) => basePrice(a) - basePrice(b));
+  if(view.sort === "desc") return ps.slice().sort((a,b) => basePrice(b) - basePrice(a));
+  return ps;
+}
+function sortBar(){
+  const o = v => view.sort === v ? "on" : "";
+  return `<div class="chips sortbar" style="padding:10px 0 0;margin:0;max-width:none">
+    <span class="sortlbl">מיון:</span>
+    <button class="chip ${o(null)}" data-sort="">ברירת מחדל</button>
+    <button class="chip ${o("asc")}" data-sort="asc">מהזול ליקר ↑</button>
+    <button class="chip ${o("desc")}" data-sort="desc">מהיקר לזול ↓</button>
+  </div>`;
+}
+function logAct(act, p){
+  DB.log = Array.isArray(DB.log) ? DB.log : [];
+  DB.log.unshift({t: new Date().toISOString(), act, id: p.id, name: p.name, cat: p.cat, price: p.price});
+  if(DB.log.length > 300) DB.log.length = 300;
+}
 function catName(id){ const c = DB.categories.find(c => c.id === id); return c ? c.name : ""; }
 function catSubs(id){ const c = DB.categories.find(c => c.id === id); return (c && c.subs) ? c.subs : []; }
 
@@ -301,7 +332,7 @@ function render(){
       }).join("");
     if(!body) body = `<div class="empty">הקטלוג יעודכן בקרוב</div>`;
   } else if(view.cat === "all"){
-    body = section("כל המוצרים", "", DB.products);
+    body = sortBar() + section("כל המוצרים", "", sortList(DB.products));
   } else {
     let ps = DB.products.filter(p => p.cat === view.cat);
     const subs = catSubs(view.cat);
@@ -313,7 +344,7 @@ function render(){
       </div>`;
       if(view.sub) ps = ps.filter(p => p.sub === view.sub);
     }
-    body = subchips + (ps.length ? section(catName(view.cat), "", ps)
+    body = subchips + sortBar() + (ps.length ? section(catName(view.cat), "", sortList(ps))
                      : `<div class="empty">אין מוצרים תואמים</div>`);
   }
 
@@ -406,6 +437,9 @@ function bindCustomer(){
   });
   document.querySelectorAll("[data-subchip]").forEach(b => b.onclick = () => {
     view.sub = b.dataset.subchip || null; render();
+  });
+  document.querySelectorAll("[data-sort]").forEach(b => b.onclick = () => {
+    view.sort = b.dataset.sort || null; render();
   });
   const s = $("#search");
   s.oninput = () => { view.q = s.value; renderKeepFocus(); };
@@ -590,7 +624,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 5</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 6</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -630,7 +664,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 5</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 6</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -671,6 +705,7 @@ function renderAdmin(){
     const p = DB.products.find(x => x.id === b.dataset.del);
     if(!confirm(`למחוק את "${p.name}"?`)) return;
     DB.products = DB.products.filter(x => x.id !== p.id);
+    logAct("del", p);
     if(await saveDB()){ toast("המוצר נמחק"); render(); }
   });
 }
@@ -690,9 +725,11 @@ function openSettings(){
   m.innerHTML = `<div class="mbox"><h3>הגדרות</h3>
     <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password"></div>
     <div class="fld"><label>אימות סיסמה</label><input id="np2" type="password"></div>
+    <button class="abtn" id="sethist" style="width:100%;margin-bottom:12px">📜 היסטוריית מוצרים</button>
     <div class="mact"><button class="save" id="setsave">שמירה</button><button class="cancel" id="setcancel">ביטול</button></div>
   </div>`;
   m.classList.add("show");
+  $("#sethist").onclick = openHistory;
   $("#setcancel").onclick = () => m.classList.remove("show");
   $("#setsave").onclick = async () => {
     const a = $("#np1").value.trim(), b = $("#np2").value.trim();
@@ -703,9 +740,37 @@ function openSettings(){
     if(await saveDB()){ m.classList.remove("show"); toast("הסיסמה עודכנה"); }
   };
 }
+function openHistory(){
+  const m = $("#modal");
+  const log = Array.isArray(DB.log) ? DB.log : [];
+  const lbl = {add: "נוסף", edit: "עודכן", del: "נמחק"};
+  const rows = log.map(e => {
+    const d = new Date(e.t);
+    const when = isNaN(d) ? "" : d.toLocaleDateString("he-IL") + " " + d.toLocaleTimeString("he-IL", {hour: "2-digit", minute: "2-digit"});
+    return `<div class="logrow">
+      <span class="lact ${e.act}">${lbl[e.act] || e.act}</span>
+      <span class="lname">${esc(e.name)}${e.cat ? ` · ${esc(catName(e.cat))}` : ""}</span>
+      <span class="ltime">${when}</span>
+    </div>`;
+  }).join("");
+  m.innerHTML = `<div class="mbox"><h3>היסטוריית מוצרים (${log.length})</h3>
+    <div class="logbox">${rows || '<div class="empty" style="padding:18px">אין רשומות עדיין</div>'}</div>
+    <div class="mact">
+      <button class="cancel" id="hback">← חזרה להגדרות</button>
+      ${log.length ? '<button class="cancel" id="hclear" style="color:#991B1B">ניקוי היסטוריה</button>' : ""}
+    </div>
+  </div>`;
+  m.classList.add("show");
+  $("#hback").onclick = openSettings;
+  if($("#hclear")) $("#hclear").onclick = async () => {
+    if(!confirm("לנקות את כל ההיסטוריה?")) return;
+    DB.log = [];
+    if(await saveDB()){ toast("ההיסטוריה נוקתה"); openHistory(); }
+  };
+}
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 5</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 6</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -827,8 +892,8 @@ function openEditor(id){
       }
       return s;
     });
-    if(p){ DB.products = DB.products.map(x => x.id === p.id ? obj : x); }
-    else { DB.products.push(obj); }
+    if(p){ DB.products = DB.products.map(x => x.id === p.id ? obj : x); logAct("edit", obj); }
+    else { DB.products.push(obj); logAct("add", obj); }
     if(await saveDB()){ toast("נשמר"); m.classList.remove("show"); render(); }
   };
 }
