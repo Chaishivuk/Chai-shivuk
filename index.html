@@ -1285,12 +1285,22 @@ function exportXLS(){
 
 /* ---------- boot ---------- */
 window.addEventListener("hashchange", render);
-let backArmed = false;
+let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
   const d = $("#drawer");
   if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
+  const md = $("#modal");
+  if(md && md.classList.contains("show")){ md.classList.remove("show"); history.pushState({}, ""); return; }
   if(view.page === "product"){ view.page = "list"; render(); history.pushState({}, ""); return; }
   if(adminMode || location.hash === "#admin"){
+    if(!adminBackArmed){
+      adminBackArmed = true;
+      toast("לחיצה נוספת על חזור תחזור לקטלוג");
+      setTimeout(() => adminBackArmed = false, 2000);
+      history.pushState({}, "");
+      return;
+    }
+    adminBackArmed = false;
     adminMode = false;
     if(location.hash) location.hash = "";
     render(); window.scrollTo(0, 0);
