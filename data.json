@@ -2661,11 +2661,107 @@
    "desc": "",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p163",
+   "name": "מכשיר הקלטה Penson Audio 10 16GB",
+   "sku": "3914",
+   "cat": "players",
+   "price": 0,
+   "img": "images/p163.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "pl-rec",
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p164",
+   "name": "נגן Calamara Bazbaz Bass עם רמקול",
+   "sku": "7700",
+   "cat": "players",
+   "price": 0,
+   "img": "images/p164.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "pl-mp3",
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p165",
+   "name": "נגן Clipo+ Yovsar עם מצלמה",
+   "sku": "8673",
+   "cat": "players",
+   "price": 0,
+   "img": "images/p165.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "pl-mp3",
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p166",
+   "name": "נגן והקלטה Samvix Dynamite 2.0 16GB בלוטוס",
+   "sku": "3355",
+   "cat": "players",
+   "price": 0,
+   "img": "images/p166.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "pl-mp3",
+   "desc": "",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
  "settings": {},
  "log": [
+  {
+   "t": "2026-07-30T22:01:00Z",
+   "act": "add",
+   "id": "p166",
+   "name": "נגן והקלטה Samvix Dynamite 2.0 16GB בלוטוס",
+   "cat": "players",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T22:00:40Z",
+   "act": "add",
+   "id": "p165",
+   "name": "נגן Clipo+ Yovsar עם מצלמה",
+   "cat": "players",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T22:00:20Z",
+   "act": "add",
+   "id": "p164",
+   "name": "נגן Calamara Bazbaz Bass עם רמקול",
+   "cat": "players",
+   "price": 0
+  },
+  {
+   "t": "2026-07-30T22:00:00Z",
+   "act": "add",
+   "id": "p163",
+   "name": "מכשיר הקלטה Penson Audio 10 16GB",
+   "cat": "players",
+   "price": 0
+  },
   {
    "t": "2026-07-30T21:02:00Z",
    "act": "add",
