@@ -290,6 +290,18 @@ function newSku(){
   while(DB.products.some(p => p.sku === s));
   return s;
 }
+const VAT_DEFAULT = 'המחירים כוללים מע"מ';
+function vatText(){
+  const t = DB && DB.settings ? DB.settings.vatText : null;
+  return (t === undefined || t === null) ? VAT_DEFAULT : t;
+}
+function vatBanner(){
+  const t = vatText();
+  return t ? `<div class="vat">${esc(t)}</div>` : "";
+}
+function colorsAllowed(cat){
+  return cat === "phones" || !!(DB.settings && DB.settings.colorsAll);
+}
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
 function sortList(ps){
   if(view.sort === "asc")  return ps.slice().sort((a,b) => basePrice(a) - basePrice(b));
@@ -384,7 +396,7 @@ function render(){
       </div>
     </div>
   </header>
-  <div class="vat">המחירים כוללים מע"מ</div>
+  ${vatBanner()}
   <nav class="chips">${chips}</nav>
   <main>${body}</main>
   <footer>
@@ -522,7 +534,7 @@ function renderProduct(){
     <div class="bsd">בס"ד</div>
     <div class="logo">חי <b>שיווק</b></div>
   </div></header>
-  <div class="vat">המחירים כוללים מע"מ</div>
+  ${vatBanner()}
   <main>
     <button class="backbtn" id="ppback">→ חזרה לקטלוג</button>
     <div class="pp">
@@ -678,7 +690,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 6</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 7</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -720,7 +732,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 6</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 7</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -779,7 +791,13 @@ async function tryLogin(){
 function openSettings(){
   const m = $("#modal");
   m.innerHTML = `<div class="mbox"><h3>הגדרות</h3>
-    <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password"></div>
+    <div class="fld"><label>שורת הכיתוב העליונה באתר</label>
+      <input id="setvat" value="${esc(vatText())}" placeholder='למשל: המחירים כוללים מע"מ'>
+      <div class="hint">השאר ריק כדי להסתיר את השורה לגמרי</div>
+    </div>
+    <div class="chk"><input type="checkbox" id="setcolall" ${(DB.settings && DB.settings.colorsAll) ? "checked" : ""}><label for="setcolall">אפשר בחירת צבעים בכל הקטגוריות</label></div>
+    <div class="hint" style="margin-bottom:12px">בלי סימון – אפשרות הצבעים זמינה בפלאפונים בלבד</div>
+    <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password" placeholder="השאר ריק כדי לא לשנות"></div>
     <div class="fld"><label>אימות סיסמה</label><input id="np2" type="password"></div>
     <button class="abtn" id="sethist" style="width:100%;margin-bottom:12px">📜 היסטוריית מוצרים</button>
     <div class="mact"><button class="save" id="setsave">שמירה</button><button class="cancel" id="setcancel">ביטול</button></div>
@@ -789,11 +807,15 @@ function openSettings(){
   $("#setcancel").onclick = () => m.classList.remove("show");
   $("#setsave").onclick = async () => {
     const a = $("#np1").value.trim(), b = $("#np2").value.trim();
-    if(a.length < 4){ toast("סיסמה קצרה מדי – לפחות 4 תווים"); return; }
-    if(a !== b){ toast("הסיסמאות לא זהות"); return; }
     DB.settings = DB.settings || {};
-    DB.settings.passHash = await sha256(a);
-    if(await saveDB()){ m.classList.remove("show"); toast("הסיסמה עודכנה"); }
+    if(a || b){
+      if(a.length < 4){ toast("סיסמה קצרה מדי – לפחות 4 תווים"); return; }
+      if(a !== b){ toast("הסיסמאות לא זהות"); return; }
+      DB.settings.passHash = await sha256(a);
+    }
+    DB.settings.vatText = $("#setvat").value.trim();
+    DB.settings.colorsAll = $("#setcolall").checked;
+    if(await saveDB()){ m.classList.remove("show"); toast("ההגדרות נשמרו"); render(); }
   };
 }
 function openHistory(){
@@ -830,7 +852,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 6</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 7</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -935,7 +957,7 @@ function openEditor(id){
   $("#f_cnew").onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); addColor(); } };
   $("#f_iscolors").onchange = e => $("#colorswrap").style.display = e.target.checked ? "block" : "none";
   const toggleColors = () => {
-    $("#colorsblock").style.display = ($("#f_cat").value === "phones") ? "block" : "none";
+    $("#colorsblock").style.display = colorsAllowed($("#f_cat").value) ? "block" : "none";
   };
   toggleColors();
   const fillSubs = () => {
@@ -983,7 +1005,7 @@ function openEditor(id){
     } else {
       obj.img = imgData;
     }
-    obj.colors = ($("#f_cat").value === "phones" && $("#f_iscolors").checked)
+    obj.colors = (colorsAllowed($("#f_cat").value) && $("#f_iscolors").checked)
       ? colors.filter(c => c.n && c.n.trim()).map(c => ({n: c.n.trim(), s: !!c.s}))
       : [];
     obj.sub = ($("#f_sub") && $("#f_sub").value) ? $("#f_sub").value : null;
