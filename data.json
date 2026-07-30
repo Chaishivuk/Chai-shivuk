@@ -2825,6 +2825,22 @@
    "desc": "",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p172",
+   "name": "מצלמה דיגיטלית Skynano t16 4K מסך מתכוונן לסלפי",
+   "sku": "7006",
+   "cat": "cameras",
+   "price": 0,
+   "img": "images/p172.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "cam-dig",
+   "desc": "",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
@@ -2907,6 +2923,14 @@
   }
  },
  "log": [
+  {
+   "t": "2026-07-31T09:30:00Z",
+   "act": "add",
+   "id": "p172",
+   "name": "מצלמה דיגיטלית Skynano t16 4K מסך מתכוונן לסלפי",
+   "cat": "cameras",
+   "price": 0
+  },
   {
    "t": "2026-07-31T09:00:40Z",
    "act": "add",
