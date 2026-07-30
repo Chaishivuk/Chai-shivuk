@@ -308,6 +308,23 @@ function vatBanner(){
   const rows = t.split("\n").filter(x => x.trim()).map(x => `<div>${esc(x)}</div>`).join("");
   return `<div class="vat">${rows}</div>`;
 }
+function savedOrder(kind){
+  return (DB.settings && DB.settings.order && DB.settings.order[kind]) || [];
+}
+function orderList(kind, list){
+  const ord = savedOrder(kind);
+  if(!ord.length) return list;
+  const idx = id => { const i = ord.indexOf(id); return i < 0 ? 1e9 : i; };
+  return list.slice().sort((a, b) => idx(a.id) - idx(b.id));
+}
+function setOrder(kind, ids){
+  DB.settings = DB.settings || {};
+  DB.settings.order = DB.settings.order || {};
+  DB.settings.order[kind] = ids;
+}
+function groupList(kind){
+  return orderList(kind, DB.products.filter(kind === "sale" ? (p => p.sale != null) : (p => p.isNew)));
+}
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
 function sortList(ps){
   if(view.sort === "asc")  return ps.slice().sort((a,b) => basePrice(a) - basePrice(b));
@@ -365,8 +382,8 @@ function render(){
       p.name.includes(q) || p.sku.includes(q));
     body = section(`תוצאות חיפוש (${found.length})`, "", found);
   } else if(view.cat === "home"){
-    const sale = DB.products.filter(p => p.sale != null);
-    const nw = DB.products.filter(p => p.isNew);
+    const sale = groupList("sale");
+    const nw = groupList("new");
     body =
       (sale.length ? section("מבצעים", "sale", sale, true) : "") +
       (nw.length ? section("מוצרים חדשים", "new", nw) : "") +
@@ -696,7 +713,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 9</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 10</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -738,7 +755,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 9</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 10</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -803,11 +820,15 @@ function openSettings(){
     </div>
     <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password" placeholder="השאר ריק כדי לא לשנות"></div>
     <div class="fld"><label>אימות סיסמה</label><input id="np2" type="password"></div>
+    <button class="abtn" id="setordsale" style="width:100%;margin-bottom:8px">↕ סדר המוצרים במבצע</button>
+    <button class="abtn" id="setordnew" style="width:100%;margin-bottom:8px">↕ סדר המוצרים החדשים</button>
     <button class="abtn" id="sethist" style="width:100%;margin-bottom:12px">📜 היסטוריית מוצרים</button>
     <div class="mact"><button class="save" id="setsave">שמירה</button><button class="cancel" id="setcancel">ביטול</button></div>
   </div>`;
   m.classList.add("show");
   $("#sethist").onclick = openHistory;
+  $("#setordsale").onclick = () => openOrderManager("sale");
+  $("#setordnew").onclick = () => openOrderManager("new");
   $("#setcancel").onclick = () => m.classList.remove("show");
   $("#setsave").onclick = async () => {
     const a = $("#np1").value.trim(), b = $("#np2").value.trim();
@@ -819,6 +840,55 @@ function openSettings(){
     }
     DB.settings.vatText = $("#setvat").value.replace(/[ \t]+$/gm, "").replace(/^\n+|\n+$/g, "");
     if(await saveDB()){ m.classList.remove("show"); toast("ההגדרות נשמרו"); render(); }
+  };
+}
+function openOrderManager(kind){
+  const m = $("#modal");
+  const title = kind === "sale" ? "סדר המוצרים במבצע" : "סדר המוצרים החדשים";
+  const list = groupList(kind);
+  const arrow = (attr, id) => `<button data-${attr}="${id}" style="background:#EAF0FB;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:800;color:#1D4ED8">${attr === "oup" ? "▲" : "▼"}</button>`;
+  const rows = list.map((p, i) => `<div class="catrow">
+      <span style="display:flex;flex-direction:column;gap:3px">${arrow("oup", p.id)}${arrow("odown", p.id)}</span>
+      <span style="font-size:12px;color:var(--muted);min-width:18px">${i + 1}</span>
+      ${p.img ? `<img src="${p.img}" style="width:34px;height:34px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:7px">` : ""}
+      <span style="flex:1;font-size:13.5px;min-width:0">${esc(p.name)}</span>
+      <button class="ed" data-otop="${p.id}" style="font-size:11.5px;padding:3px 9px;white-space:nowrap">לראש</button>
+    </div>`).join("");
+  m.innerHTML = `<div class="mbox">
+    <h3>${title} (${list.length})</h3>
+    <div class="hint" style="margin-bottom:8px">הסדר כאן הוא הסדר שהלקוח רואה בעמוד הראשי</div>
+    <div style="max-height:46vh;overflow:auto">${rows || '<div class="empty" style="padding:18px">אין מוצרים בקבוצה הזאת</div>'}</div>
+    <div class="mact">
+      <button class="save" id="ordsave">שמירת הסדר</button>
+      <button class="cancel" id="ordback">← חזרה להגדרות</button>
+      ${savedOrder(kind).length ? '<button class="cancel" id="ordreset">איפוס לסדר המקורי</button>' : ""}
+    </div>
+  </div>`;
+  m.classList.add("show");
+  $("#ordback").onclick = openSettings;
+  const move = (id, d) => {
+    const ids = groupList(kind).map(p => p.id);
+    const i = ids.indexOf(id), j = i + d;
+    if(i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    setOrder(kind, ids);
+    openOrderManager(kind);
+  };
+  m.querySelectorAll("[data-oup]").forEach(b => b.onclick = () => move(b.dataset.oup, -1));
+  m.querySelectorAll("[data-odown]").forEach(b => b.onclick = () => move(b.dataset.odown, 1));
+  m.querySelectorAll("[data-otop]").forEach(b => b.onclick = () => {
+    const id = b.dataset.otop;
+    const ids = groupList(kind).map(p => p.id).filter(x => x !== id);
+    setOrder(kind, [id, ...ids]);
+    openOrderManager(kind);
+  });
+  if($("#ordreset")) $("#ordreset").onclick = async () => {
+    if(DB.settings && DB.settings.order) delete DB.settings.order[kind];
+    if(await saveDB()){ toast("הסדר אופס"); openOrderManager(kind); }
+  };
+  $("#ordsave").onclick = async () => {
+    setOrder(kind, groupList(kind).map(p => p.id));
+    if(await saveDB()){ toast("הסדר נשמר"); m.classList.remove("show"); render(); }
   };
 }
 function openHistory(){
@@ -855,7 +925,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 9</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 10</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
