@@ -2838,7 +2838,23 @@
    "sale": null,
    "tier": null,
    "sub": "cam-dig",
-   "desc": "",
+   "desc": "מצלמה דיגיטלית Skynano t16 מבית SKYON.\nצילום באיכות 4K\nמסך מתכוונן לצילום סלפי\nזום דיגיטלי X8\nתמיכה בכרטיס זיכרון SD עד 256GB\nנגן מוזיקה MP3 מובנה\nתאורת צילום מובנית\nמהודר – ללא WiFi\nשירות ואחריות מבית SKYON",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p173",
+   "name": "מצלמה דיגיטלית Calamara MaxCamera10 4K עדשה מתפרקת",
+   "sku": "7007",
+   "cat": "cameras",
+   "price": 0,
+   "img": "images/p173.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "cam-dig",
+   "desc": "מצלמה דיגיטלית MaxCamera10 מבית CALAMARA.\nצילום באיכות 4K\nעדשה ענקית מתפרקת\nמסך מתכוונן לצילום סלפי\nבאישור לכתחילה",
    "imgs": [],
    "colors": []
   }
@@ -2923,6 +2939,22 @@
   }
  },
  "log": [
+  {
+   "t": "2026-07-31T10:00:00Z",
+   "act": "add",
+   "id": "p173",
+   "name": "מצלמה דיגיטלית Calamara MaxCamera10 4K עדשה מתפרקת",
+   "cat": "cameras",
+   "price": 0
+  },
+  {
+   "t": "2026-07-31T09:59:00Z",
+   "act": "edit",
+   "id": "p172",
+   "name": "מצלמה דיגיטלית Skynano t16 4K מסך מתכוונן לסלפי",
+   "cat": "cameras",
+   "price": 0
+  },
   {
    "t": "2026-07-31T09:30:00Z",
    "act": "add",
