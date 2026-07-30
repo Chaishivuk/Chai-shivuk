@@ -292,10 +292,17 @@ function effPrice(p, qty){
   if(p.tier && qty >= p.tier.qty) base = Math.min(base, p.tier.price);
   return base;
 }
-function newSku(){
+/* מק"ט לפי קטגוריה: קטגוריה ראשונה 1001+, שנייה 2001+ וכן הלאה */
+function newSku(cat){
+  const used = new Set(DB.products.map(p => p.sku));
+  const i = DB.categories.findIndex(c => c.id === cat);
+  const base = (i < 0 ? DB.categories.length : i + 1) * 1000;
+  for(let n = base + 1; n < base + 1000; n++){
+    const s = String(n);
+    if(!used.has(s)) return s;
+  }
   let s;
-  do{ s = String(Math.floor(1000 + Math.random()*9000)); }
-  while(DB.products.some(p => p.sku === s));
+  do{ s = String(Math.floor(1000 + Math.random()*99000)); } while(used.has(s));
   return s;
 }
 const VAT_DEFAULT = 'המחירים כוללים מע"מ';
@@ -714,7 +721,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 11</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 12</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -756,7 +763,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 11</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 12</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -978,7 +985,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 11</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 12</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1008,7 +1015,7 @@ function openEditor(id){
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
     <div class="fld" id="subfld" style="display:none"><label>תת קטגוריה</label><select id="f_sub"></select></div>
-    <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku()}"><div class="hint">נוצר אוטומטית – אפשר לשנות</div></div>
+    <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku(p ? p.cat : (DB.categories[0] || {}).id)}"><div class="hint">נוצר אוטומטית לפי מספור הקטגוריה – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
     <div class="chk"><input type="checkbox" id="f_new" ${p && p.isNew ? "checked" : ""}><label for="f_new">מוצר חדש</label></div>
     <div class="chk"><input type="checkbox" id="f_issale" ${p && p.sale != null ? "checked" : ""}><label for="f_issale">במבצע</label></div>
@@ -1099,7 +1106,10 @@ function openEditor(id){
       subs.map(s => `<option value="${s.id}" ${cur === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
   };
   fillSubs();
-  $("#f_cat").onchange = fillSubs;
+  $("#f_cat").onchange = () => {
+    fillSubs();
+    if(!p) $("#f_sku").value = newSku($("#f_cat").value);
+  };
   $("#f_issale").onchange = e => $("#salewrap").style.display = e.target.checked ? "block" : "none";
   $("#f_istier").onchange = e => $("#tierwrap").style.display = e.target.checked ? "grid" : "none";
   $("#f_img").onchange = async e => {
@@ -1115,7 +1125,7 @@ function openEditor(id){
     const obj = {
       id: p ? p.id : "p" + Date.now(),
       name,
-      sku: $("#f_sku").value.trim() || newSku(),
+      sku: $("#f_sku").value.trim() || newSku($("#f_cat").value),
       cat: $("#f_cat").value,
       price,
       img: imgData,
