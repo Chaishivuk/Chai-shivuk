@@ -2764,6 +2764,67 @@
    "desc": "",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p169",
+   "name": "שלט אוניברסלי למזגן MultiLED K-1028E 1000 ב-1",
+   "sku": "9019",
+   "cat": "misc",
+   "price": 0,
+   "img": "images/p169.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": null,
+   "desc": "",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p170",
+   "name": "מאוורר USB נייד עם רגלי חצובה גמישות",
+   "sku": "9020",
+   "cat": "misc",
+   "price": 0,
+   "img": "images/p170.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "sh-health",
+   "desc": "",
+   "imgs": [],
+   "colors": [
+    {
+     "n": "שחור",
+     "s": true
+    },
+    {
+     "n": "ורוד",
+     "s": true
+    },
+    {
+     "n": "טורקיז",
+     "s": true
+    }
+   ]
+  },
+  {
+   "id": "p171",
+   "name": "ספק כח אוניברסלי TEC-T90W 90W למחשב נייד",
+   "sku": "2023",
+   "cat": "cables",
+   "price": 0,
+   "img": "images/p171.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": null,
+   "sub": "c-charger",
+   "desc": "",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
@@ -2846,6 +2907,30 @@
   }
  },
  "log": [
+  {
+   "t": "2026-07-31T09:00:40Z",
+   "act": "add",
+   "id": "p171",
+   "name": "ספק כח אוניברסלי TEC-T90W 90W למחשב נייד",
+   "cat": "cables",
+   "price": 0
+  },
+  {
+   "t": "2026-07-31T09:00:20Z",
+   "act": "add",
+   "id": "p170",
+   "name": "מאוורר USB נייד עם רגלי חצובה גמישות",
+   "cat": "misc",
+   "price": 0
+  },
+  {
+   "t": "2026-07-31T09:00:00Z",
+   "act": "add",
+   "id": "p169",
+   "name": "שלט אוניברסלי למזגן MultiLED K-1028E 1000 ב-1",
+   "cat": "misc",
+   "price": 0
+  },
   {
    "t": "2026-07-30T06:06:35.855Z",
    "act": "edit",
