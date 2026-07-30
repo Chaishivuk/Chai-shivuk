@@ -50,12 +50,12 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 /* Product grid */
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
 .rail{display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:8px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
-.rail>.pcard{flex:0 0 46%; scroll-snap-align:center}
+.rail>.pcard{flex:0 0 40%; scroll-snap-align:center}
 .rail::-webkit-scrollbar{height:6px}
 .rail::-webkit-scrollbar-track{background:#EEF2F8; border-radius:99px}
 .rail::-webkit-scrollbar-thumb{background:#C7D0E0; border-radius:99px}
-@media(min-width:640px){.rail>.pcard{flex:0 0 31%}}
-@media(min-width:900px){.rail>.pcard{flex:0 0 23%}}
+@media(min-width:640px){.rail>.pcard{flex:0 0 27%}}
+@media(min-width:900px){.rail>.pcard{flex:0 0 21%}}
 @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
 .pcard{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; position:relative}
