@@ -162,6 +162,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .crow:last-child{border-bottom:0}
 .crow .cn{flex:1}
 .logrow.clickable{cursor:pointer}
+.qbar{background:#EAF0FB; color:#1D4ED8; font-size:12.5px; font-weight:700; border-radius:9px; padding:7px 11px; margin-bottom:12px}
 .logrow.clickable:active{background:#F3F6FB}
 .sortlbl{font-size:13px; color:var(--muted); font-weight:600; padding-inline-end:2px}
 .logbox{max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:10px; margin-bottom:12px}
@@ -713,7 +714,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 10</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 11</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -755,7 +756,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 10</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 11</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -820,6 +821,7 @@ function openSettings(){
     </div>
     <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password" placeholder="השאר ריק כדי לא לשנות"></div>
     <div class="fld"><label>אימות סיסמה</label><input id="np2" type="password"></div>
+    <button class="abtn" id="setquick" style="width:100%;margin-bottom:8px">⚡ עריכה מהירה</button>
     <button class="abtn" id="setordsale" style="width:100%;margin-bottom:8px">↕ סדר המוצרים במבצע</button>
     <button class="abtn" id="setordnew" style="width:100%;margin-bottom:8px">↕ סדר המוצרים החדשים</button>
     <button class="abtn" id="sethist" style="width:100%;margin-bottom:12px">📜 היסטוריית מוצרים</button>
@@ -827,6 +829,7 @@ function openSettings(){
   </div>`;
   m.classList.add("show");
   $("#sethist").onclick = openHistory;
+  $("#setquick").onclick = openQuickPicker;
   $("#setordsale").onclick = () => openOrderManager("sale");
   $("#setordnew").onclick = () => openOrderManager("new");
   $("#setcancel").onclick = () => m.classList.remove("show");
@@ -841,6 +844,56 @@ function openSettings(){
     DB.settings.vatText = $("#setvat").value.replace(/[ \t]+$/gm, "").replace(/^\n+|\n+$/g, "");
     if(await saveDB()){ m.classList.remove("show"); toast("ההגדרות נשמרו"); render(); }
   };
+}
+let quick = null;   /* מצב עריכה מהירה: {ids:[...], i:0} */
+function noPriceList(){ return DB.products.filter(p => !(p.price > 0)); }
+function openQuickPicker(){
+  const m = $("#modal");
+  const cats = DB.categories.map(c => {
+    const n = DB.products.filter(p => p.cat === c.id).length;
+    return n ? `<option value="${c.id}">${esc(c.name)} (${n})</option>` : "";
+  }).join("");
+  m.innerHTML = `<div class="mbox"><h3>⚡ עריכה מהירה</h3>
+    <div class="hint" style="margin-bottom:10px">בחר קבוצה – כל שמירה תפתח אוטומטית את המוצר הבא, כך שאפשר לרוץ על המחירים בזה אחר זה.</div>
+    <button class="abtn" id="q_noprice" style="width:100%;margin-bottom:8px">מוצרים ללא מחיר (${noPriceList().length})</button>
+    <button class="abtn" id="q_recent" style="width:100%;margin-bottom:8px">נוספו לאחרונה (${recentAdded().length})</button>
+    <button class="abtn" id="q_all" style="width:100%;margin-bottom:12px">כל המוצרים (${DB.products.length})</button>
+    <div class="fld"><label>או לפי קטגוריה</label>
+      <select id="q_cat"><option value="">— בחר קטגוריה —</option>${cats}</select>
+    </div>
+    <div class="mact">
+      <button class="save" id="q_start">התחלה</button>
+      <button class="cancel" id="q_back">← חזרה להגדרות</button>
+    </div>
+  </div>`;
+  m.classList.add("show");
+  $("#q_back").onclick = openSettings;
+  $("#q_noprice").onclick = () => startQuick(noPriceList());
+  $("#q_recent").onclick  = () => startQuick(recentAdded());
+  $("#q_all").onclick     = () => startQuick(DB.products);
+  $("#q_start").onclick   = () => {
+    const c = $("#q_cat").value;
+    if(!c){ toast("בחר קבוצה או קטגוריה"); return; }
+    startQuick(DB.products.filter(p => p.cat === c));
+  };
+}
+function startQuick(list){
+  if(!list.length){ toast("אין מוצרים בקבוצה הזאת"); return; }
+  quick = {ids: list.map(p => p.id), i: 0};
+  openEditor(quick.ids[0]);
+}
+function quickNext(){
+  if(!quick) return;
+  quick.i++;
+  if(quick.i >= quick.ids.length){
+    const done = quick.ids.length;
+    quick = null;
+    $("#modal").classList.remove("show");
+    render();
+    toast(`סיימת את כל ${done} המוצרים 🎉`);
+    return;
+  }
+  openEditor(quick.ids[quick.i]);
 }
 function openOrderManager(kind){
   const m = $("#modal");
@@ -925,7 +978,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 10</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 11</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -945,8 +998,10 @@ function openEditor(id){
   const cats = DB.categories.map(c =>
     `<option value="${c.id}" ${p && p.cat === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
   const m = $("#modal");
+  const inQuick = !!(quick && quick.ids[quick.i] === id);
   m.innerHTML = `<div class="mbox">
     <h3>${p ? "עריכת מוצר" : "מוצר חדש"}</h3>
+    ${inQuick ? `<div class="qbar">⚡ עריכה מהירה · מוצר ${quick.i + 1} מתוך ${quick.ids.length}</div>` : ""}
     <div class="fld"><label>שם המוצר</label><input id="f_name" value="${p ? esc(p.name) : ""}"></div>
     <div class="two">
       <div class="fld"><label>מחיר כולל מע"מ (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
@@ -986,11 +1041,17 @@ function openEditor(id){
       <div class="hint">מפרט, הסברים, הגדרות – כל שורה חדשה תוצג כשורה נפרדת</div>
     </div>
     <div class="mact">
-      <button class="save" id="f_save">שמירה</button>
-      <button class="cancel" id="f_cancel">ביטול</button>
+      <button class="save" id="f_save">${inQuick ? "שמירה והבא ➜" : "שמירה"}</button>
+      ${inQuick ? `<button class="cancel" id="f_skip">דלג ➜</button>` : ""}
+      <button class="cancel" id="f_cancel">${inQuick ? "יציאה" : "ביטול"}</button>
     </div>
   </div>`;
   m.classList.add("show");
+  if(inQuick){
+    const pr = $("#f_price");
+    if(pr){ pr.focus(); pr.select(); }
+    $("#f_skip").onclick = () => quickNext();
+  }
   let imgData = p ? p.img : null;
   let extraImgs = p && p.imgs ? [...p.imgs] : [];
   function paintMore(){
@@ -1046,7 +1107,7 @@ function openEditor(id){
     imgData = await shrinkImage(f);
     const pv = $("#f_prev"); pv.src = imgData; pv.style.display = "block";
   };
-  $("#f_cancel").onclick = () => m.classList.remove("show");
+  $("#f_cancel").onclick = () => { quick = null; m.classList.remove("show"); render(); };
   $("#f_save").onclick = async () => {
     const name = $("#f_name").value.trim();
     const price = parseFloat($("#f_price").value);
@@ -1089,7 +1150,10 @@ function openEditor(id){
     });
     if(p){ DB.products = DB.products.map(x => x.id === p.id ? obj : x); logAct("edit", obj); }
     else { DB.products.push(obj); logAct("add", obj); }
-    if(await saveDB()){ toast("נשמר"); m.classList.remove("show"); render(); }
+    if(await saveDB()){
+      if(inQuick){ toast(`נשמר (${quick.i + 1}/${quick.ids.length})`); quickNext(); }
+      else { toast("נשמר"); m.classList.remove("show"); render(); }
+    }
   };
 }
 
@@ -1381,7 +1445,7 @@ window.addEventListener("popstate", () => {
   const d = $("#drawer");
   if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
   const md = $("#modal");
-  if(md && md.classList.contains("show")){ md.classList.remove("show"); history.pushState({}, ""); return; }
+  if(md && md.classList.contains("show")){ quick = null; md.classList.remove("show"); history.pushState({}, ""); return; }
   if(view.page === "product"){ view.page = "list"; render(); history.pushState({}, ""); return; }
   if(adminMode || location.hash === "#admin"){
     if(!adminBackArmed){
