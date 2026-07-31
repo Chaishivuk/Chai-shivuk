@@ -42,6 +42,8 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .vat{background:#1E2E52; color:#C6D3F0; text-align:center; font-size:12.5px; padding:4px; line-height:1.5}
 
 .hcol{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:9px}
+.brandrow{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.hlogo{width:52px; height:52px; flex:0 0 auto; background:#fff; border-radius:13px; padding:3px; object-fit:contain}
 .bsd{font-size:11px;color:#AEB9D6;font-weight:600;line-height:1;margin-bottom:2px}
 .hcol .searchwrap{max-width:none;width:100%}
 /* Category chips */
@@ -430,7 +432,10 @@ function render(){
   app.innerHTML = `
   <header>
     <div class="hcol">
-      <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
+      <div class="brandrow">
+        <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
+        <img class="hlogo" src="logo.png" alt="חי שיווק">
+      </div>
       <div class="searchwrap">
         <input id="search" placeholder="חיפוש לפי שם או מק&quot;ט..." value="${esc(view.q)}">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -572,8 +577,10 @@ function renderProduct(){
     : `<div class="addbtn inc"><button data-addk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">+</button><b>${qty}</b><button data-subk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">−</button></div>`;
   $("#app").innerHTML = `
   <header><div class="hcol" style="gap:0">
-    <div class="bsd">בס"ד</div>
-    <div class="logo">חי <b>שיווק</b></div>
+    <div class="brandrow">
+      <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
+      <img class="hlogo" src="logo.png" alt="חי שיווק">
+    </div>
   </div></header>
   ${vatBanner()}
   <main>
