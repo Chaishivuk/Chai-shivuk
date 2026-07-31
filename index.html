@@ -164,6 +164,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 
 .sortbar{align-items:center; gap:7px}
 .disclaim{margin-top:10px; font-size:12px; color:#8E9BB5}
+.vatnote{font-size:11px; color:var(--muted); margin:1px 0 3px; font-weight:600}
 .ppcolors{margin-top:12px}
 .ppcolors .cl{font-size:13px; color:var(--muted); font-weight:700; margin-bottom:6px}
 .colrow{display:flex; flex-wrap:wrap; gap:7px}
@@ -319,7 +320,7 @@ function newSku(cat){
   do{ s = String(Math.floor(1000 + Math.random()*99000)); } while(used.has(s));
   return s;
 }
-const VAT_DEFAULT = 'המחירים כוללים מע"מ';
+const VAT_DEFAULT = 'בפלאפונים המחיר המוצג כולל מע"מ';
 function vatText(){
   const t = DB && DB.settings ? DB.settings.vatText : null;
   return (t === undefined || t === null) ? VAT_DEFAULT : t;
@@ -346,6 +347,9 @@ function setOrder(kind, ids){
 }
 function groupList(kind){
   return orderList(kind, DB.products.filter(kind === "sale" ? (p => p.sale != null) : (p => p.isNew)));
+}
+function vatNote(p){
+  return p.cat === "phones" ? `<div class="vatnote">המחיר כולל מע"מ</div>` : "";
 }
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
 function sortList(ps){
@@ -462,7 +466,7 @@ function render(){
     <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
-      <div class="row"><span>סה"כ לתשלום (כולל מע"מ)</span><b id="dtotal"></b></div>
+      <div class="row"><span>סה"כ לתשלום</span><b id="dtotal"></b></div>
       <button class="wabtn" id="sendwa">
         <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.83 14.12c-.25.7-1.44 1.34-2 1.42-.51.08-1.16.11-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.6-.37.8-.37.2 0 .4 0 .57.01.18.01.43-.07.67.51.25.6.85 2.07.92 2.22.08.15.13.33.03.53-.1.2-.15.32-.3.5-.15.18-.31.4-.45.53-.15.15-.31.31-.13.61.18.3.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.52.3.15.48.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.17 1.42z"/></svg>
         שליחת ההזמנה בוואטסאפ
@@ -499,6 +503,7 @@ function card(p){
         <div class="pname">${esc(p.name)}</div>
         <div class="psku">מק"ט ${p.sku}</div>
         <div class="prices">${prices}</div>
+        ${vatNote(p)}
         <button class="oosbtn" disabled>לא זמין</button>
       </div>
     </div>`;
@@ -513,6 +518,7 @@ function card(p){
       <div class="pname" data-open="${p.id}">${esc(p.name)}</div>
       <div class="psku">מק"ט ${p.sku}</div>
       <div class="prices">${prices}</div>
+      ${vatNote(p)}
       ${tier}
       ${btn}
     </div>
@@ -596,6 +602,7 @@ function renderProduct(){
         <div style="display:flex;align-items:center;gap:8px">${badge}<span class="psku">מק"ט ${p.sku}</span></div>
         <h1>${esc(p.name)}</h1>
         <div class="prices">${prices}</div>
+        ${vatNote(p)}
         ${tier}
         ${colorsBox}
         <div class="ppadd">${btn}</div>
@@ -618,7 +625,7 @@ function renderProduct(){
     <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
-      <div class="row"><span>סה"כ לתשלום (כולל מע"מ)</span><b id="dtotal"></b></div>
+      <div class="row"><span>סה"כ לתשלום</span><b id="dtotal"></b></div>
       <button class="wabtn" id="sendwa">שליחת ההזמנה בוואטסאפ</button>
       <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
     </div>
@@ -731,7 +738,7 @@ function orderLines(){
   });
   lines.push("――――――――――――");
   lines.push(`סה"כ פריטים: ${n}`);
-  lines.push(`💰 סה"כ לתשלום: ${nis(cartTotal())} (כולל מע"מ)`);
+  lines.push(`💰 סה"כ לתשלום: ${nis(cartTotal())}`);
   return lines;
 }
 function sendWA(){
@@ -756,7 +763,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 14</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 15</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -798,7 +805,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 14</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 15</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1020,7 +1027,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 14</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 15</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1046,7 +1053,7 @@ function openEditor(id){
     ${inQuick ? `<div class="qbar">⚡ עריכה מהירה · מוצר ${quick.i + 1} מתוך ${quick.ids.length}</div>` : ""}
     <div class="fld"><label>שם המוצר</label><input id="f_name" value="${p ? esc(p.name) : ""}"></div>
     <div class="two">
-      <div class="fld"><label>מחיר כולל מע"מ (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
+      <div class="fld"><label>מחיר (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
     <div class="fld" id="subfld" style="display:none"><label>תת קטגוריה</label><select id="f_sub"></select></div>
@@ -1332,7 +1339,7 @@ async function exportOrderForm(){
     const ws = wb.addWorksheet("הזמנה", {views: [{rightToLeft: true}]});
     ws.columns = [{width: 13}, {width: 36}, {width: 10}, {width: 12}, {width: 14}, {width: 13}];
     const title = ws.addRow(["חי שיווק – טופס הזמנה"]); title.font = {bold: true, size: 16};
-    ws.addRow(["המחירים כוללים מע\"מ · מלאו כמות בעמודה \"כמות להזמנה\" ושלחו: וואטסאפ 052-886-4040 או מייל Ys0533126330@gmail.com"]);
+    ws.addRow(["מלאו כמות בעמודה \"כמות להזמנה\" ושלחו: וואטסאפ 052-886-4040 או מייל Ys0533126330@gmail.com"]);
     ws.addRow([]);
     const head = ws.addRow(["תמונה", "שם המוצר", "מק\"ט", "מחיר", "כמות להזמנה", "סה\"כ"]);
     head.font = {bold: true};
@@ -1443,7 +1450,7 @@ function exportPDF(){
   const pc = $("#printcat");
   pc.innerHTML = `
     <div class="pc-head"><h1>חי שיווק – קטלוג מוצרים</h1>
-      <p>המחירים כוללים מע"מ · להזמנות: וואטסאפ 052-886-4040 · מייל Ys0533126330@gmail.com</p></div>` +
+      <p>להזמנות: וואטסאפ 052-886-4040 · מייל Ys0533126330@gmail.com</p></div>` +
     DB.categories.map(c => {
       const ps = DB.products.filter(p => p.cat === c.id && p.stock);
       if(!ps.length) return "";
