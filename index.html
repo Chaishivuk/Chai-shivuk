@@ -738,7 +738,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 12</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 13</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -780,7 +780,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 12</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 13</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1002,7 +1002,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 12</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 13</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1156,7 +1156,7 @@ function openEditor(id){
     };
     if(obj.tier && (!obj.tier.qty || !obj.tier.price)) obj.tier = null;
     if(imgData && imgData.startsWith("data:")){
-      const path = "images/" + obj.id + ".jpg";
+      const path = "images/" + obj.id + "-" + Date.now() + ".jpg";
       pendingImgs[path] = imgData.split(",")[1];
       obj.img = path;
     } else {
