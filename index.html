@@ -115,6 +115,7 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .dsum .row{display:flex; justify-content:space-between; font-weight:700; font-size:17px; margin-bottom:10px}
 .wabtn{width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:var(--green); color:#fff; font-weight:700; font-size:16.5px; border-radius:12px; padding:13px}
 .wabtn svg{width:21px; height:21px; fill:#fff}
+.mailbtn{width:100%; margin-top:9px; background:#fff; color:var(--ink); border:1.5px solid var(--line); font-weight:700; font-size:15.5px; border-radius:12px; padding:11px}
 
 footer{background:var(--ink); color:#B9C4DC; text-align:center; padding:26px 16px 34px; margin-top:36px; font-size:14px}
 footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
@@ -233,6 +234,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 <script>
 
 const WA_NUMBER = "972528864040";
+const ORDER_MAIL = "Ys0533126330@gmail.com";
 const ADMIN_PASS = "4040";
 const GH_OWNER = "Chaishivuk";
 const GH_REPO = "Chai-shivuk";
@@ -465,6 +467,7 @@ function render(){
         <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.83 14.12c-.25.7-1.44 1.34-2 1.42-.51.08-1.16.11-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.6-.37.8-.37.2 0 .4 0 .57.01.18.01.43-.07.67.51.25.6.85 2.07.92 2.22.08.15.13.33.03.53-.1.2-.15.32-.3.5-.15.18-.31.4-.45.53-.15.15-.31.31-.13.61.18.3.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.52.3.15.48.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.17 1.42z"/></svg>
         שליחת ההזמנה בוואטסאפ
       </button>
+      <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
     </div>
   </div>`;
 
@@ -547,6 +550,7 @@ function bindCustomer(){
   $("#closecart").onclick = closeCart;
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
+  $("#sendmail").onclick = sendMail;
 }
 function renderProduct(){
   const p = DB.products.find(x => x.id === view.pid);
@@ -616,6 +620,7 @@ function renderProduct(){
     <div class="dsum">
       <div class="row"><span>סה"כ לתשלום (כולל מע"מ)</span><b id="dtotal"></b></div>
       <button class="wabtn" id="sendwa">שליחת ההזמנה בוואטסאפ</button>
+      <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
     </div>
   </div>`;
   $("#ppback").onclick = () => { view.page = "list"; render(); };
@@ -642,6 +647,7 @@ function renderProduct(){
   $("#closecart").onclick = closeCart;
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
+  $("#sendmail").onclick = sendMail;
   updateCartUI();
 }
 function renderKeepFocus(){
@@ -714,9 +720,9 @@ function closeCart(){
   if(o) o.classList.remove("show");
   if(d) d.classList.remove("show");
 }
-function sendWA(){
+function orderLines(){
   const items = cartItems();
-  if(!items.length) return;
+  if(!items.length) return null;
   const n = items.reduce((t, i) => t + i.qty, 0);
   let lines = ["🛒 הזמנה חדשה – חי שיווק", "――――――――――――"];
   items.forEach(({p, qty, color}, i) => {
@@ -726,9 +732,21 @@ function sendWA(){
   lines.push("――――――――――――");
   lines.push(`סה"כ פריטים: ${n}`);
   lines.push(`💰 סה"כ לתשלום: ${nis(cartTotal())} (כולל מע"מ)`);
-  lines = lines.map(l => "\u200F" + l);
-  const url = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
-  window.open(url, "_blank");
+  return lines;
+}
+function sendWA(){
+  const lines = orderLines();
+  if(!lines) return;
+  const txt = lines.map(l => "\u200F" + l).join("\n");
+  window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(txt), "_blank");
+}
+function sendMail(){
+  const lines = orderLines();
+  if(!lines) return;
+  const subject = "הזמנה חדשה – חי שיווק";
+  const body = lines.join("\n") + "\n\nשם הלקוח:\nטלפון:\nהערות:";
+  window.location.href = "mailto:" + ORDER_MAIL +
+    "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 }
 
 /* ---------- admin ---------- */
@@ -738,7 +756,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 13</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 14</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -780,7 +798,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 13</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 14</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1002,7 +1020,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 13</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 14</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
