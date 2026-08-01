@@ -248,8 +248,20 @@ function ghToken(){ try{ return localStorage.getItem("gh-token") || ""; }catch(e
 function setGhToken(t){ try{ localStorage.setItem("gh-token", t.trim()); }catch(e){} }
 function ghHeaders(){ return {"Authorization": "Bearer " + ghToken(), "Accept": "application/vnd.github+json"}; }
 
+let dbSha = null;   /* גרסת data.json שנטענה – לזיהוי שינוי חיצוני */
 async function loadDB(){
   try{
+    if(ghToken()){
+      /* מנהל: קוראים ישירות מ-GitHub כדי לא לקבל גרסה ישנה מהמטמון */
+      const r = await fetch(GH_API + "data.json?t=" + Date.now(), {headers: ghHeaders(), cache: "no-store"});
+      if(r.ok){
+        const j = await r.json();
+        dbSha = j.sha;
+        DB = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g, "")), c => c.charCodeAt(0))));
+        DB.settings = DB.settings || {};
+        return;
+      }
+    }
     const r = await fetch("data.json?t=" + Date.now(), {cache: "no-store"});
     if(!r.ok) throw new Error(r.status);
     DB = await r.json();
@@ -267,12 +279,25 @@ async function ghGetSha(path){
   return (await r.json()).sha;
 }
 async function ghPut(path, b64, msg){
-  const sha = await ghGetSha(path);
-  const body = {message: msg, content: b64, branch: "main"};
-  if(sha) body.sha = sha;
-  const r = await fetch(GH_API + path, {method: "PUT", headers: ghHeaders(), body: JSON.stringify(body)});
-  if(!r.ok) throw new Error("put " + r.status);
+  let lastErr = null;
+  for(let attempt = 0; attempt < 4; attempt++){
+    try{
+      const sha = await ghGetSha(path);
+      const body = {message: msg, content: b64, branch: "main"};
+      if(sha) body.sha = sha;
+      const r = await fetch(GH_API + path, {method: "PUT", headers: ghHeaders(), body: JSON.stringify(body)});
+      if(r.ok) return (await r.json()).content.sha;
+      /* 409/422 = מישהו/משהו כתב באותו רגע; ננסה שוב עם sha טרי */
+      if(r.status === 409 || r.status === 422){ lastErr = new Error("put " + r.status); await sleep(700 * (attempt + 1)); continue; }
+      throw new Error("put " + r.status);
+    }catch(e){
+      lastErr = e;
+      await sleep(700 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error("put failed");
 }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 function b64Unicode(str){
   const bytes = new TextEncoder().encode(str);
   let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
@@ -286,13 +311,33 @@ async function saveDB(){
       await ghPut(path, b64, "עדכון תמונה");
     }
     pendingImgs = {};
-    await ghPut("data.json", b64Unicode(JSON.stringify(DB)), "עדכון קטלוג");
+    await mergeRemote();
+    dbSha = await ghPut("data.json", b64Unicode(JSON.stringify(DB)), "עדכון קטלוג");
     toast("נשמר! השינוי יופיע לכולם תוך כדקה");
     return true;
   }catch(e){
-    toast("שגיאה בשמירה – בדוק את החיבור והמפתח");
+    toast("השמירה נכשלה – בדוק חיבור לאינטרנט ונסה שוב");
     return false;
   }
+}
+/* אם הקובץ בשרת השתנה מאז שנטען (מכשיר אחר / כרטיסייה אחרת) –
+   מוסיפים משם את מה שחסר לנו, כדי ששמירה לא תמחק מוצרים חדשים */
+async function mergeRemote(){
+  try{
+    const r = await fetch(GH_API + "data.json?t=" + Date.now(), {headers: ghHeaders(), cache: "no-store"});
+    if(!r.ok) return;
+    const j = await r.json();
+    if(!dbSha || j.sha === dbSha) return;
+    const remote = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g, "")), c => c.charCodeAt(0))));
+    const mine = new Set(DB.products.map(p => p.id));
+    const added = (remote.products || []).filter(p => !mine.has(p.id));
+    if(added.length){
+      DB.products = DB.products.concat(added);
+      toast(`שולבו ${added.length} מוצרים שנוספו במקביל`);
+    }
+    const cats = new Set(DB.categories.map(c => c.id));
+    (remote.categories || []).forEach(c => { if(!cats.has(c.id)) DB.categories.push(c); });
+  }catch(e){ /* אם המיזוג נכשל – ממשיכים לשמור כרגיל */ }
 }
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -763,7 +808,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 15</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 16</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -805,7 +850,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 15</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 16</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1027,7 +1072,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 15</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 16</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
