@@ -164,6 +164,10 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 
 .sortbar{align-items:center; gap:7px}
 .disclaim{margin-top:10px; font-size:12px; color:#8E9BB5}
+.pptop{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 0 4px}
+.pptop .backbtn{margin:0}
+.sharebtn{background:#fff; border:1.5px solid var(--line); border-radius:10px; padding:7px 13px; font-size:13.5px; font-weight:700; color:var(--ink); white-space:nowrap}
+.sharebtn:active{background:#F3F6FB}
 .vatnote{font-size:11px; color:var(--muted); margin:1px 0 3px; font-weight:600}
 .ppcolors{margin-top:12px}
 .ppcolors .cl{font-size:13px; color:var(--muted); font-weight:700; margin-bottom:6px}
@@ -435,6 +439,46 @@ function catSubs(id){ const c = DB.categories.find(c => c.id === id); return (c 
 let adminMode = false, logoTaps = 0, logoTimer = null;
 let adminView = {cat: "all", q: ""};
 function isAdminRoute(){ return adminMode || location.hash === "#admin"; }
+/* ---------- קישור ישיר למוצר ---------- */
+function hashKey(){
+  const m = location.hash.match(/^#p=(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function applyHash(){
+  const key = hashKey();
+  if(key && DB){
+    const p = DB.products.find(x => x.id === key || x.sku === key);
+    if(p){ view.page = "product"; view.pid = p.id; view.color = null; return; }
+  }
+  if(!key && view.page === "product") view.page = "list";
+}
+function openProduct(id){
+  view.page = "product"; view.pid = id; view.color = null;
+  history.pushState({}, "", "#p=" + encodeURIComponent(id));
+  render(); window.scrollTo(0, 0);
+}
+function backToList(){
+  view.page = "list";
+  history.pushState({}, "", location.pathname + location.search);
+  render();
+}
+function productUrl(p){
+  return location.origin + location.pathname + "#p=" + encodeURIComponent(p.id);
+}
+async function shareProduct(p){
+  const url = productUrl(p);
+  const priceTxt = (p.sale != null ? nis(p.sale) : nis(p.price));
+  const text = `${p.name}\nמק"ט ${p.sku} · ${priceTxt}\n${url}`;
+  if(navigator.share){
+    try{ await navigator.share({title: p.name, text: text}); return; }catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("הקישור הועתק – אפשר להדביק בוואטסאפ");
+  }catch(e){
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  }
+}
 
 function render(){
   if(isAdminRoute()){ renderAdmin(); return; }
@@ -582,9 +626,7 @@ function bindCustomer(){
   });
   const s = $("#search");
   s.oninput = () => { view.q = s.value; renderKeepFocus(); };
-  document.querySelectorAll("[data-open]").forEach(el => el.onclick = () => {
-    view.page = "product"; view.pid = el.dataset.open; view.color = null; render(); window.scrollTo(0,0);
-  });
+  document.querySelectorAll("[data-open]").forEach(el => el.onclick = () => openProduct(el.dataset.open));
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
     bumpProduct(b.dataset.add, 1); render();
   });
@@ -639,7 +681,10 @@ function renderProduct(){
   </div></header>
   ${vatBanner()}
   <main>
-    <button class="backbtn" id="ppback">→ חזרה לקטלוג</button>
+    <div class="pptop">
+      <button class="backbtn" id="ppback">→ חזרה לקטלוג</button>
+      <button class="sharebtn" id="ppshare">🔗 שיתוף המוצר</button>
+    </div>
     <div class="pp">
       <div class="ppmainwrap"><img id="ppmain" src="${imgs[0] || ""}" alt="${esc(p.name)}"></div>
       ${imgs.length > 1 ? `<div class="ppthumbs">${imgs.map((s,i) => `<img src="${s}" data-th="${i}" class="${i===0?"on":""}">`).join("")}</div>` : ""}
@@ -675,7 +720,8 @@ function renderProduct(){
       <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
     </div>
   </div>`;
-  $("#ppback").onclick = () => { view.page = "list"; render(); };
+  $("#ppback").onclick = backToList;
+  $("#ppshare").onclick = () => shareProduct(p);
   document.querySelector(".logo").onclick = () => {
     logoTaps++; clearTimeout(logoTimer);
     logoTimer = setTimeout(() => logoTaps = 0, 1500);
@@ -808,7 +854,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 16</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 17</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -850,7 +896,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 16</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 17</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1072,7 +1118,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 16</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 17</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1536,14 +1582,14 @@ function exportXLS(){
 }
 
 /* ---------- boot ---------- */
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => { if(!isAdminRoute()) applyHash(); render(); });
 let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
   const d = $("#drawer");
   if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
   const md = $("#modal");
   if(md && md.classList.contains("show")){ quick = null; md.classList.remove("show"); history.pushState({}, ""); return; }
-  if(view.page === "product"){ view.page = "list"; render(); history.pushState({}, ""); return; }
+  if(view.page === "product"){ backToList(); history.pushState({}, ""); return; }
   if(adminMode || location.hash === "#admin"){
     if(!adminBackArmed){
       adminBackArmed = true;
@@ -1576,6 +1622,7 @@ document.addEventListener("pointerdown", () => {
 }, true);
 (async function(){
   await loadDB();
+  applyHash();
   render();
 })();
 </script>
