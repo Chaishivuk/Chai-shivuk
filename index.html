@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>חי שיווק – קטלוג מוצרים</title>
 <link rel="manifest" href="manifest.json?v=3">
 <link rel="apple-touch-icon" href="apple-touch-icon-v3.png">
@@ -441,6 +442,10 @@ let adminView = {cat: "all", q: ""};
 function isAdminRoute(){ return adminMode || location.hash === "#admin"; }
 /* ---------- קישור ישיר למוצר ---------- */
 function hashKey(){
+  try{
+    const q = new URLSearchParams(location.search).get("p");
+    if(q) return q;
+  }catch(e){}
   const m = location.hash.match(/^#p=(.+)$/);
   return m ? decodeURIComponent(m[1]) : null;
 }
@@ -454,16 +459,16 @@ function applyHash(){
 }
 function openProduct(id){
   view.page = "product"; view.pid = id; view.color = null;
-  history.pushState({}, "", "#p=" + encodeURIComponent(id));
+  history.pushState({}, "", location.pathname + "?p=" + encodeURIComponent(id));
   render(); window.scrollTo(0, 0);
 }
 function backToList(){
   view.page = "list";
-  history.pushState({}, "", location.pathname + location.search);
+  history.pushState({}, "", location.pathname);
   render();
 }
 function productUrl(p){
-  return location.origin + location.pathname + "#p=" + encodeURIComponent(p.id);
+  return location.origin + location.pathname + "?p=" + encodeURIComponent(p.id);
 }
 async function shareProduct(p){
   const url = productUrl(p);
@@ -854,7 +859,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 17</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 18</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -896,7 +901,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 17</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 18</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1118,7 +1123,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 17</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 18</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1583,6 +1588,7 @@ function exportXLS(){
 
 /* ---------- boot ---------- */
 window.addEventListener("hashchange", () => { if(!isAdminRoute()) applyHash(); render(); });
+window.addEventListener("popstate", () => { if(!isAdminRoute()) applyHash(); });
 let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
   const d = $("#drawer");
