@@ -585,9 +585,9 @@ function card(p){
   const qty = pidQty(p.id);
   const img = p.img ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy">` : `<span class="noimg">ללא תמונה</span>`;
   const badge = p.sale != null ? `<span class="badge sale">מבצע</span>` : (p.isNew ? `<span class="badge new">חדש</span>` : "");
-  const prices = p.sale != null
+  const prices = (p.sale != null && p.sale !== p.price)
     ? `<span class="pprice">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
-    : `<span class="pprice">${nis(p.price)}</span>`;
+    : `<span class="pprice">${nis(basePrice(p))}</span>`;
   const tier = p.tier ? `<span class="ptier">מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</span>` : "";
   if(!p.stock){
     return `<div class="pcard oos">
@@ -668,9 +668,9 @@ function renderProduct(){
     </div>` : "";
   const imgs = [p.img, ...(p.imgs || [])].filter(Boolean);
   const badge = p.sale != null ? `<span class="tag sale">מבצע</span>` : (p.isNew ? `<span class="tag new">חדש</span>` : "");
-  const prices = p.sale != null
+  const prices = (p.sale != null && p.sale !== p.price)
     ? `<span class="pprice" style="font-size:22px">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
-    : `<span class="pprice" style="font-size:22px">${nis(p.price)}</span>`;
+    : `<span class="pprice" style="font-size:22px">${nis(basePrice(p))}</span>`;
   const tier = p.tier ? `<div class="ptier" style="margin-top:6px">מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</div>` : "";
   let btn;
   if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button>`;
@@ -859,7 +859,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 18</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 19</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -901,7 +901,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 18</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 19</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1123,7 +1123,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 18</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 19</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
