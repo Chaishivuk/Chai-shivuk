@@ -101,6 +101,21 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .overlay.show{display:block}
 .drawer{position:fixed; bottom:0; left:0; right:0; z-index:70; background:#fff; border-radius:18px 18px 0 0; max-height:82vh; display:flex; flex-direction:column; transform:translateY(105%); transition:.25s}
 .drawer.show{transform:none}
+.brandside{display:flex; align-items:center; gap:11px}
+.menubtn{display:flex; flex-direction:column; justify-content:center; gap:4.5px; width:38px; height:38px; padding:0 8px; background:rgba(255,255,255,.12); border-radius:10px}
+.menubtn span{display:block; height:2.5px; background:#fff; border-radius:99px}
+.menubtn:active{background:rgba(255,255,255,.22)}
+.sidemenu{position:fixed; top:0; right:0; bottom:0; width:78%; max-width:320px; background:#fff; z-index:70; transform:translateX(105%); transition:.25s; display:flex; flex-direction:column; box-shadow:-6px 0 24px rgba(15,23,42,.18)}
+.sidemenu.show{transform:none}
+.smhead{display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--ink); color:#fff}
+.smhead h3{font-size:19px}
+.smhead button{color:#fff; font-size:22px; background:none}
+.smlist{overflow-y:auto; padding:8px}
+.smrow{display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; text-align:right; background:none; padding:13px 12px; border-radius:11px; font-size:15.5px; font-weight:600; color:var(--ink); border-bottom:1px solid var(--line)}
+.smrow:last-child{border-bottom:0}
+.smrow b{font-size:12.5px; color:var(--muted); background:#EEF2F8; border-radius:99px; padding:2px 9px; font-weight:700}
+.smrow.on{background:var(--ink); color:#fff}
+.smrow.on b{background:rgba(255,255,255,.18); color:#fff}
 .dhead{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line)}
 .dhead h3{font-size:18px}
 .dlist{overflow-y:auto; padding:6px 16px; flex:1}
@@ -375,6 +390,19 @@ function vatText(){
   const t = DB && DB.settings ? DB.settings.vatText : null;
   return (t === undefined || t === null) ? VAT_DEFAULT : t;
 }
+function menuLinks(){
+  const rows = [
+    {id: "home", name: "ראשי", n: null},
+    {id: "all",  name: "כל המוצרים", n: DB.products.length},
+    ...DB.categories.map(c => ({id: c.id, name: c.name, n: DB.products.filter(p => p.cat === c.id).length}))
+  ];
+  return rows.map(r => `<button class="smrow ${view.cat === r.id ? "on" : ""}" data-menu="${r.id}">
+      <span>${esc(r.name)}</span>${r.n === null ? "" : `<b>${r.n}</b>`}
+    </button>`).join("");
+}
+function openMenu(){ $("#sidemenu").classList.add("show"); $("#overlay").classList.add("show"); }
+function closeMenu(){ const m = $("#sidemenu"); if(m) m.classList.remove("show"); $("#overlay").classList.remove("show"); }
+function menuOpen(){ const m = $("#sidemenu"); return !!(m && m.classList.contains("show")); }
 function vatBanner(){
   const t = vatText();
   if(!t.trim()) return "";
@@ -533,7 +561,10 @@ function render(){
   <header>
     <div class="hcol">
       <div class="brandrow">
-        <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
+        <div class="brandside">
+          <button class="menubtn" id="menubtn" aria-label="קטגוריות"><span></span><span></span><span></span></button>
+          <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
+        </div>
         <img class="hlogo" src="logo-v3.png" alt="חי שיווק">
       </div>
       <div class="searchwrap">
@@ -556,6 +587,10 @@ function render(){
     <button id="opencart">לצפייה בהזמנה</button>
   </div>
   <div class="overlay" id="overlay"></div>
+  <aside class="sidemenu" id="sidemenu">
+    <div class="smhead"><h3>קטגוריות</h3><button id="closemenu">✕</button></div>
+    <div class="smlist">${menuLinks()}</div>
+  </aside>
   <div class="drawer" id="drawer">
     <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
     <div class="dlist" id="dlist"></div>
@@ -646,9 +681,15 @@ function bindCustomer(){
   };
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
-  $("#overlay").onclick = closeCart;
+  $("#overlay").onclick = () => { closeCart(); closeMenu(); };
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
+  $("#menubtn").onclick = openMenu;
+  $("#closemenu").onclick = closeMenu;
+  document.querySelectorAll("[data-menu]").forEach(b => b.onclick = () => {
+    view.cat = b.dataset.menu; view.sub = null; view.q = "";
+    closeMenu(); render(); window.scrollTo(0, 0);
+  });
 }
 function renderProduct(){
   const p = DB.products.find(x => x.id === view.pid);
@@ -859,7 +900,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 19</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 20</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -901,7 +942,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 19</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 20</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1123,7 +1164,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 19</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 20</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1591,6 +1632,7 @@ window.addEventListener("hashchange", () => { if(!isAdminRoute()) applyHash(); r
 window.addEventListener("popstate", () => { if(!isAdminRoute()) applyHash(); });
 let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
+  if(menuOpen()){ closeMenu(); history.pushState({}, ""); return; }
   const d = $("#drawer");
   if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
   const md = $("#modal");
