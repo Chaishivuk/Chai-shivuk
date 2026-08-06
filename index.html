@@ -180,6 +180,8 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 
 .sortbar{align-items:center; gap:7px}
 .disclaim{margin-top:10px; font-size:12px; color:#8E9BB5}
+.totopbtn{display:block; width:100%; margin:6px 0 18px; background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:13px; font-size:15px; font-weight:700; color:var(--ink)}
+.totopbtn:active{background:#F3F6FB}
 .pptop{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 0 4px}
 .pptop .backbtn{margin:0}
 .sharebtn{background:#fff; border:1.5px solid var(--line); border-radius:10px; padding:7px 13px; font-size:13.5px; font-weight:700; color:var(--ink); white-space:nowrap}
@@ -485,7 +487,10 @@ function applyHash(){
   }
   if(!key && view.page === "product") view.page = "list";
 }
+let listScroll = 0;       /* המיקום ברשימה לפני שנכנסנו למוצר */
+let justReturned = false; /* חזרנו הרגע לרשימה – לחיצה נוספת תקפיץ למעלה */
 function openProduct(id){
+  if(view.page !== "product") listScroll = window.scrollY || 0;
   view.page = "product"; view.pid = id; view.color = null;
   history.pushState({}, "", location.pathname + "?p=" + encodeURIComponent(id));
   render(); window.scrollTo(0, 0);
@@ -494,7 +499,12 @@ function backToList(){
   view.page = "list";
   history.pushState({}, "", location.pathname);
   render();
+  const y = listScroll;
+  requestAnimationFrame(() => window.scrollTo(0, y));
+  justReturned = true;
+  setTimeout(() => justReturned = false, 6000);
 }
+function toTop(){ justReturned = false; window.scrollTo({top: 0, behavior: "smooth"}); }
 function productUrl(p){
   return location.origin + location.pathname + "?p=" + encodeURIComponent(p.id);
 }
@@ -575,7 +585,7 @@ function render(){
   </header>
   ${vatBanner()}
   <nav class="chips">${chips}</nav>
-  <main>${body}</main>
+  <main>${body}${body ? `<button class="totopbtn" id="totop">↑ חזרה לתחילת הרשימה</button>` : ""}</main>
   <footer>
     <div class="big">למכירה בכמויות – צרו קשר</div>
     <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
@@ -684,6 +694,7 @@ function bindCustomer(){
   $("#overlay").onclick = () => { closeCart(); closeMenu(); };
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
+  if($("#totop")) $("#totop").onclick = toTop;
   $("#menubtn").onclick = openMenu;
   $("#closemenu").onclick = closeMenu;
   document.querySelectorAll("[data-menu]").forEach(b => b.onclick = () => {
@@ -900,7 +911,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 20</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 21</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -942,7 +953,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 20</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 21</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1164,7 +1175,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 20</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 21</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1638,6 +1649,7 @@ window.addEventListener("popstate", () => {
   const md = $("#modal");
   if(md && md.classList.contains("show")){ quick = null; md.classList.remove("show"); history.pushState({}, ""); return; }
   if(view.page === "product"){ backToList(); history.pushState({}, ""); return; }
+  if(justReturned && (window.scrollY || 0) > 40){ toTop(); history.pushState({}, ""); return; }
   if(adminMode || location.hash === "#admin"){
     if(!adminBackArmed){
       adminBackArmed = true;
