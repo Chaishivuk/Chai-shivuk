@@ -428,7 +428,6 @@ function menuLinks(){
     ...DB.categories.map(c => ({id: c.id, name: c.name, n: DB.products.filter(p => p.cat === c.id).length}))
   ];
   return rows.map(r => `<button class="smrow ${view.cat === r.id ? "on" : ""}" data-menu="${r.id}">
-      ${r.id === "home" ? `<span class="catimg home">🏠</span>` : catThumb(r.id)}
       <span class="smname">${esc(r.name)}</span>${r.n === null ? "" : `<b>${r.n}</b>`}
     </button>`).join("");
 }
@@ -524,9 +523,14 @@ function centerActiveCat(){
   if(!st || !on) return;
   const y = window.scrollY;                     /* לא נוגעים בגלילה האנכית */
   const a = st.getBoundingClientRect(), b = on.getBoundingClientRect();
-  const delta = (b.left + b.width / 2) - (a.left + a.width / 2);
-  st.scrollLeft += delta;                       /* יחסי – נכון גם ב-RTL */
-  if(window.scrollY !== y) window.scrollTo(0, y);
+  const pad = 14;
+  let delta = 0;                                /* זזים רק אם העיגול מחוץ לתצוגה */
+  if(b.right > a.right - pad)      delta = b.right - (a.right - pad);
+  else if(b.left < a.left + pad)   delta = b.left - (a.left + pad);
+  if(delta){
+    st.scrollLeft += delta;
+    if(window.scrollY !== y) window.scrollTo(0, y);
+  }
   catScroll = st.scrollLeft;
 }
 /* התמונות נטענות אחרי הציור – מרכזים שוב כשהרוחב מתייצב */
@@ -971,7 +975,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 28</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 29</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1013,7 +1017,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 28</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 29</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1239,7 +1243,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 28</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 29</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1744,7 +1748,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "28";
+const APP_VER = "29";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
