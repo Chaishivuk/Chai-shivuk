@@ -971,7 +971,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 26</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 27</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1013,7 +1013,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 26</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 27</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1113,6 +1113,8 @@ function openQuickPicker(){
   m.innerHTML = `<div class="mbox"><h3>⚡ עריכה מהירה</h3>
     <div class="hint" style="margin-bottom:10px">בחר קבוצה – כל שמירה תפתח אוטומטית את המוצר הבא, כך שאפשר לרוץ על המחירים בזה אחר זה.</div>
     <button class="abtn" id="q_noprice" style="width:100%;margin-bottom:8px">מוצרים ללא מחיר (${noPriceList().length})</button>
+    <button class="abtn" id="q_new" style="width:100%;margin-bottom:8px">מוצרים חדשים (${groupList("new").length})</button>
+    <button class="abtn" id="q_sale" style="width:100%;margin-bottom:8px">מוצרים במבצע (${groupList("sale").length})</button>
     <button class="abtn" id="q_recent" style="width:100%;margin-bottom:8px">נוספו לאחרונה (${recentAdded().length})</button>
     <button class="abtn" id="q_all" style="width:100%;margin-bottom:12px">כל המוצרים (${DB.products.length})</button>
     <div class="fld"><label>או לפי קטגוריה</label>
@@ -1126,6 +1128,8 @@ function openQuickPicker(){
   m.classList.add("show");
   $("#q_back").onclick = openSettings;
   $("#q_noprice").onclick = () => startQuick(noPriceList());
+  $("#q_new").onclick     = () => startQuick(groupList("new"));
+  $("#q_sale").onclick    = () => startQuick(groupList("sale"));
   $("#q_recent").onclick  = () => startQuick(recentAdded());
   $("#q_all").onclick     = () => startQuick(DB.products);
   $("#q_start").onclick   = () => {
@@ -1235,7 +1239,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 26</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 27</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1740,7 +1744,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "26";
+const APP_VER = "27";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
