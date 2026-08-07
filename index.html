@@ -126,8 +126,9 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .smrow.on{background:var(--ink); color:#fff}
 .smrow.on b{background:rgba(255,255,255,.18); color:#fff}
 .smname{flex:1; text-align:right}
-.catimg{width:42px; height:42px; flex:0 0 auto; border-radius:50%; object-fit:cover; background:#fff; border:2px solid #22C55E}
-.catimg.home{display:flex; align-items:center; justify-content:center; font-size:19px; border:2px solid var(--line)}
+.catimg{width:100%; height:100%; object-fit:cover; border:0; border-radius:50%}
+.smimg{width:44px; height:44px; flex:0 0 auto; border-radius:10px; object-fit:cover; background:#fff}
+.smimg.home{display:flex; align-items:center; justify-content:center; font-size:22px; background:#EEF2F8}
 .dhead{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line)}
 .dhead h3{font-size:18px}
 .dlist{overflow-y:auto; padding:6px 16px; flex:1}
@@ -428,6 +429,7 @@ function menuLinks(){
     ...DB.categories.map(c => ({id: c.id, name: c.name, n: DB.products.filter(p => p.cat === c.id).length}))
   ];
   return rows.map(r => `<button class="smrow ${view.cat === r.id ? "on" : ""}" data-menu="${r.id}">
+      ${r.id === "home" ? `<span class="smimg home">🏠</span>` : `<img class="smimg" src="cats/cat-${r.id}.jpg" alt="" loading="lazy" onerror="this.style.display='none'">`}
       <span class="smname">${esc(r.name)}</span>${r.n === null ? "" : `<b>${r.n}</b>`}
     </button>`).join("");
 }
@@ -723,13 +725,14 @@ function card(p){
 function bindCustomer(){
   const strip = document.querySelector(".catstrip");
   if(strip){
-    centerActiveCatSoon();
+    if(catScroll != null) strip.scrollLeft = catScroll;   /* השורה נשארת בדיוק איפה שהיא */
     strip.addEventListener("scroll", () => { catScroll = strip.scrollLeft; }, {passive: true});
   }
   document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
+    const st = document.querySelector(".catstrip");
+    if(st) catScroll = st.scrollLeft;      /* מקפיאים את מיקום השורה */
     view.cat = b.dataset.cat; view.q = ""; view.sub = null;
     render(); window.scrollTo(0, 0);
-    centerActiveCatSoon();          /* העיגול הנבחר נשאר מול העיניים */
   });
   document.querySelectorAll("[data-subchip]").forEach(b => b.onclick = () => {
     view.sub = b.dataset.subchip || null; render();
@@ -762,7 +765,7 @@ function bindCustomer(){
   $("#closemenu").onclick = closeMenu;
   document.querySelectorAll("[data-menu]").forEach(b => b.onclick = () => {
     view.cat = b.dataset.menu; view.sub = null; view.q = "";
-    closeMenu(); render(); window.scrollTo(0, 0); centerActiveCatSoon();
+    closeMenu(); render(); window.scrollTo(0, 0); centerActiveCatSoon();  /* רק אם היא מחוץ לתצוגה */
   });
 }
 function renderProduct(){
@@ -975,7 +978,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 29</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 30</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1017,7 +1020,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 29</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 30</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1243,7 +1246,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 29</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 30</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1748,7 +1751,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "29";
+const APP_VER = "30";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
