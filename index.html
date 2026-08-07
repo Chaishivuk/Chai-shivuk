@@ -263,7 +263,21 @@ const GH_OWNER = "Chaishivuk";
 const GH_REPO = "Chai-shivuk";
 const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/";
 
-let DB = null, cart = {}, view = {cat:"home", q:"", page:"list", pid:null, sub:null, sort:null};
+const CART_KEY = "chai_cart_v1";
+function loadCart(){
+  try{
+    const raw = localStorage.getItem(CART_KEY);
+    if(!raw) return {};
+    const o = JSON.parse(raw);
+    const clean = {};
+    Object.entries(o || {}).forEach(([k, v]) => { const q = parseInt(v, 10); if(q > 0) clean[k] = q; });
+    return clean;
+  }catch(e){ return {}; }
+}
+function saveCart(){
+  try{ localStorage.setItem(CART_KEY, JSON.stringify(cart)); }catch(e){}
+}
+let DB = null, cart = loadCart(), view = {cat:"home", q:"", page:"list", pid:null, sub:null, sort:null};
 let pendingImgs = {};   // repo path -> base64 body awaiting upload
 
 function ghToken(){ try{ return localStorage.getItem("gh-token") || ""; }catch(e){ return ""; } }
@@ -838,6 +852,7 @@ function cartTotal(){
   return cartItems().reduce((t, {p, qty}) => t + effPrice(p, qty) * qty, 0);
 }
 function updateCartUI(){
+  saveCart();
   const items = cartItems();
   const n = items.reduce((t, i) => t + i.qty, 0);
   const bar = $("#cartbar");
@@ -911,7 +926,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 21</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 22</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -953,7 +968,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 21</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 22</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1175,7 +1190,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 21</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 22</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1640,7 +1655,7 @@ function exportXLS(){
 
 /* ---------- boot ---------- */
 window.addEventListener("hashchange", () => { if(!isAdminRoute()) applyHash(); render(); });
-window.addEventListener("popstate", () => { if(!isAdminRoute()) applyHash(); });
+window.addEventListener("popstate", () => { if(!isAdminRoute() && view.page !== "product") applyHash(); });
 let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
   if(menuOpen()){ closeMenu(); history.pushState({}, ""); return; }
@@ -1682,6 +1697,12 @@ document.addEventListener("pointerdown", () => {
 }, true);
 (async function(){
   await loadDB();
+  if(DB && DB.products){
+    const ids = new Set(DB.products.map(p => p.id));
+    let changed = false;
+    Object.keys(cart).forEach(k => { if(!ids.has(kpid(k))){ delete cart[k]; changed = true; } });
+    if(changed) saveCart();
+  }
   applyHash();
   render();
 })();
