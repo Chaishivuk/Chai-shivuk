@@ -522,10 +522,19 @@ function centerActiveCat(){
   const st = document.querySelector(".catstrip");
   const on = st && st.querySelector(".catbtn.on");
   if(!st || !on) return;
-  const target = on.offsetLeft - (st.clientWidth - on.offsetWidth) / 2;
-  const max = st.scrollWidth - st.clientWidth;
-  st.scrollLeft = Math.max(0, Math.min(target, max));
+  try{
+    on.scrollIntoView({inline: "center", block: "nearest"});   /* עובד נכון גם ב-RTL */
+  }catch(e){
+    st.scrollLeft = on.offsetLeft - (st.clientWidth - on.offsetWidth) / 2;
+  }
   catScroll = st.scrollLeft;
+}
+/* התמונות נטענות אחרי הציור – מרכזים שוב כשהרוחב מתייצב */
+function centerActiveCatSoon(){
+  centerActiveCat();
+  requestAnimationFrame(centerActiveCat);
+  setTimeout(centerActiveCat, 120);
+  setTimeout(centerActiveCat, 400);
 }
 let listScroll = 0;       /* המיקום ברשימה לפני שנכנסנו למוצר */
 let justReturned = false; /* חזרנו הרגע לרשימה – לחיצה נוספת תקפיץ למעלה */
@@ -710,16 +719,13 @@ function card(p){
 function bindCustomer(){
   const strip = document.querySelector(".catstrip");
   if(strip){
-    if(catScroll != null) strip.scrollLeft = catScroll;
-    else centerActiveCat();
+    centerActiveCatSoon();
     strip.addEventListener("scroll", () => { catScroll = strip.scrollLeft; }, {passive: true});
   }
   document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
-    const st = document.querySelector(".catstrip");
-    if(st) catScroll = st.scrollLeft;              /* לא לקפוץ לתחילת השורה */
     view.cat = b.dataset.cat; view.q = ""; view.sub = null;
     render(); window.scrollTo(0, 0);
-    centerActiveCat();
+    centerActiveCatSoon();          /* העיגול הנבחר נשאר מול העיניים */
   });
   document.querySelectorAll("[data-subchip]").forEach(b => b.onclick = () => {
     view.sub = b.dataset.subchip || null; render();
@@ -752,7 +758,7 @@ function bindCustomer(){
   $("#closemenu").onclick = closeMenu;
   document.querySelectorAll("[data-menu]").forEach(b => b.onclick = () => {
     view.cat = b.dataset.menu; view.sub = null; view.q = "";
-    closeMenu(); render(); window.scrollTo(0, 0);
+    closeMenu(); render(); window.scrollTo(0, 0); centerActiveCatSoon();
   });
 }
 function renderProduct(){
@@ -965,7 +971,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 25</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 26</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1007,7 +1013,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 25</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 26</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1229,7 +1235,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 25</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 26</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1734,7 +1740,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "25";
+const APP_VER = "26";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
