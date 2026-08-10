@@ -318,6 +318,16 @@ html.a11y-f4{font-size:145%}
 
 :focus-visible{outline:3px solid #1D4ED8 !important; outline-offset:2px}
 .a11yfab, .a11yoverlay{filter:none !important; transform:none !important}
+/* הכפתור מתפנה כשיש על המסך משהו אחר שהוא עלול לחסום – סל, תפריט או חלון עריכה */
+body:has(.drawer.show) .a11yfab,
+body:has(.sidemenu.show) .a11yfab,
+body:has(.modal.show) .a11yfab{
+  opacity:0; pointer-events:none; transform:scale(.6) !important;
+}
+@supports not selector(:has(*)){
+  /* דפדפן ישן בלי תמיכה ב-:has – מוזיזים את הכפתור גבוה יותר כדי שלא יפריע לסרגל התחתון */
+  .a11yfab{top:auto; bottom:100px}
+}
 
 </style>
 </head>
@@ -1086,7 +1096,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 33</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 34</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1128,7 +1138,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 33</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 34</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1354,7 +1364,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 33</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 34</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1859,7 +1869,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "33";
+const APP_VER = "34";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
