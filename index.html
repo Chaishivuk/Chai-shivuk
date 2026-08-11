@@ -787,12 +787,8 @@ async function buildStatusCanvas(p){
     ctx.fillText(nis(p.price), W / 2, ny);
   }
 
-  ctx.fillStyle = "#C9D3E8"; ctx.font = "400 32px Arial, sans-serif";
-  ctx.fillText(`מק"ט ${p.sku}`, W / 2, H - 170);
   ctx.fillStyle = "#fff"; ctx.font = "700 38px Arial, sans-serif";
-  ctx.fillText("🔗 לרכישה – הקישור בכיתוב למטה", W / 2, H - 108);
-  ctx.fillStyle = "#8FA0C6"; ctx.font = "400 30px Arial, sans-serif";
-  ctx.fillText("וואטסאפ להזמנות: 052-886-4040", W / 2, H - 60);
+  ctx.fillText("🔗 chaishivuk.github.io/Chai-shivuk", W / 2, H - 90);
 
   return cv;
 }
@@ -1220,7 +1216,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 37</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 38</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1262,7 +1258,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 37</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 38</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1488,7 +1484,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 37</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 38</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1995,7 +1991,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "37";
+const APP_VER = "38";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
