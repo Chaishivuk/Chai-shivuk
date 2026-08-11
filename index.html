@@ -766,10 +766,10 @@ async function buildStatusCanvas(p){
     ctx.drawImage(im, W / 2 - iw / 2, cardY + 30 + (boxH - ih) / 2, iw, ih);
   }catch(e){}
 
-  ctx.fillStyle = "#14213D"; ctx.font = "700 46px Arial, sans-serif";
-  const nameLines = wrapLines(ctx, p.name, W - 200).slice(0, 3);
-  let ny = cardY + cardH + 90;
-  nameLines.forEach(line => { ctx.fillText(line, W / 2, ny); ny += 58; });
+  ctx.fillStyle = "#14213D"; ctx.font = "800 50px Arial, sans-serif";
+  const nameLines = wrapLines(ctx, p.name, W - 160).slice(0, 3);
+  let ny = cardY + cardH + 95;
+  nameLines.forEach(line => { ctx.fillText(line, W / 2, ny); ny += 62; });
 
   ny += 20;
   if(isSale){
@@ -789,21 +789,23 @@ async function buildStatusCanvas(p){
 
   ctx.fillStyle = "#C9D3E8"; ctx.font = "400 32px Arial, sans-serif";
   ctx.fillText(`מק"ט ${p.sku}`, W / 2, H - 170);
-  ctx.fillStyle = "#fff"; ctx.font = "700 36px Arial, sans-serif";
-  ctx.fillText("להזמנה: chaishivuk.github.io/Chai-shivuk", W / 2, H - 110);
+  ctx.fillStyle = "#fff"; ctx.font = "700 38px Arial, sans-serif";
+  ctx.fillText("🔗 לרכישה – הקישור בכיתוב למטה", W / 2, H - 108);
   ctx.fillStyle = "#8FA0C6"; ctx.font = "400 30px Arial, sans-serif";
-  ctx.fillText("וואטסאפ להזמנות: 052-886-4040", W / 2, H - 65);
+  ctx.fillText("וואטסאפ להזמנות: 052-886-4040", W / 2, H - 60);
 
   return cv;
 }
 async function shareStatusImage(p){
-  toast("מכין תמונה...");
+  toast("מכין תמונה... ודא שהכיתוב עם הקישור נשאר בפוסט הסטטוס");
   try{
     const cv = await buildStatusCanvas(p);
     const blob = await new Promise(res => cv.toBlob(res, "image/jpeg", 0.93));
     if(!blob){ toast("שגיאה ביצירת התמונה"); return; }
     const file = new File([blob], `${p.sku || p.id}.jpg`, {type: "image/jpeg"});
-    const shareData = {files: [file], title: p.name, text: `${p.name} · ${nis(p.sale != null ? p.sale : p.price)}`};
+    const pageUrl = productUrl(p);
+    const caption = `${p.name} · ${nis(p.sale != null ? p.sale : p.price)}\nלהזמנה: ${pageUrl}`;
+    const shareData = {files: [file], title: p.name, text: caption};
     if(navigator.canShare && navigator.canShare({files: [file]})){
       try{ await navigator.share(shareData); return; }catch(e){ if(e && e.name === "AbortError") return; }
     }
@@ -1218,7 +1220,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 36</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 37</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1260,7 +1262,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 36</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 37</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1486,7 +1488,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 36</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 37</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1993,7 +1995,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "36";
+const APP_VER = "37";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
