@@ -145,6 +145,7 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .wabtn{width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:var(--green); color:#fff; font-weight:700; font-size:16.5px; border-radius:12px; padding:13px}
 .wabtn svg{width:21px; height:21px; fill:#fff}
 .mailbtn{width:100%; margin-top:9px; background:#fff; color:var(--ink); border:1.5px solid var(--line); font-weight:700; font-size:15.5px; border-radius:12px; padding:11px}
+.gmailbtn{width:100%; margin-top:7px; background:none; color:#1D4ED8; font-weight:700; font-size:13px; padding:6px; text-decoration:underline}
 
 footer{background:var(--ink); color:#B9C4DC; text-align:center; padding:26px 16px 34px; margin-top:36px; font-size:14px}
 footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
@@ -904,6 +905,7 @@ function render(){
         שליחת ההזמנה בוואטסאפ
       </button>
       <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
+      <button class="gmailbtn" id="sendmailgmail">אין תוכנת מייל? שליחה דרך Gmail בדפדפן</button>
     </div>
   </div>`;
 
@@ -995,6 +997,7 @@ function bindCustomer(){
   $("#overlay").onclick = () => { closeCart(); closeMenu(); };
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
+  $("#sendmailgmail").onclick = sendMailGmail;
   if($("#totop")) $("#totop").onclick = toTop;
   $("#menubtn").onclick = openMenu;
   $("#closemenu").onclick = closeMenu;
@@ -1076,6 +1079,7 @@ function renderProduct(){
       <div class="row"><span>סה"כ לתשלום</span><b id="dtotal"></b></div>
       <button class="wabtn" id="sendwa">שליחת ההזמנה בוואטסאפ</button>
       <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
+      <button class="gmailbtn" id="sendmailgmail">אין תוכנת מייל? שליחה דרך Gmail בדפדפן</button>
     </div>
   </div>`;
   $("#ppback").onclick = backToList;
@@ -1104,6 +1108,7 @@ function renderProduct(){
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
+  $("#sendmailgmail").onclick = sendMailGmail;
   updateCartUI();
 }
 function renderKeepFocus(){
@@ -1197,13 +1202,29 @@ function sendWA(){
   const txt = lines.map(l => "\u200F" + l).join("\n");
   window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(txt), "_blank");
 }
-function sendMail(){
+function buildMailParts(){
   const lines = orderLines();
-  if(!lines) return;
+  if(!lines) return null;
   const subject = "הזמנה חדשה – חי שיווק";
   const body = lines.join("\n") + "\n\nשם הלקוח:\nטלפון:\nהערות:";
+  return {subject, body};
+}
+async function sendMail(){
+  const parts = buildMailParts();
+  if(!parts) return;
+  /* רשת ביטחון: מעתיקים את ההזמנה ללוח כדי שאם תוכנת המייל לא נפתחת
+     (שכיח מאוד במחשבים בלי תוכנת מייל מוגדרת), אפשר להדביק אותה ידנית */
+  try{ await navigator.clipboard.writeText(`אל: ${ORDER_MAIL}\nנושא: ${parts.subject}\n\n${parts.body}`); }catch(e){}
+  toast(`ההזמנה הועתקה גם ללוח – אם לא נפתחה תוכנת מייל, הדבק אותה בהודעה אל ${ORDER_MAIL}`);
   window.location.href = "mailto:" + ORDER_MAIL +
-    "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    "?subject=" + encodeURIComponent(parts.subject) + "&body=" + encodeURIComponent(parts.body);
+}
+function sendMailGmail(){
+  const parts = buildMailParts();
+  if(!parts) return;
+  const url = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(ORDER_MAIL) +
+    "&su=" + encodeURIComponent(parts.subject) + "&body=" + encodeURIComponent(parts.body);
+  window.open(url, "_blank");
 }
 
 /* ---------- admin ---------- */
@@ -1213,7 +1234,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 40</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 41</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1255,7 +1276,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 40</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 41</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1481,7 +1502,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 40</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 41</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1988,7 +2009,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "40";
+const APP_VER = "41";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
