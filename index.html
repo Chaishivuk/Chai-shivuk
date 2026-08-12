@@ -766,7 +766,7 @@ async function buildStatusCanvas(p){
     ctx.drawImage(im, W / 2 - iw / 2, cardY + 30 + (boxH - ih) / 2, iw, ih);
   }catch(e){}
 
-  ctx.fillStyle = "#14213D"; ctx.font = "800 50px Arial, sans-serif";
+  ctx.fillStyle = "#fff"; ctx.font = "800 50px Arial, sans-serif";
   const nameLines = wrapLines(ctx, p.name, W - 160).slice(0, 3);
   let ny = cardY + cardH + 95;
   nameLines.forEach(line => { ctx.fillText(line, W / 2, ny); ny += 62; });
@@ -780,10 +780,10 @@ async function buildStatusCanvas(p){
     ctx.strokeStyle = "#9AA5B8"; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(W / 2 - w / 2, ny - 14); ctx.lineTo(W / 2 + w / 2, ny - 14); ctx.stroke();
     ny += 78;
-    ctx.fillStyle = "#22C55E"; ctx.font = "800 74px Arial, sans-serif";
+    ctx.fillStyle = "#4ADE80"; ctx.font = "800 74px Arial, sans-serif";
     ctx.fillText(nis(p.sale), W / 2, ny);
   } else {
-    ctx.fillStyle = "#14213D"; ctx.font = "800 74px Arial, sans-serif";
+    ctx.fillStyle = "#FFC94D"; ctx.font = "800 74px Arial, sans-serif";
     ctx.fillText(nis(p.price), W / 2, ny);
   }
 
@@ -1213,7 +1213,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 39</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 40</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1255,7 +1255,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 39</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 40</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1481,7 +1481,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 39</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 40</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1988,7 +1988,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "39";
+const APP_VER = "40";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
