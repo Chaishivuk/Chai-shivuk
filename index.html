@@ -52,7 +52,9 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto; background:var(--card); border:1.5px solid var(--line); border-radius:99px; padding:7px 15px; font-weight:600; font-size:14px; color:var(--ink); transition:.15s}
 .chip.on{background:var(--ink); border-color:var(--ink); color:#fff}
-.catstrip{display:flex; gap:10px; overflow-x:auto; padding:12px 14px 6px; max-width:1100px; margin:0 auto; scrollbar-width:none}
+.catstrip{display:flex; gap:10px; overflow-x:auto; padding:12px 14px 6px; max-width:1100px; margin:0 auto; scrollbar-width:none; cursor:grab; user-select:none}
+.catstrip.dragging{cursor:grabbing}
+.catstrip.dragging .catbtn{pointer-events:none}
 .catstrip::-webkit-scrollbar{display:none}
 .catbtn{flex:0 0 auto; width:98px; background:none; display:flex; flex-direction:column; align-items:center; gap:5px}
 .catring{width:86px; height:86px; border-radius:50%; padding:2px; background:#fff; border:2.5px solid #22C55E; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:.15s}
@@ -263,7 +265,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 /* ===== נגישות ===== */
 .skiplink{position:fixed; top:-60px; right:10px; z-index:200; background:#14213D; color:#fff; padding:10px 18px; border-radius:0 0 10px 10px; font-weight:700; transition:top .15s}
 .skiplink:focus{top:0}
-.a11yfab{position:fixed; left:12px; top:68%; z-index:95; width:50px; height:50px; border-radius:50%; background:#14213D; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center}
+.a11yfab{position:fixed; left:12px; bottom:92px; z-index:95; width:50px; height:50px; border-radius:50%; background:#14213D; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center}
 .a11yfab:active{background:#0d1730}
 .a11yoverlay{position:fixed; inset:0; z-index:96; background:rgba(15,23,42,.55); display:none; align-items:center; justify-content:center; padding:16px}
 .a11yoverlay.show{display:flex}
@@ -964,6 +966,29 @@ function bindCustomer(){
   if(strip){
     if(catScroll != null) strip.scrollLeft = catScroll;   /* השורה נשארת בדיוק איפה שהיא */
     strip.addEventListener("scroll", () => { catScroll = strip.scrollLeft; }, {passive: true});
+    /* גלגלת עכבר במחשב – גלילה אנכית של הגלגלת מזיזה את השורה לצדדים */
+    strip.addEventListener("wheel", e => {
+      if(strip.scrollWidth <= strip.clientWidth) return;
+      if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;   /* גלגלת אופקית – משאירים לדפדפן */
+      e.preventDefault();
+      strip.scrollLeft += e.deltaY;
+    }, {passive: false});
+    /* גרירה בעכבר במחשב, למי שאין לו גלגלת אופקית או טאצ'-פד */
+    let dragging = false, dragStartX = 0, dragStartScroll = 0, moved = false;
+    strip.addEventListener("mousedown", e => {
+      dragging = true; moved = false;
+      dragStartX = e.clientX; dragStartScroll = strip.scrollLeft;
+      strip.classList.add("dragging");
+    });
+    window.addEventListener("mousemove", e => {
+      if(!dragging) return;
+      const dx = e.clientX - dragStartX;
+      if(Math.abs(dx) > 4) moved = true;
+      strip.scrollLeft = dragStartScroll - dx;
+    });
+    window.addEventListener("mouseup", () => { dragging = false; strip.classList.remove("dragging"); });
+    /* לחיצה שהייתה בעצם גרירה לא תיספר כבחירת קטגוריה */
+    strip.addEventListener("click", e => { if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
   }
   document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
     const st = document.querySelector(".catstrip");
@@ -1234,7 +1259,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 41</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 42</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1276,7 +1301,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 41</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 42</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1502,7 +1527,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 41</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 42</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2009,7 +2034,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "41";
+const APP_VER = "42";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
