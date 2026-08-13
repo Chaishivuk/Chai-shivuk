@@ -973,21 +973,26 @@ function bindCustomer(){
       e.preventDefault();
       strip.scrollLeft += e.deltaY;
     }, {passive: false});
-    /* גרירה בעכבר במחשב, למי שאין לו גלגלת אופקית או טאצ'-פד */
+    /* גרירה בעכבר במחשב בלבד – pointerType בודק שזה עכבר ולא מגע,
+       כדי שבטלפון הלחיצה על קטגוריה תמשיך לעבוד כרגיל בלי שום הפרעה */
     let dragging = false, dragStartX = 0, dragStartScroll = 0, moved = false;
-    strip.addEventListener("mousedown", e => {
+    strip.addEventListener("pointerdown", e => {
+      if(e.pointerType !== "mouse") return;
       dragging = true; moved = false;
       dragStartX = e.clientX; dragStartScroll = strip.scrollLeft;
       strip.classList.add("dragging");
     });
-    window.addEventListener("mousemove", e => {
-      if(!dragging) return;
+    window.addEventListener("pointermove", e => {
+      if(!dragging || e.pointerType !== "mouse") return;
       const dx = e.clientX - dragStartX;
       if(Math.abs(dx) > 4) moved = true;
       strip.scrollLeft = dragStartScroll - dx;
     });
-    window.addEventListener("mouseup", () => { dragging = false; strip.classList.remove("dragging"); });
-    /* לחיצה שהייתה בעצם גרירה לא תיספר כבחירת קטגוריה */
+    window.addEventListener("pointerup", e => {
+      if(e.pointerType !== "mouse") return;
+      dragging = false; strip.classList.remove("dragging");
+    });
+    /* לחיצה שהייתה בעצם גרירה בעכבר לא תיספר כבחירת קטגוריה */
     strip.addEventListener("click", e => { if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
   }
   document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
@@ -1259,7 +1264,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 42</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 43</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1301,7 +1306,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 42</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 43</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1527,7 +1532,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 42</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 43</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2034,7 +2039,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "42";
+const APP_VER = "43";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
