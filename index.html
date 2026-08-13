@@ -513,6 +513,75 @@ async function mergeRemote(){
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const nis = n => "₪" + Number(n).toLocaleString("he-IL", {maximumFractionDigits: 2});
+
+/* ===== חיפוש סלחני – שגיאות כתיב + שמות באנגלית שנכתבים בעברית ===== */
+function normText(s){
+  return String(s ?? "")
+    .replace(/[\u0591-\u05C7]/g, "")                              /* ניקוד */
+    .replace(/[''`׳״]/g, "")                                      /* גרש/גרשיים/מירכאות */
+    .replace(/[ךםןףץ]/g, c => ({ך:"כ",ם:"מ",ן:"נ",ף:"פ",ץ:"צ"}[c])) /* אותיות סופיות */
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim().replace(/\s+/g, " ");
+}
+function editDistance(a, b){
+  const m = a.length, n = b.length;
+  if(!m) return n; if(!n) return m;
+  let prev = Array.from({length: n + 1}, (_, j) => j);
+  for(let i = 1; i <= m; i++){
+    const cur = [i];
+    for(let j = 1; j <= n; j++){
+      cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] : 1 + Math.min(prev[j - 1], prev[j], cur[j - 1]);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+const HE_PHON = {ב:"b",ג:"g",ד:"d",ז:"z",ח:"k",ט:"t",כ:"k",ך:"k",ל:"l",מ:"m",ם:"m",נ:"n",ן:"n",
+  ס:"s",פ:"p",ף:"p",צ:"s",ץ:"s",ק:"k",ר:"r",ש:"s",ת:"t",ĵ:"j",ĉ:"j"};
+const HE_DROP = new Set(["א","ה","ו","י","ע"]);
+const LA_PHON = {b:"b",c:"k",d:"d",f:"p",g:"g",j:"j",k:"k",l:"l",m:"m",n:"n",p:"p",q:"k",
+  r:"r",s:"s",t:"t",v:"b",w:"b",x:"k",z:"z"};
+const LA_DROP = new Set(["a","e","i","o","u","h","y"]);
+function phoneticKey(str){
+  const s = String(str ?? "").replace(/ג[''`׳]/g, "ĵ").replace(/צ[''`׳]/g, "ĉ").toLowerCase();
+  let raw = "";
+  for(const ch of s){
+    if(HE_PHON[ch] !== undefined) raw += HE_PHON[ch];
+    else if(HE_DROP.has(ch)) continue;
+    else if(LA_PHON[ch] !== undefined) raw += LA_PHON[ch];
+    else if(LA_DROP.has(ch)) continue;
+    else if(/[a-z0-9]/.test(ch)) raw += ch;
+  }
+  let out = "";
+  for(const c of raw) if(c !== out[out.length - 1]) out += c;
+  return out;
+}
+function searchProducts(list, q){
+  const nq = normText(q);
+  if(!nq) return list;
+  const qTokens = nq.split(" ").filter(Boolean);
+  const pq = phoneticKey(q);
+  const scored = [];
+  list.forEach(p => {
+    const hay = normText(p.name + " " + p.sku);
+    if(hay.includes(nq)){ scored.push([0, p]); return; }                       /* התאמה מדויקת */
+    const hayTokens = hay.split(" ").filter(Boolean);
+    const closeEnough = qTokens.every(qt => hayTokens.some(ht =>
+      ht.includes(qt) || editDistance(qt, ht) <= (qt.length > 5 ? 2 : 1)));
+    if(closeEnough){ scored.push([1, p]); return; }                            /* שגיאת כתיב קלה */
+    if(pq.length >= 3){
+      const words = p.name.match(/[A-Za-z\u0590-\u05FF]+/g) || [];
+      const hit = words.some(w => {
+        const wk = phoneticKey(w);
+        return wk.length >= 3 && (wk === pq || wk.includes(pq) || pq.includes(wk) || editDistance(wk, pq) <= 1);
+      });
+      if(hit) scored.push([2, p]);                                            /* התאמה פונטית עברית/אנגלית */
+    }
+  });
+  scored.sort((a, b) => a[0] - b[0]);
+  return scored.map(x => x[1]);
+}
 function toast(msg){
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 1800);
@@ -832,8 +901,7 @@ function render(){
   let body = "";
   const q = view.q.trim();
   if(q){
-    const found = DB.products.filter(p =>
-      p.name.includes(q) || p.sku.includes(q));
+    const found = searchProducts(DB.products, q);
     body = section(`תוצאות חיפוש (${found.length})`, "", found);
   } else if(view.cat === "home"){
     const sale = groupList("sale");
@@ -1264,7 +1332,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 43</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 44</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1283,7 +1351,7 @@ function renderAdmin(){
   else if(adminView.cat === "oos") list = list.filter(p => !p.stock);
   else if(adminView.cat !== "all") list = list.filter(p => p.cat === adminView.cat);
   const q = adminView.q.trim();
-  if(q) list = list.filter(p => p.name.includes(q) || p.sku.includes(q));
+  if(q) list = searchProducts(list, q);
   const groups = [
     {id: "all", name: "כל המוצרים", n: DB.products.length},
     {id: "recent", name: "נוספו לאחרונה", n: recentAdded().length},
@@ -1306,7 +1374,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 43</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 44</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1532,7 +1600,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 43</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 44</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2039,7 +2107,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "43";
+const APP_VER = "44";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
