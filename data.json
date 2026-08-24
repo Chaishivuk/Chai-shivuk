@@ -1559,11 +1559,11 @@
   },
   {
    "id": "p89",
-   "name": "סוללות Nokia BL-5C / BL-4UL",
+   "name": "סוללה Nokia BL-5C",
    "sku": "5008",
    "cat": "powerbanks",
    "price": 15,
-   "img": "images/p89.jpg",
+   "img": "images/p89-1787570935839.jpg",
    "stock": true,
    "isNew": false,
    "sale": 12,
@@ -3237,6 +3237,14 @@
   }
  },
  "log": [
+  {
+   "t": "2026-08-14T11:00:00Z",
+   "act": "edit",
+   "id": "p89",
+   "name": "סוללה Nokia BL-5C",
+   "cat": "powerbanks",
+   "price": 15
+  },
   {
    "t": "2026-08-14T10:00:00Z",
    "act": "edit",
