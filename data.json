@@ -99,6 +99,10 @@
     {
      "id": "pb-jump",
      "name": "מתנעים לרכב"
+    },
+    {
+     "id": "pb-cell",
+     "name": "סוללות חד פעמיות"
     }
    ]
   },
@@ -3181,6 +3185,25 @@
    "desc": "סוללה מקורית תואמת BL-4UL.\nמתאימה לדגמים Nokia 215 / 225.\nקיבולת 1200mAh\nמתח 3.7V",
    "imgs": [],
    "colors": []
+  },
+  {
+   "id": "p188",
+   "name": "סוללת כפתור Camelion CR2032 ליתיום 3V",
+   "sku": "5016",
+   "cat": "powerbanks",
+   "price": 3,
+   "img": "images/p188.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": null,
+   "tier": {
+    "qty": 10,
+    "price": 2
+   },
+   "sub": "pb-cell",
+   "desc": "סוללת כפתור ליתיום מבית Camelion.\nדגם CR2032\nמחליפה גם דגם 5004LC\nמתח 3V\nאזהרה: יש לשמור הרחק מהישג ידם של ילדים – סכנת בליעה",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
@@ -3253,6 +3276,14 @@
   }
  },
  "log": [
+  {
+   "t": "2026-08-14T13:00:00Z",
+   "act": "add",
+   "id": "p188",
+   "name": "סוללת כפתור Camelion CR2032 ליתיום 3V",
+   "cat": "powerbanks",
+   "price": 3
+  },
   {
    "t": "2026-08-14T12:00:00Z",
    "act": "add",
