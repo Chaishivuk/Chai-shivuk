@@ -1512,7 +1512,7 @@
   },
   {
    "id": "p86",
-   "name": "סוללה BA-L4M ל-Nokia 3210",
+   "name": "סוללה BA-L4M ל-Nokia 3210 (דגם 2024)",
    "sku": "5005",
    "cat": "powerbanks",
    "price": 20,
@@ -3152,7 +3152,7 @@
   },
   {
    "id": "p186",
-   "name": "סוללה BL-L5H ל-Nokia 105",
+   "name": "סוללה BL-L5H ל-Nokia 105 (דגם 2024)",
    "sku": "5014",
    "cat": "powerbanks",
    "price": 20,
@@ -3237,6 +3237,22 @@
   }
  },
  "log": [
+  {
+   "t": "2026-08-14T10:00:00Z",
+   "act": "edit",
+   "id": "p86",
+   "name": "סוללה BA-L4M ל-Nokia 3210 (דגם 2024)",
+   "cat": "powerbanks",
+   "price": 20
+  },
+  {
+   "t": "2026-08-14T10:00:10Z",
+   "act": "edit",
+   "id": "p186",
+   "name": "סוללה BL-L5H ל-Nokia 105 (דגם 2024)",
+   "cat": "powerbanks",
+   "price": 20
+  },
   {
    "t": "2026-08-14T09:00:00Z",
    "act": "add",
