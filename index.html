@@ -642,6 +642,11 @@ function orderList(kind, list){
   const idx = id => { const i = ord.indexOf(id); return i < 0 ? 1e9 : i; };
   return list.slice().sort((a, b) => idx(a.id) - idx(b.id));
 }
+function prependOrder(kind, id){
+  const ord = savedOrder(kind);
+  if(!ord.length) return;                       /* אין סדר ידני – הסדר הרגיל כבר שם אותו ראשון */
+  setOrder(kind, [id, ...ord.filter(x => x !== id)]);
+}
 function setOrder(kind, ids){
   DB.settings = DB.settings || {};
   DB.settings.order = DB.settings.order || {};
@@ -1332,7 +1337,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 44</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 45</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1374,7 +1379,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 44</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 45</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1600,7 +1605,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 44</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 45</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -1776,7 +1781,12 @@ function openEditor(id){
       return s;
     });
     if(p){ DB.products = DB.products.map(x => x.id === p.id ? obj : x); logAct("edit", obj); }
-    else { DB.products.push(obj); logAct("add", obj); }
+    else {
+      /* מוצר חדש נכנס לראש הרשימה – מופיע ראשון בקטגוריה ובמוצרים חדשים */
+      DB.products.unshift(obj);
+      if(obj.isNew) prependOrder("new", obj.id);
+      logAct("add", obj);
+    }
     if(await saveDB()){
       if(inQuick){ toast(`נשמר (${quick.i + 1}/${quick.ids.length})`); quickNext(); }
       else { toast("נשמר"); m.classList.remove("show"); render(); }
@@ -2107,7 +2117,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "44";
+const APP_VER = "45";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
