@@ -3236,6 +3236,38 @@
    "imgs": [
     "images/p190-e1787739244373.jpg"
    ]
+  },
+  {
+   "id": "p191",
+   "name": "כבל טעינה לאייפון USB ל-Lightning",
+   "sku": "2026",
+   "cat": "cables",
+   "price": 4,
+   "img": "images/p191.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": 2,
+   "tier": null,
+   "sub": "c-charge",
+   "desc": "כבל טעינה מ-USB ל-Lightning.\nהספק 75W, זרם 2.4A\nמתאים לאייפון ולמכשירי Lightning",
+   "imgs": [],
+   "colors": []
+  },
+  {
+   "id": "p192",
+   "name": "כבל טעינה Micro USB",
+   "sku": "2027",
+   "cat": "cables",
+   "price": 4,
+   "img": "images/p192.jpg",
+   "stock": true,
+   "isNew": true,
+   "sale": 2,
+   "tier": null,
+   "sub": "c-charge",
+   "desc": "כבל טעינה מ-USB ל-Micro USB.\nזרם עד 6A",
+   "imgs": [],
+   "colors": []
   }
  ],
  "version": 2,
@@ -3308,6 +3340,22 @@
   }
  },
  "log": [
+  {
+   "t": "2026-08-15T10:00:20Z",
+   "act": "add",
+   "id": "p192",
+   "name": "כבל טעינה Micro USB",
+   "cat": "cables",
+   "price": 4
+  },
+  {
+   "t": "2026-08-15T10:00:00Z",
+   "act": "add",
+   "id": "p191",
+   "name": "כבל טעינה לאייפון USB ל-Lightning",
+   "cat": "cables",
+   "price": 4
+  },
   {
    "t": "2026-08-26T10:13:37.587Z",
    "act": "edit",
