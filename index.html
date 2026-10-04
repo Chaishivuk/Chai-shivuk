@@ -806,6 +806,7 @@ function applyHash(){
   if(!key && view.page === "product") view.page = "list";
 }
 let catScroll = null;   /* מיקום שורת הקטגוריות */
+const railScroll = {};  /* מיקום שורות הגלילה (מבצעים וכו') – נשמר בין רינדורים */
 function centerActiveCat(){
   const st = document.querySelector(".catstrip");
   const on = st && st.querySelector(".catbtn.on");
@@ -1086,7 +1087,7 @@ function section(title, tag, products, rail){
   const tg = tag ? `<span class="tag ${tag}">${tag==="sale"?"מבצע":"חדש"}</span>` : "";
   return `<div class="sect">
     <div class="secthead"><h2>${esc(title)}</h2>${tg}</div>
-    <div class="${rail ? "rail" : "grid"}">${products.map(card).join("")}</div>
+    <div class="${rail ? "rail" : "grid"}"${rail ? ` data-rail="${esc(tag || title)}"` : ""}>${products.map(card).join("")}</div>
   </div>`;
 }
 
@@ -1129,6 +1130,12 @@ function card(p){
 }
 
 function bindCustomer(){
+  /* שורות הגלילה (מבצעים) – נשארות בדיוק איפה שהלקוח עצר, גם אחרי הוספה לסל */
+  document.querySelectorAll("[data-rail]").forEach(r => {
+    const k = r.dataset.rail;
+    if(railScroll[k] != null) r.scrollLeft = railScroll[k];
+    r.addEventListener("scroll", () => { railScroll[k] = r.scrollLeft; }, {passive: true});
+  });
   const strip = document.querySelector(".catstrip");
   if(strip){
     if(catScroll != null) strip.scrollLeft = catScroll;   /* השורה נשארת בדיוק איפה שהיא */
@@ -1516,7 +1523,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 47</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 48</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1558,7 +1565,7 @@ function renderAdmin(){
       </div>
     </div>`).join("");
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 47</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 48</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1916,7 +1923,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 47</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 48</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2428,7 +2435,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "47";
+const APP_VER = "48";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
