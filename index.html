@@ -202,6 +202,17 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .selbar .acts button.g{background:var(--green)}
 .selbar .acts button.r{background:#B4232C}
 .selpad{height:132px}
+.sqrow{display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid var(--line)}
+.sqrow:last-of-type{border-bottom:none}
+.sqrow.done{opacity:.55}
+.sqrow img{width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:8px}
+.sqn{flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:var(--ink); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center}
+.sqrow.done .sqn{background:var(--green)}
+.sqi{flex:1; min-width:0}
+.sqname{font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sqm{font-size:12.5px; color:var(--muted)}
+.sqb{background:var(--green); color:#fff; font-weight:700; font-size:13.5px; border-radius:9px; padding:8px 14px}
+.sqrow.done .sqb{background:#8893A6}
 .aact{display:flex; gap:6px}
 .aact button{font-size:13px; font-weight:700; border-radius:7px; padding:6px 11px}
 .ed{background:#EAF0FB; color:#1D4ED8} .dl{background:#FDECEC; color:var(--red)}
@@ -1562,7 +1573,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 52</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 53</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1615,7 +1626,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 52</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 53</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1696,6 +1707,7 @@ function saveFiles(files){
     setTimeout(() => URL.revokeObjectURL(u), 5000);
   }, i * 400));
 }
+let shareQ = null;   /* התור לשיתוף – מוצר אחרי מוצר, כל אחד עם הקישור שלו */
 async function shareStatus(kind){
   const ps = selProducts();
   if(!ps.length){ toast("לא נבחרו מוצרים"); return; }
@@ -1710,22 +1722,44 @@ async function shareStatus(kind){
     toast(`${files.length} תמונות נשמרו למכשיר`);
     return;
   }
-
-  const caption = ps.map(p =>
-      `${p.name} · ${nis(p.sale != null ? p.sale : p.price)}\n${productUrl(p)}`
-    ).join("\n\n") + (ps.length > 1 ? `\n\nחי שיווק · 052-886-4040` : "");
-
-  if(navigator.canShare && navigator.canShare({files})){
-    try{ await navigator.share({files, text: caption}); return; }
-    catch(e){ if(e && e.name === "AbortError") return; }
-  }
-  if(files.length > 1 && navigator.canShare && navigator.canShare({files: [files[0]]})){
-    toast("הדפדפן מאפשר תמונה אחת בכל פעם – התמונות נשמרות למכשיר");
-    saveFiles(files);
-    return;
-  }
-  saveFiles(files);
-  toast("התמונות הורדו – שתפו אותן מהגלריה לסטטוס");
+  shareQ = ps.map((p, i) => ({p, file: files[i], done: false}));
+  drawShareQ();
+}
+function shareCaption(p){
+  return `${p.name} · ${nis(p.sale != null ? p.sale : p.price)}\n${productUrl(p)}`;
+}
+function drawShareQ(){
+  const m = $("#modal");
+  const left = shareQ.filter(r => !r.done).length;
+  const rows = shareQ.map((r, i) => `
+    <div class="sqrow ${r.done ? "done" : ""}">
+      <div class="sqn">${r.done ? "✓" : i + 1}</div>
+      <img src="${r.p.img}" alt="">
+      <div class="sqi"><div class="sqname">${esc(r.p.name)}</div>
+        <div class="sqm">${nis(r.p.sale != null ? r.p.sale : r.p.price)}</div></div>
+      <button class="sqb" data-sq="${i}">${r.done ? "שוב" : "שיתוף"}</button>
+    </div>`).join("");
+  m.innerHTML = `<div class="mbox"><h3>📤 שיתוף לסטטוס</h3>
+    <div class="hint" style="margin-bottom:12px">כל מוצר משותף בנפרד, עם התמונה והקישור שלו. משתפים אחד לסטטוס, חוזרים לכאן ולוחצים על הבא.</div>
+    ${rows}
+    <div class="hint" style="margin:10px 0 0">${left ? "נותרו " + left + " מוצרים" : "כל המוצרים שותפו ✓"}</div>
+    <div class="mact"><button class="cancel" id="sq_close" style="width:100%">סגירה</button></div>
+  </div>`;
+  m.classList.add("show");
+  $("#sq_close").onclick = () => { m.classList.remove("show"); shareQ = null; };
+  document.querySelectorAll("[data-sq]").forEach(b => b.onclick = async () => {
+    const r = shareQ[+b.dataset.sq];
+    const data = {files: [r.file], text: shareCaption(r.p), title: r.p.name};
+    if(navigator.canShare && navigator.canShare({files: [r.file]})){
+      try{ await navigator.share(data); }
+      catch(e){ if(e && e.name === "AbortError") return; }
+    }else{
+      saveFiles([r.file]);
+      toast("התמונה נשמרה – שתפו אותה מהגלריה");
+    }
+    r.done = true;
+    drawShareQ();
+  });
 }
 async function sha256(s){
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -2040,7 +2074,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 52</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 53</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2552,7 +2586,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "52";
+const APP_VER = "53";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
