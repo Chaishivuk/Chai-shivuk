@@ -197,6 +197,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .selbar .cnt{font-size:13.5px; color:#B9C4DC; margin-bottom:7px; display:flex; justify-content:space-between; align-items:center}
 .selbar .cnt b{color:#fff; font-size:15px}
 .selbar .acts{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+.selbar .acts button.r{background:#B4232C}
 .selbar .acts button{background:#223055; color:#fff; font-weight:700; font-size:13px; border-radius:9px; padding:9px 4px}
 .selbar .acts button.g{background:var(--green)}
 .selbar .acts button.r{background:#B4232C}
@@ -1536,7 +1537,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 49</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 50</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1579,27 +1580,21 @@ function renderAdmin(){
     </div>`).join("");
   const selBar = !selMode ? "" : `
     <div class="selbar">
-      <div class="cnt"><span>נבחרו <b>${selIds.size}</b> מוצרים</span>
+      <div class="cnt"><span>נבחרו <b>${selIds.size}</b> מוצרים לסטטוס</span>
         <span><button id="sel_all" style="color:#9DC0FF;font-weight:700;background:none;font-size:13px">בחירת הכל (${list.length})</button>
         <button id="sel_none" style="color:#9DC0FF;font-weight:700;background:none;font-size:13px;margin-right:10px">ניקוי</button></span></div>
       <div class="acts">
-        <button data-bulk="new">➕ סימון כחדש</button>
-        <button data-bulk="unnew">➖ הסרת "חדש"</button>
-        <button data-bulk="sale">🏷️ מבצע באחוזים</button>
-        <button data-bulk="unsale">✖️ ביטול מבצע</button>
-        <button data-bulk="oos">📦 סימון כאזל</button>
-        <button data-bulk="instock" class="g">✅ חזר למלאי</button>
-        <button data-bulk="cat">📂 העברה לקטגוריה</button>
-        <button data-bulk="del" class="r">🗑️ מחיקה</button>
-        <button id="sel_off">סיום בחירה</button>
+        <button data-share="status" class="g">📤 שיתוף לסטטוס</button>
+        <button data-share="save">⬇️ שמירת התמונות</button>
+        <button id="sel_off">סיום</button>
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 49</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 50</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
-        <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "☑️ בחירת מוצרים"}</button>
+        <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "📤 שיתוף מוצרים לסטטוס"}</button>
         <button class="abtn" id="cats">ניהול קטגוריות</button>
         <button class="abtn" id="settings">⚙️ הגדרות</button>
         <button class="abtn o" id="tostore">→ לאתר הלקוחות</button>
@@ -1649,7 +1644,7 @@ function renderAdmin(){
     $("#sel_off").onclick = () => { selMode = false; selIds.clear(); render(); };
     $("#sel_all").onclick = () => { list.forEach(p => selIds.add(p.id)); render(); };
     $("#sel_none").onclick = () => { selIds.clear(); render(); };
-    document.querySelectorAll("[data-bulk]").forEach(b => b.onclick = () => bulkAction(b.dataset.bulk));
+    document.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareStatus(b.dataset.share));
   }
   document.querySelectorAll("[data-del]").forEach(b => b.onclick = async (e) => {
     e.stopPropagation();
@@ -1660,67 +1655,52 @@ function renderAdmin(){
     if(await saveDB()){ toast("המוצר נמחק"); render(); }
   });
 }
-/* ---------- פעולות על כמה מוצרים יחד ---------- */
+/* ---------- שיתוף כמה מוצרים לסטטוס ---------- */
+const STATUS_MAX = 10;
 function selProducts(){ return DB.products.filter(p => selIds.has(p.id)); }
-async function bulkApply(fn, msg){
-  const ps = selProducts();
-  if(!ps.length){ toast("לא נבחרו מוצרים"); return; }
-  ps.forEach(p => { fn(p); logAct("edit", p); });
-  if(await saveDB()){ toast(msg.replace("%n", ps.length)); render(); }
+async function statusFile(p){
+  const cv = await buildStatusCanvas(p);                 /* אותו עיצוב כמו שיתוף מוצר בודד */
+  const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.93));
+  return new File([blob], `${p.sku || p.id}.jpg`, {type: "image/jpeg"});
 }
-function bulkAction(kind){
+function saveFiles(files){
+  files.forEach((f, i) => setTimeout(() => {
+    const u = URL.createObjectURL(f);
+    const a = document.createElement("a");
+    a.href = u; a.download = f.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 5000);
+  }, i * 400));
+}
+async function shareStatus(kind){
   const ps = selProducts();
   if(!ps.length){ toast("לא נבחרו מוצרים"); return; }
-  const m = $("#modal");
-  if(kind === "new")      return bulkApply(p => p.isNew = true,  "%n מוצרים סומנו כחדשים");
-  if(kind === "unnew")    return bulkApply(p => p.isNew = false, 'הוסר הסימון "חדש" מ-%n מוצרים');
-  if(kind === "oos")      return bulkApply(p => p.stock = false, "%n מוצרים סומנו כאזלו מהמלאי");
-  if(kind === "instock")  return bulkApply(p => p.stock = true,  "%n מוצרים הוחזרו למלאי");
-  if(kind === "unsale")   return bulkApply(p => p.sale = null,   "בוטל המבצע ב-%n מוצרים");
+  if(ps.length > STATUS_MAX){ toast(`אפשר עד ${STATUS_MAX} מוצרים בפעם אחת`); return; }
+  toast(`מכין ${ps.length} תמונות...`);
+  let files;
+  try{ files = await Promise.all(ps.map(statusFile)); }
+  catch(e){ toast("שגיאה בהכנת התמונות"); return; }
 
-  if(kind === "del"){
-    if(!confirm(`למחוק ${ps.length} מוצרים? אי אפשר לבטל.`)) return;
-    const ids = new Set(ps.map(p => p.id));
-    ps.forEach(p => logAct("del", p));
-    DB.products = DB.products.filter(p => !ids.has(p.id));
-    return saveDB().then(ok => { if(ok){ selIds.clear(); toast(ps.length + " מוצרים נמחקו"); render(); } });
-  }
-
-  if(kind === "sale"){
-    m.innerHTML = `<div class="mbox"><h3>🏷️ מבצע ל-${ps.length} מוצרים</h3>
-      <div class="fld"><label>אחוז ההנחה</label>
-        <input id="bk_pct" type="number" inputmode="numeric" placeholder="למשל 10">
-        <div class="hint">המחיר החדש יחושב מהמחיר המקורי של כל מוצר ויעוגל לשקל שלם.</div>
-      </div>
-      <div class="mact"><button class="save" id="bk_ok">החלה</button><button class="cancel" id="bk_no">ביטול</button></div></div>`;
-    m.classList.add("show");
-    $("#bk_no").onclick = () => m.classList.remove("show");
-    $("#bk_ok").onclick = () => {
-      const pct = +$("#bk_pct").value;
-      if(!(pct > 0 && pct < 100)){ toast("יש להזין אחוז בין 1 ל-99"); return; }
-      m.classList.remove("show");
-      bulkApply(p => { p.sale = Math.max(1, Math.round(p.price * (100 - pct) / 100)); },
-                `הופעל מבצע ${pct}% ב-%n מוצרים`);
-    };
+  if(kind === "save"){
+    saveFiles(files);
+    toast(`${files.length} תמונות נשמרו למכשיר`);
     return;
   }
 
-  if(kind === "cat"){
-    const opts = DB.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
-    m.innerHTML = `<div class="mbox"><h3>📂 העברת ${ps.length} מוצרים</h3>
-      <div class="fld"><label>לקטגוריה</label><select id="bk_cat">${opts}</select>
-        <div class="hint">תת-הקטגוריה של המוצרים תתאפס, כי היא שייכת לקטגוריה הקודמת.</div>
-      </div>
-      <div class="mact"><button class="save" id="bk_ok">העברה</button><button class="cancel" id="bk_no">ביטול</button></div></div>`;
-    m.classList.add("show");
-    $("#bk_no").onclick = () => m.classList.remove("show");
-    $("#bk_ok").onclick = () => {
-      const c = $("#bk_cat").value;
-      m.classList.remove("show");
-      bulkApply(p => { p.cat = c; p.sub = null; }, "%n מוצרים הועברו לקטגוריה " + catName(c));
-    };
+  const caption = ps.length === 1
+    ? `${ps[0].name} · ${nis(ps[0].sale != null ? ps[0].sale : ps[0].price)}\nלהזמנה: ${productUrl(ps[0])}`
+    : `חי שיווק · לקטלוג המלא: ${location.origin + location.pathname}`;
+
+  if(navigator.canShare && navigator.canShare({files})){
+    try{ await navigator.share({files, text: caption}); return; }
+    catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  if(files.length > 1 && navigator.canShare && navigator.canShare({files: [files[0]]})){
+    toast("הדפדפן מאפשר תמונה אחת בכל פעם – התמונות נשמרות למכשיר");
+    saveFiles(files);
     return;
   }
+  saveFiles(files);
+  toast("התמונות הורדו – שתפו אותן מהגלריה לסטטוס");
 }
 async function sha256(s){
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -2035,7 +2015,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 49</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 50</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2547,7 +2527,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "49";
+const APP_VER = "50";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
