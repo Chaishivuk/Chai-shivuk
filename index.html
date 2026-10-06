@@ -190,6 +190,17 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .ainfo{flex:1; min-width:0}
 .ainfo .n{font-weight:700; font-size:14px}
 .ainfo .m{color:var(--muted); font-size:12px}
+.arow.picked{background:#EAF4FF}
+.selmark{flex:0 0 24px; width:24px; height:24px; border-radius:50%; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:14px; color:#fff; background:#fff}
+.arow.picked .selmark{background:var(--green); border-color:var(--green)}
+.selbar{position:fixed; left:0; right:0; bottom:0; z-index:75; background:var(--ink); color:#fff; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); box-shadow:0 -6px 20px rgba(15,23,42,.25)}
+.selbar .cnt{font-size:13.5px; color:#B9C4DC; margin-bottom:7px; display:flex; justify-content:space-between; align-items:center}
+.selbar .cnt b{color:#fff; font-size:15px}
+.selbar .acts{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+.selbar .acts button{background:#223055; color:#fff; font-weight:700; font-size:13px; border-radius:9px; padding:9px 4px}
+.selbar .acts button.g{background:var(--green)}
+.selbar .acts button.r{background:#B4232C}
+.selpad{height:132px}
 .aact{display:flex; gap:6px}
 .aact button{font-size:13px; font-weight:700; border-radius:7px; padding:6px 11px}
 .ed{background:#EAF0FB; color:#1D4ED8} .dl{background:#FDECEC; color:var(--red)}
@@ -787,6 +798,8 @@ function catSubs(id){ const c = DB.categories.find(c => c.id === id); return (c 
 /* ---------- customer render ---------- */
 let adminMode = false, logoTaps = 0, logoTimer = null;
 let adminView = {cat: "all", q: ""};
+let selMode = false;              /* מצב בחירה מרובה בניהול */
+const selIds = new Set();
 function isAdminRoute(){ return adminMode || location.hash === "#admin"; }
 /* ---------- קישור ישיר למוצר ---------- */
 function hashKey(){
@@ -1523,7 +1536,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 48</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 49</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1553,22 +1566,40 @@ function renderAdmin(){
   ];
   const achips = groups.map(g =>
     `<button class="chip ${adminView.cat === g.id ? "on" : ""}" data-acat="${g.id}">${esc(g.name)} (${g.n})</button>`).join("");
+  const tags = p => [p.isNew ? "חדש" : "", p.sale != null ? "מבצע" : ""].filter(Boolean).join(" · ");
   const rows = list.map(p => `
-    <div class="arow" data-edit="${p.id}" style="cursor:pointer">
+    <div class="arow ${selMode && selIds.has(p.id) ? "picked" : ""}" ${selMode ? `data-pick="${p.id}"` : `data-edit="${p.id}"`} style="cursor:pointer">
+      ${selMode ? `<div class="selmark">${selIds.has(p.id) ? "✓" : ""}</div>` : ""}
       ${p.img ? `<img src="${p.img}">` : `<div style="width:44px;height:44px;border:1px solid var(--line);border-radius:8px"></div>`}
       <div class="ainfo">
         <div class="n">${esc(p.name)} ${p.stock ? "" : '<span class="oostag">אזל</span>'}</div>
-        <div class="m">מק"ט ${p.sku} · ${esc(catName(p.cat))} · ${nis(p.sale != null ? p.sale : p.price)}</div>
+        <div class="m">מק"ט ${p.sku} · ${esc(catName(p.cat))} · ${nis(p.sale != null ? p.sale : p.price)}${tags(p) ? " · " + tags(p) : ""}</div>
       </div>
-      <div class="aact">
-        <button class="dl" data-del="${p.id}">מחיקה</button>
-      </div>
+      ${selMode ? "" : `<div class="aact"><button class="dl" data-del="${p.id}">מחיקה</button></div>`}
     </div>`).join("");
+  const selBar = !selMode ? "" : `
+    <div class="selbar">
+      <div class="cnt"><span>נבחרו <b>${selIds.size}</b> מוצרים</span>
+        <span><button id="sel_all" style="color:#9DC0FF;font-weight:700;background:none;font-size:13px">בחירת הכל (${list.length})</button>
+        <button id="sel_none" style="color:#9DC0FF;font-weight:700;background:none;font-size:13px;margin-right:10px">ניקוי</button></span></div>
+      <div class="acts">
+        <button data-bulk="new">➕ סימון כחדש</button>
+        <button data-bulk="unnew">➖ הסרת "חדש"</button>
+        <button data-bulk="sale">🏷️ מבצע באחוזים</button>
+        <button data-bulk="unsale">✖️ ביטול מבצע</button>
+        <button data-bulk="oos">📦 סימון כאזל</button>
+        <button data-bulk="instock" class="g">✅ חזר למלאי</button>
+        <button data-bulk="cat">📂 העברה לקטגוריה</button>
+        <button data-bulk="del" class="r">🗑️ מחיקה</button>
+        <button id="sel_off">סיום בחירה</button>
+      </div>
+    </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 48</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 49</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
+        <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "☑️ בחירת מוצרים"}</button>
         <button class="abtn" id="cats">ניהול קטגוריות</button>
         <button class="abtn" id="settings">⚙️ הגדרות</button>
         <button class="abtn o" id="tostore">→ לאתר הלקוחות</button>
@@ -1583,7 +1614,9 @@ function renderAdmin(){
         style="width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;background:#fff;margin-bottom:10px">
       <div class="chips" style="padding:0 0 12px;margin:0;max-width:none">${achips}</div>
       <div class="atable">${rows || '<div class="empty">אין מוצרים תואמים</div>'}</div>
+      ${selMode ? '<div class="selpad"></div>' : ""}
     </div>
+    ${selBar}
     <div class="modal" id="modal"></div>`;
   $("#addp").onclick = () => openEditor(null);
   $("#cats").onclick = openCatManager;
@@ -1600,7 +1633,24 @@ function renderAdmin(){
   $("#pdf").onclick = exportPDF;
   $("#xls").onclick = exportXLS;
   $("#tostore").onclick = () => { adminMode = false; if(location.hash) location.hash = ""; render(); window.scrollTo(0,0); };
+  $("#selbtn").onclick = () => { selMode = !selMode; selIds.clear(); render(); };
   document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEditor(b.dataset.edit));
+  document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const id = b.dataset.pick;
+    if(selIds.has(id)) selIds.delete(id); else selIds.add(id);
+    /* עדכון מקומי מהיר – בלי רינדור מחדש, כדי שאפשר יהיה לסמן מוצר אחרי מוצר */
+    b.classList.toggle("picked", selIds.has(id));
+    const mk = b.querySelector(".selmark");
+    if(mk) mk.textContent = selIds.has(id) ? "✓" : "";
+    const c = document.querySelector(".selbar .cnt b");
+    if(c) c.textContent = selIds.size;
+  });
+  if(selMode){
+    $("#sel_off").onclick = () => { selMode = false; selIds.clear(); render(); };
+    $("#sel_all").onclick = () => { list.forEach(p => selIds.add(p.id)); render(); };
+    $("#sel_none").onclick = () => { selIds.clear(); render(); };
+    document.querySelectorAll("[data-bulk]").forEach(b => b.onclick = () => bulkAction(b.dataset.bulk));
+  }
   document.querySelectorAll("[data-del]").forEach(b => b.onclick = async (e) => {
     e.stopPropagation();
     const p = DB.products.find(x => x.id === b.dataset.del);
@@ -1609,6 +1659,68 @@ function renderAdmin(){
     logAct("del", p);
     if(await saveDB()){ toast("המוצר נמחק"); render(); }
   });
+}
+/* ---------- פעולות על כמה מוצרים יחד ---------- */
+function selProducts(){ return DB.products.filter(p => selIds.has(p.id)); }
+async function bulkApply(fn, msg){
+  const ps = selProducts();
+  if(!ps.length){ toast("לא נבחרו מוצרים"); return; }
+  ps.forEach(p => { fn(p); logAct("edit", p); });
+  if(await saveDB()){ toast(msg.replace("%n", ps.length)); render(); }
+}
+function bulkAction(kind){
+  const ps = selProducts();
+  if(!ps.length){ toast("לא נבחרו מוצרים"); return; }
+  const m = $("#modal");
+  if(kind === "new")      return bulkApply(p => p.isNew = true,  "%n מוצרים סומנו כחדשים");
+  if(kind === "unnew")    return bulkApply(p => p.isNew = false, 'הוסר הסימון "חדש" מ-%n מוצרים');
+  if(kind === "oos")      return bulkApply(p => p.stock = false, "%n מוצרים סומנו כאזלו מהמלאי");
+  if(kind === "instock")  return bulkApply(p => p.stock = true,  "%n מוצרים הוחזרו למלאי");
+  if(kind === "unsale")   return bulkApply(p => p.sale = null,   "בוטל המבצע ב-%n מוצרים");
+
+  if(kind === "del"){
+    if(!confirm(`למחוק ${ps.length} מוצרים? אי אפשר לבטל.`)) return;
+    const ids = new Set(ps.map(p => p.id));
+    ps.forEach(p => logAct("del", p));
+    DB.products = DB.products.filter(p => !ids.has(p.id));
+    return saveDB().then(ok => { if(ok){ selIds.clear(); toast(ps.length + " מוצרים נמחקו"); render(); } });
+  }
+
+  if(kind === "sale"){
+    m.innerHTML = `<div class="mbox"><h3>🏷️ מבצע ל-${ps.length} מוצרים</h3>
+      <div class="fld"><label>אחוז ההנחה</label>
+        <input id="bk_pct" type="number" inputmode="numeric" placeholder="למשל 10">
+        <div class="hint">המחיר החדש יחושב מהמחיר המקורי של כל מוצר ויעוגל לשקל שלם.</div>
+      </div>
+      <div class="mact"><button class="save" id="bk_ok">החלה</button><button class="cancel" id="bk_no">ביטול</button></div></div>`;
+    m.classList.add("show");
+    $("#bk_no").onclick = () => m.classList.remove("show");
+    $("#bk_ok").onclick = () => {
+      const pct = +$("#bk_pct").value;
+      if(!(pct > 0 && pct < 100)){ toast("יש להזין אחוז בין 1 ל-99"); return; }
+      m.classList.remove("show");
+      bulkApply(p => { p.sale = Math.max(1, Math.round(p.price * (100 - pct) / 100)); },
+                `הופעל מבצע ${pct}% ב-%n מוצרים`);
+    };
+    return;
+  }
+
+  if(kind === "cat"){
+    const opts = DB.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+    m.innerHTML = `<div class="mbox"><h3>📂 העברת ${ps.length} מוצרים</h3>
+      <div class="fld"><label>לקטגוריה</label><select id="bk_cat">${opts}</select>
+        <div class="hint">תת-הקטגוריה של המוצרים תתאפס, כי היא שייכת לקטגוריה הקודמת.</div>
+      </div>
+      <div class="mact"><button class="save" id="bk_ok">העברה</button><button class="cancel" id="bk_no">ביטול</button></div></div>`;
+    m.classList.add("show");
+    $("#bk_no").onclick = () => m.classList.remove("show");
+    $("#bk_ok").onclick = () => {
+      const c = $("#bk_cat").value;
+      m.classList.remove("show");
+      bulkApply(p => { p.cat = c; p.sub = null; }, "%n מוצרים הועברו לקטגוריה " + catName(c));
+    };
+    return;
+  }
 }
 async function sha256(s){
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -1923,7 +2035,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 48</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 49</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2435,7 +2547,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "48";
+const APP_VER = "49";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
