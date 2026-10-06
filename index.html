@@ -948,7 +948,7 @@ async function buildStatusCanvas(p){
     ctx.fillText("במבצע!", W / 2, 250);
   }
 
-  const cardY = isSale ? 300 : 240, cardH = 900;   /* מקום לפס התחתון עם הקישור */
+  const cardY = isSale ? 300 : 240, cardH = 940;
   ctx.fillStyle = "#fff";
   roundRect(ctx, 60, cardY, W - 120, cardH, 28); ctx.fill();
 
@@ -986,25 +986,14 @@ async function buildStatusCanvas(p){
     ctx.fillText(`מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליחידה`, W / 2, ny);
   }
 
-  /* פס תחתון – הקישור הישיר למוצר באתר + טלפון */
-  const BH = 250;
+  /* פס תחתון – פרטי יצירת קשר (הקישור נשלח בכיתוב, לא על התמונה) */
+  const BH = 190;
   ctx.fillStyle = "#0A1328"; ctx.fillRect(0, H - BH, W, BH);
   ctx.fillStyle = "#223055"; ctx.fillRect(0, H - BH, W, 4);
-
-  ctx.fillStyle = "#9DB0D6"; ctx.font = "400 32px Arial, sans-serif";
-  ctx.fillText("לצפייה ולהזמנה באתר", W / 2, H - BH + 60);
-
-  const link = productUrl(p).replace(/^https?:\/\//, "");
-  ctx.direction = "ltr";
-  let fs = 42;
-  do{ ctx.font = "700 " + fs + "px Arial, sans-serif"; fs -= 2; }
-  while(ctx.measureText(link).width > W - 90 && fs > 20);
-  ctx.fillStyle = "#4ADE80";
-  ctx.fillText(link, W / 2, H - BH + 118);
-  ctx.direction = "rtl";
-
-  ctx.fillStyle = "#fff"; ctx.font = "700 46px Arial, sans-serif";
-  ctx.fillText("וואטסאפ 052-886-4040", W / 2, H - BH + 190);
+  ctx.fillStyle = "#9DB0D6"; ctx.font = "400 34px Arial, sans-serif";
+  ctx.fillText("להזמנות", W / 2, H - BH + 62);
+  ctx.fillStyle = "#4ADE80"; ctx.font = "800 60px Arial, sans-serif";
+  ctx.fillText("052-886-4040", W / 2, H - BH + 132);
 
   return cv;
 }
@@ -1573,7 +1562,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 53</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 54</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1626,7 +1615,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 53</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 54</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2074,7 +2063,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 53</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 54</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2586,7 +2575,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "53";
+const APP_VER = "54";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
