@@ -1537,7 +1537,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 50</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 51</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1590,7 +1590,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 50</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 51</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2015,7 +2015,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 50</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 51</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2527,7 +2527,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "50";
+const APP_VER = "51";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
@@ -2538,6 +2538,17 @@ async function ensureLatest(){
     const key = "chai_ver_reload";
     if(sessionStorage.getItem(key) === v) return;   /* מונע לולאת רענון */
     sessionStorage.setItem(key, v);
+    /* מנקים את המטמון של הדף כדי שהגרסה החדשה תיטען בוודאות */
+    try{
+      if(window.caches){
+        const ks = await caches.keys();
+        await Promise.all(ks.filter(k => k.startsWith("chai-shell")).map(k => caches.delete(k)));
+      }
+      if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+        const reg = await navigator.serviceWorker.getRegistration();
+        if(reg) reg.update();
+      }
+    }catch(e){}
     const u = new URL(location.href);
     u.searchParams.set("v", v);
     location.replace(u.toString());
