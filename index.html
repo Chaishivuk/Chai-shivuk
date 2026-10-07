@@ -689,6 +689,15 @@ function couponCheck(code, sum){
 function loadCoupon(){ try{ return localStorage.getItem("chai-coupon") || ""; }catch(e){ return ""; } }
 function saveCoupon(v){ try{ v ? localStorage.setItem("chai-coupon", v) : localStorage.removeItem("chai-coupon"); }catch(e){} }
 let couponCode = loadCoupon();
+/* מוצר שהמחיר שלו אינו כולל מע"מ – כל מה שאינו מכשיר, וכן מכשיר שסומן ידנית */
+function needsVat(p){ return p.cat !== "phones" || p.novat === true; }
+function vatRate(){
+  const r = DB && DB.settings ? DB.settings.vatRate : null;
+  return (r > 0 && r < 100) ? r / 100 : 0.18;
+}
+function cartSubtotalVat(){
+  return cartItems().reduce((t, {p, qty}) => t + (needsVat(p) ? effPrice(p, qty) * qty : 0), 0);
+}
 function cartCalc(){
   const sub = cartSubtotal();
   const c = promoCfg();
@@ -698,7 +707,13 @@ function cartCalc(){
     if(cpD >= tierD){ tier = null; tierD = 0; } else { cp = null; cpD = 0; }
   }
   const disc = Math.min(sub, rnd(tierD + cpD));
-  return {sub, tier, tierD, cp, cpD, disc, total: Math.max(0, rnd(sub - disc))};
+  const net = Math.max(0, rnd(sub - disc));
+  /* מע"מ מחושב אחרי ההנחה – ההנחה מתחלקת יחסית בין החייבים לפטורים */
+  const share = sub > 0 ? (cartSubtotalVat() / sub) : 0;
+  const vatBase = rnd(net * share);
+  const vat = rnd(vatBase * vatRate());
+  return {sub, tier, tierD, cp, cpD, disc, net, vatBase, vat,
+          rate: Math.round(vatRate() * 100), total: Math.max(0, rnd(net + vat))};
 }
 function effPrice(p, qty){
   let base = (p.sale != null) ? p.sale : p.price;
@@ -1398,10 +1413,11 @@ function sumBoxHTML(){
   let h = "";
   if(k.tierD > 0) h += `<div class="pnudge pwin">🎉 ${esc(k.tier.label || ("קנייה מעל " + nis(+k.tier.min || 0)))} – ${esc(ruleText(k.tier))}</div>`;
   else if(nd) h += `<div class="pnudge">${esc(nd.text)}</div>`;
-  if(k.disc > 0){
+  if(k.disc > 0 || k.vat > 0){
     h += `<div class="srow"><span>סכום ביניים</span><span>${nis(k.sub)}</span></div>`;
     if(k.tierD > 0) h += `<div class="srow disc"><span>${esc(k.tier.label || ("הנחה בקנייה מעל " + nis(+k.tier.min || 0)))}</span><span>−${nis(k.tierD)}</span></div>`;
     if(k.cpD > 0)   h += `<div class="srow disc"><span>קופון ${esc(String(k.cp.code).toUpperCase())}</span><span>−${nis(k.cpD)}</span></div>`;
+    if(k.vat > 0)   h += `<div class="srow"><span>מע"מ ${k.rate}% על האביזרים</span><span>+${nis(k.vat)}</span></div>`;
   }
   h += `<div class="row"><span>סה"כ לתשלום</span><b>${nis(k.total)}</b></div>`;
   if(hasCoupons()){
@@ -1460,7 +1476,8 @@ function updateCartUI(){
   if(cbn){
     const nd = nudgeInfo();
     let t = "";
-    if(k.disc > 0) t = "כולל הנחה של " + nis(k.disc);
+    if(k.disc > 0) t = "כולל הנחה של " + nis(k.disc) + (k.vat > 0 ? ' ומע"מ' : "");
+    else if(k.vat > 0) t = 'כולל מע"מ ' + nis(k.vat);
     else if(nd) t = nd.text;
     cbn.textContent = t;
     cbn.style.display = t ? "block" : "none";
@@ -1474,7 +1491,7 @@ function openCart(){
       ${p.img ? `<img src="${p.img}">` : `<div style="width:52px;height:52px;border:1px solid var(--line);border-radius:9px"></div>`}
       <div class="dinfo">
         <div class="n">${esc(p.name)}${color ? ` <span class="dcol">צבע: ${esc(color)}</span>` : ""}</div>
-        <div class="s">מק"ט ${p.sku} · ${nis(effPrice(p, qty))} ליח'</div>
+        <div class="s">מק"ט ${p.sku} · ${nis(effPrice(p, qty))} ליח'${needsVat(p) ? ' · לא כולל מע"מ' : ""}</div>
       </div>
       <div class="qty">
         <button data-cadd="${esc(key)}">+</button><b>${qty}</b><button data-csub="${esc(key)}">−</button>
@@ -1508,10 +1525,11 @@ function orderLines(){
   const k = cartCalc();
   lines.push("――――――――――――");
   lines.push(`סה"כ פריטים: ${n}`);
-  if(k.disc > 0){
+  if(k.disc > 0 || k.vat > 0){
     lines.push(`סכום ביניים: ${nis(k.sub)}`);
     if(k.tierD > 0) lines.push(`הנחה (${k.tier.label || "קנייה מעל " + nis(+k.tier.min || 0)}): −${nis(k.tierD)}`);
     if(k.cpD > 0)   lines.push(`קופון ${String(k.cp.code).toUpperCase()}: −${nis(k.cpD)}`);
+    if(k.vat > 0)   lines.push(`מע"מ ${k.rate}% על האביזרים: +${nis(k.vat)}`);
   }
   lines.push(`💰 סה"כ לתשלום: ${nis(k.total)}`);
   return lines;
@@ -1554,7 +1572,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 56</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 57</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1607,7 +1625,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 56</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 57</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2055,7 +2073,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 56</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 57</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2569,7 +2587,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "56";
+const APP_VER = "57";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
