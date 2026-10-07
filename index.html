@@ -770,6 +770,7 @@ function groupList(kind){
   return orderList(kind, DB.products.filter(kind === "sale" ? (p => p.sale != null) : (p => p.isNew)));
 }
 function vatNote(p){
+  if(p.novat) return `<div class="vatnote">המחיר לא כולל מע"מ</div>`;
   return p.cat === "phones" ? `<div class="vatnote">המחיר כולל מע"מ</div>` : "";
 }
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
@@ -1553,7 +1554,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 55</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 56</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1606,7 +1607,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 55</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 56</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2054,7 +2055,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 55</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 56</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2088,6 +2089,7 @@ function openEditor(id){
     <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku(p ? p.cat : (DB.categories[0] || {}).id)}"><div class="hint">נוצר אוטומטית לפי מספור הקטגוריה – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
     <div class="chk"><input type="checkbox" id="f_new" ${p && p.isNew ? "checked" : ""}><label for="f_new">מוצר חדש</label></div>
+    <div class="chk"><input type="checkbox" id="f_novat" ${p && p.novat ? "checked" : ""}><label for="f_novat">המחיר לא כולל מע"מ</label></div>
     <div class="chk"><input type="checkbox" id="f_issale" ${p && p.sale != null ? "checked" : ""}><label for="f_issale">במבצע</label></div>
     <div class="fld" id="salewrap" style="display:${p && p.sale != null ? "block" : "none"}"><label>מחיר מבצע (₪)</label><input id="f_sale" type="number" inputmode="decimal" value="${p && p.sale != null ? p.sale : ""}"></div>
     <div class="chk"><input type="checkbox" id="f_istier" ${p && p.tier ? "checked" : ""}><label for="f_istier">מחיר מיוחד לכמות</label></div>
@@ -2202,6 +2204,7 @@ function openEditor(id){
       img: imgData,
       stock: $("#f_stock").checked,
       isNew: $("#f_new").checked,
+      novat: $("#f_novat").checked,
       sale: $("#f_issale").checked ? (parseFloat($("#f_sale").value) || null) : null,
       tier: $("#f_istier").checked ? {
         qty: parseInt($("#f_tqty").value) || 0,
@@ -2566,7 +2569,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "55";
+const APP_VER = "56";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
