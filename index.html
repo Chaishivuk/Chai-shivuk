@@ -610,14 +610,14 @@ function searchProducts(list, q){
   const pq = phoneticKey(q);
   const scored = [];
   list.forEach(p => {
-    const hay = normText(p.name + " " + p.sku);
+    const hay = normText(p.name + " " + p.sku + " " + (p.kw || ""));
     if(hay.includes(nq)){ scored.push([0, p]); return; }                       /* התאמה מדויקת */
     const hayTokens = hay.split(" ").filter(Boolean);
     const closeEnough = qTokens.every(qt => hayTokens.some(ht =>
       ht.includes(qt) || editDistance(qt, ht) <= (qt.length > 5 ? 2 : 1)));
     if(closeEnough){ scored.push([1, p]); return; }                            /* שגיאת כתיב קלה */
     if(pq.length >= 3){
-      const words = p.name.match(/[A-Za-z\u0590-\u05FF]+/g) || [];
+      const words = (p.name + " " + (p.kw || "")).match(/[A-Za-z\u0590-\u05FF]+/g) || [];
       const hit = words.some(w => {
         const wk = phoneticKey(w);
         return wk.length >= 3 && (wk === pq || wk.includes(pq) || pq.includes(wk) || editDistance(wk, pq) <= 1);
@@ -1572,7 +1572,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 57</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 58</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1625,7 +1625,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 57</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 58</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2073,7 +2073,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 57</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 58</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2099,6 +2099,10 @@ function openEditor(id){
     ${inQuick ? `<div class="qbar">⚡ עריכה מהירה · מוצר ${quick.i + 1} מתוך ${quick.ids.length}</div>` : ""}
     ${p && p.img ? `<button type="button" class="abtn" id="f_status" style="width:100%;margin-bottom:12px">📤 שיתוף לסטטוס וואטסאפ</button>` : ""}
     <div class="fld"><label>שם המוצר</label><input id="f_name" value="${p ? esc(p.name) : ""}"></div>
+    <div class="fld"><label>שם בעברית / מילות חיפוש</label>
+      <input id="f_kw" value="${p && p.kw ? esc(p.kw) : ""}" placeholder="למשל: סמארטבאס, סמוויקס, נגן מגע">
+      <div class="hint">לא מוצג ללקוח – משמש רק כדי שימצאו את המוצר בחיפוש, גם בעברית.</div>
+    </div>
     <div class="two">
       <div class="fld"><label>מחיר (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
@@ -2222,6 +2226,7 @@ function openEditor(id){
       img: imgData,
       stock: $("#f_stock").checked,
       isNew: $("#f_new").checked,
+      kw: $("#f_kw").value.trim(),
       novat: $("#f_novat").checked,
       sale: $("#f_issale").checked ? (parseFloat($("#f_sale").value) || null) : null,
       tier: $("#f_istier").checked ? {
@@ -2587,7 +2592,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "57";
+const APP_VER = "58";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
