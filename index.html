@@ -1185,7 +1185,7 @@ function card(p){
 }
 
 /* ---------- גלילה אוטומטית בשורת המבצעים ---------- */
-let railRaf = null, railStopped = false, railIO = null;
+let railRaf = null, railIO = null;
 function killRail(){
   if(railRaf) cancelAnimationFrame(railRaf);
   railRaf = null;
@@ -1194,24 +1194,28 @@ function killRail(){
 function autoRail(el){
   killRail();
   el.classList.remove("auto");
-  if(railStopped) return;
   if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const maxOf = () => el.scrollWidth - el.clientWidth;
   if(maxOf() < 30) return;
   el.classList.add("auto");
 
-  const stop = () => { railStopped = true; el.classList.remove("auto"); killRail(); };
-
-  /* רק גרירה אופקית עוצרת – גלילה אנכית של הדף או לחיצה על מוצר לא */
+  /* גרירה אופקית עוצרת זמנית – וברגע שמרימים את האצבע התנועה חוזרת */
+  let paused = false, resumeT = null;
+  const RESUME_MS = 600;              /* המתנה קצרה עד שהגלילה האינרציאלית נרגעת */
+  const pause = () => { paused = true; if(resumeT){ clearTimeout(resumeT); resumeT = null; } };
+  const resumeSoon = () => {
+    if(resumeT) clearTimeout(resumeT);
+    resumeT = setTimeout(() => { resumeT = null; paused = false; }, RESUME_MS);
+  };
   let sx = 0, sy = 0, track = false;
   const down = e => { const t = e.touches ? e.touches[0] : e; sx = t.clientX; sy = t.clientY; track = true; };
   const move = e => {
     if(!track) return;
     const t = e.touches ? e.touches[0] : e;
     const dx = Math.abs(t.clientX - sx), dy = Math.abs(t.clientY - sy);
-    if(dx > 10 && dx > dy) stop();
+    if(dx > 10 && dx > dy) pause();
   };
-  const up = () => { track = false; };
+  const up = () => { track = false; if(paused) resumeSoon(); };
   el.addEventListener("touchstart", down, {passive: true});
   el.addEventListener("touchmove", move, {passive: true});
   el.addEventListener("touchend", up, {passive: true});
@@ -1219,23 +1223,23 @@ function autoRail(el){
   el.addEventListener("pointerdown", e => { if(e.pointerType !== "touch") down(e); }, {passive: true});
   el.addEventListener("pointermove", e => { if(e.pointerType !== "touch") move(e); }, {passive: true});
   el.addEventListener("pointerup", up, {passive: true});
-  el.addEventListener("wheel", stop, {passive: true});
+  el.addEventListener("wheel", () => { pause(); resumeSoon(); }, {passive: true});
 
   let seen = true, back = false, last = 0;
-  let dir = -1;                      /* ברירת מחדל ל-RTL; נבדק בפועל ומתוקן אם צריך */
+  let dir = -1;                       /* ברירת מחדל ל-RTL; נבדק בפועל ומתוקן אם צריך */
   let pos = el.scrollLeft;
   let probeAt = 0, probeFrom = pos, tries = 0;
   if("IntersectionObserver" in window){
     railIO = new IntersectionObserver(e => { seen = e[0].isIntersecting; }, {threshold: 0.05});
     railIO.observe(el);
   }
-  const SPEED = 0.55;                /* פיקסלים לפריים – כ-33 פיקסלים בשנייה */
+  const SPEED = 0.55;                 /* פיקסלים לפריים – כ-33 פיקסלים בשנייה */
   const step = ts => {
     railRaf = requestAnimationFrame(step);
-    if(railStopped){ killRail(); return; }
     if(!last){ last = ts; probeAt = ts + 500; probeFrom = el.scrollLeft; }
     const dt = Math.min(60, ts - last);
     last = ts;
+    if(paused){ pos = el.scrollLeft; return; }      /* מסתנכרנים למקום שהלקוח עצר בו */
     if(document.hidden || !seen || back) return;
     const max = maxOf();
     if(max < 30) return;
@@ -1251,11 +1255,10 @@ function autoRail(el){
     }
 
     pos += dir * SPEED * (dt / 16.7);
-    if(Math.abs(pos) >= max - 1){    /* הגענו לסוף – חוזרים להתחלה בלולאה */
+    if(Math.abs(pos) >= max - 1){     /* הגענו לסוף – חוזרים להתחלה בלולאה */
       back = true;
       el.scrollLeft = dir * max;
       setTimeout(() => {
-        if(railStopped) return;
         el.scrollTo({left: 0, behavior: "smooth"});
         setTimeout(() => { pos = 0; back = false; }, 1000);
       }, 1000);
@@ -1664,7 +1667,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 65</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 66</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1717,7 +1720,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 65</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 66</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2165,7 +2168,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 65</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 66</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2684,7 +2687,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "65";
+const APP_VER = "66";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
