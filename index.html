@@ -244,7 +244,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .toast.show{opacity:1}
 
 .sortbar{align-items:center; gap:7px}
-.disclaim{margin-top:10px; font-size:12px; color:#6B7280}
+.disclaim{margin-top:10px; font-size:12px; color:#B9C4DC}   /* בתוך הפוטר הכהה */
 .totopbtn{display:block; width:100%; margin:6px 0 18px; background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:13px; font-size:15px; font-weight:700; color:var(--ink)}
 .totopbtn:active{background:#F3F6FB}
 .pptop{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 0 4px}
@@ -1648,7 +1648,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 62</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 63</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1701,7 +1701,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 62</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 63</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2149,7 +2149,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 62</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 63</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2668,7 +2668,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "62";
+const APP_VER = "63";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
