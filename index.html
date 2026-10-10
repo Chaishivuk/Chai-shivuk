@@ -75,6 +75,7 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
 .rail{display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:8px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
 .rail>.pcard{flex:0 0 40%; scroll-snap-align:center}
+.rail.auto{scroll-snap-type:none}
 .rail::-webkit-scrollbar{height:6px}
 .rail::-webkit-scrollbar-track{background:#EEF2F8; border-radius:99px}
 .rail::-webkit-scrollbar-thumb{background:#C7D0E0; border-radius:99px}
@@ -1175,12 +1176,79 @@ function card(p){
   </div>`;
 }
 
+/* ---------- גלילה אוטומטית בשורת המבצעים ---------- */
+let railRaf = null, railStopped = false, railIO = null;
+function killRail(){
+  if(railRaf) cancelAnimationFrame(railRaf);
+  railRaf = null;
+  if(railIO){ railIO.disconnect(); railIO = null; }
+}
+function autoRail(el){
+  killRail();
+  el.classList.remove("auto");
+  if(railStopped) return;
+  if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const maxOf = () => el.scrollWidth - el.clientWidth;
+  if(maxOf() < 30) return;
+
+  /* זיהוי כיוון הגלילה – בעברית (RTL) הערכים שליליים ברוב הדפדפנים */
+  const keep = el.scrollLeft;
+  el.scrollLeft = -8;
+  const dir = el.scrollLeft < 0 ? -1 : 1;
+  el.scrollLeft = keep;
+
+  el.classList.add("auto");
+  const stop = () => {
+    railStopped = true;
+    el.classList.remove("auto");
+    killRail();
+  };
+  let down = false;
+  el.addEventListener("pointerdown", () => { down = true; }, {passive: true});
+  el.addEventListener("pointerup", () => { down = false; }, {passive: true});
+  el.addEventListener("pointercancel", () => { down = false; }, {passive: true});
+  el.addEventListener("pointermove", () => { if(down) stop(); }, {passive: true});
+  el.addEventListener("touchmove", stop, {passive: true});
+  el.addEventListener("wheel", stop, {passive: true});
+
+  let seen = true, back = false, last = 0;
+  if("IntersectionObserver" in window){
+    railIO = new IntersectionObserver(e => { seen = e[0].isIntersecting; }, {threshold: 0.15});
+    railIO.observe(el);
+  }
+  const SPEED = 0.35;                 /* פיקסלים לפריים – תנועה איטית ורגועה */
+  const step = ts => {
+    railRaf = requestAnimationFrame(step);
+    if(railStopped){ killRail(); return; }
+    if(!last) last = ts;
+    const dt = Math.min(60, ts - last);
+    last = ts;
+    if(document.hidden || !seen || back) return;
+    const max = maxOf();
+    if(max < 30) return;
+    const next = el.scrollLeft + dir * SPEED * (dt / 16.7);
+    if(Math.abs(next) >= max - 1){     /* הגענו לסוף – חוזרים להתחלה בלולאה */
+      back = true;
+      el.scrollLeft = dir * max;
+      setTimeout(() => {
+        if(railStopped) return;
+        el.scrollTo({left: 0, behavior: "smooth"});
+        setTimeout(() => { back = false; }, 1000);
+      }, 1000);
+      return;
+    }
+    el.scrollLeft = next;
+    railScroll[el.dataset.rail] = el.scrollLeft;
+  };
+  railRaf = requestAnimationFrame(step);
+}
 function bindCustomer(){
   /* שורות הגלילה (מבצעים) – נשארות בדיוק איפה שהלקוח עצר, גם אחרי הוספה לסל */
   document.querySelectorAll("[data-rail]").forEach(r => {
     const k = r.dataset.rail;
     if(railScroll[k] != null) r.scrollLeft = railScroll[k];
     r.addEventListener("scroll", () => { railScroll[k] = r.scrollLeft; }, {passive: true});
+    if(k === "sale") autoRail(r);
   });
   const strip = document.querySelector(".catstrip");
   if(strip){
@@ -1572,7 +1640,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 58</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 59</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1625,7 +1693,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 58</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 59</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2073,7 +2141,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 58</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 59</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2592,7 +2660,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "58";
+const APP_VER = "59";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
