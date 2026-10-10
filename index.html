@@ -1198,17 +1198,11 @@ function autoRail(el){
   if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const maxOf = () => el.scrollWidth - el.clientWidth;
   if(maxOf() < 30) return;
-
-  /* זיהוי כיוון הגלילה – בעברית (RTL) הערכים שליליים ברוב הדפדפנים */
-  const keep = el.scrollLeft;
-  el.scrollLeft = -8;
-  const dir = el.scrollLeft < 0 ? -1 : 1;
-  el.scrollLeft = keep;
   el.classList.add("auto");
 
   const stop = () => { railStopped = true; el.classList.remove("auto"); killRail(); };
 
-  /* רק גרירה אופקית עוצרת – גלילה רגילה של הדף או לחיצה על מוצר לא */
+  /* רק גרירה אופקית עוצרת – גלילה אנכית של הדף או לחיצה על מוצר לא */
   let sx = 0, sy = 0, track = false;
   const down = e => { const t = e.touches ? e.touches[0] : e; sx = t.clientX; sy = t.clientY; track = true; };
   const move = e => {
@@ -1228,23 +1222,36 @@ function autoRail(el){
   el.addEventListener("wheel", stop, {passive: true});
 
   let seen = true, back = false, last = 0;
-  let pos = el.scrollLeft;           /* מצביע עצמאי – לא תלוי בעיגול scrollLeft של הדפדפן */
+  let dir = -1;                      /* ברירת מחדל ל-RTL; נבדק בפועל ומתוקן אם צריך */
+  let pos = el.scrollLeft;
+  let probeAt = 0, probeFrom = pos, tries = 0;
   if("IntersectionObserver" in window){
     railIO = new IntersectionObserver(e => { seen = e[0].isIntersecting; }, {threshold: 0.05});
     railIO.observe(el);
   }
-  const SPEED = 0.4;                 /* פיקסלים לפריים – תנועה איטית ורגועה */
+  const SPEED = 0.55;                /* פיקסלים לפריים – כ-33 פיקסלים בשנייה */
   const step = ts => {
     railRaf = requestAnimationFrame(step);
     if(railStopped){ killRail(); return; }
-    if(!last) last = ts;
+    if(!last){ last = ts; probeAt = ts + 500; probeFrom = el.scrollLeft; }
     const dt = Math.min(60, ts - last);
     last = ts;
     if(document.hidden || !seen || back) return;
     const max = maxOf();
     if(max < 30) return;
+
+    /* בדיקה עצמית – אם אחרי חצי שנייה השורה לא זזה, הכיוון הפוך; מנסים את השני */
+    if(probeAt && ts > probeAt){
+      if(Math.abs(el.scrollLeft - probeFrom) < 1 && tries < 1){
+        tries++; dir = -dir; pos = el.scrollLeft;
+        probeAt = ts + 500; probeFrom = el.scrollLeft;
+      }else{
+        probeAt = 0;
+      }
+    }
+
     pos += dir * SPEED * (dt / 16.7);
-    if(Math.abs(pos) >= max - 1){     /* הגענו לסוף – חוזרים להתחלה בלולאה */
+    if(Math.abs(pos) >= max - 1){    /* הגענו לסוף – חוזרים להתחלה בלולאה */
       back = true;
       el.scrollLeft = dir * max;
       setTimeout(() => {
@@ -1657,7 +1664,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 64</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 65</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1710,7 +1717,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 64</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 65</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2158,7 +2165,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 64</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 65</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2677,7 +2684,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "64";
+const APP_VER = "65";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
