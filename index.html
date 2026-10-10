@@ -1199,31 +1199,25 @@ function autoRail(el){
   if(maxOf() < 30) return;
   el.classList.add("auto");
 
-  /* גרירה אופקית עוצרת זמנית – וברגע שמרימים את האצבע התנועה חוזרת */
-  let paused = false, resumeT = null;
-  const RESUME_MS = 600;              /* המתנה קצרה עד שהגלילה האינרציאלית נרגעת */
+  /* נגיעה עוצרת מיד – וברגע שמרימים את האצבע התנועה חוזרת מאותו מקום */
+  let paused = false, resumeT = null, holding = false;
+  const RESUME_MS = 700;              /* המתנה עד שהגלילה האינרציאלית נרגעת */
   const pause = () => { paused = true; if(resumeT){ clearTimeout(resumeT); resumeT = null; } };
   const resumeSoon = () => {
     if(resumeT) clearTimeout(resumeT);
-    resumeT = setTimeout(() => { resumeT = null; paused = false; }, RESUME_MS);
+    resumeT = setTimeout(() => { resumeT = null; if(!holding) paused = false; }, RESUME_MS);
   };
-  let sx = 0, sy = 0, track = false;
-  const down = e => { const t = e.touches ? e.touches[0] : e; sx = t.clientX; sy = t.clientY; track = true; };
-  const move = e => {
-    if(!track) return;
-    const t = e.touches ? e.touches[0] : e;
-    const dx = Math.abs(t.clientX - sx), dy = Math.abs(t.clientY - sy);
-    if(dx > 10 && dx > dy) pause();
-  };
-  const up = () => { track = false; if(paused) resumeSoon(); };
-  el.addEventListener("touchstart", down, {passive: true});
-  el.addEventListener("touchmove", move, {passive: true});
-  el.addEventListener("touchend", up, {passive: true});
-  el.addEventListener("touchcancel", up, {passive: true});
-  el.addEventListener("pointerdown", e => { if(e.pointerType !== "touch") down(e); }, {passive: true});
-  el.addEventListener("pointermove", e => { if(e.pointerType !== "touch") move(e); }, {passive: true});
-  el.addEventListener("pointerup", up, {passive: true});
+  const hold = () => { holding = true; pause(); };
+  const release = () => { holding = false; resumeSoon(); };
+  el.addEventListener("touchstart", hold, {passive: true});
+  el.addEventListener("touchend", release, {passive: true});
+  el.addEventListener("touchcancel", release, {passive: true});
+  el.addEventListener("pointerdown", e => { if(e.pointerType !== "touch") hold(); }, {passive: true});
+  el.addEventListener("pointerup", e => { if(e.pointerType !== "touch") release(); }, {passive: true});
+  el.addEventListener("pointercancel", e => { if(e.pointerType !== "touch") release(); }, {passive: true});
   el.addEventListener("wheel", () => { pause(); resumeSoon(); }, {passive: true});
+  el.addEventListener("mouseenter", pause);
+  el.addEventListener("mouseleave", release);
 
   let seen = true, back = false, last = 0;
   let dir = -1;                       /* ברירת מחדל ל-RTL; נבדק בפועל ומתוקן אם צריך */
@@ -1667,7 +1661,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 66</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 67</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1720,7 +1714,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 66</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 67</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2168,7 +2162,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 66</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 67</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2687,7 +2681,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "66";
+const APP_VER = "67";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
