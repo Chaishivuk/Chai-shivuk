@@ -17,17 +17,19 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap"></noscript>
 <style>
 :root{
   --ink:#14213D; --bg:#F6F7F9; --card:#FFFFFF; --line:#E5E8EE;
-  --green:#16A34A; --green-dark:#128A3E; --amber:#D97706; --red:#DC2626;
+  --green:#107C3A; --green-dark:#0B5E2B; --amber:#B45309; --red:#DC2626;
   --muted:#6B7280;
 }
 *{box-sizing:border-box; margin:0; padding:0}
 html{-webkit-text-size-adjust:100%}
-body{font-family:'Assistant',sans-serif; background:var(--bg); color:var(--ink); font-size:16px}
-h1,h2,h3,.logo{font-family:'Rubik',sans-serif}
+body{font-family:'Assistant','Segoe UI',system-ui,Arial,sans-serif; background:var(--bg); color:var(--ink); font-size:16px}
+h1,h2,h3,.logo{font-family:'Rubik','Segoe UI',system-ui,Arial,sans-serif}
 button{font-family:inherit; cursor:pointer; border:none; background:none; font-size:inherit}
 input,select,textarea{font-family:inherit; font-size:16px}
 img{display:block; max-width:100%}
@@ -85,13 +87,13 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 @media(min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
 .pcard{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; position:relative}
 .pimg{aspect-ratio:1; background:#fff; display:flex; align-items:center; justify-content:center; padding:10px}
-.pimg img{max-height:100%; object-fit:contain}
-.pimg .noimg{color:#C3C9D4; font-size:13px}
+.pimg img{width:100%; height:100%; object-fit:contain}
+.pimg .noimg{color:#6B7280; font-size:13px}
 .pbody{padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; flex:1}
 .pname{font-weight:700; font-size:14.5px; line-height:1.25; min-height:2.4em}
 .psku{color:var(--muted); font-size:12px}
 .prices{display:flex; align-items:baseline; gap:7px; margin-top:2px}
-.pprice{font-family:'Rubik'; font-weight:700; font-size:17px}
+.pprice{font-family:'Rubik','Segoe UI',system-ui,Arial,sans-serif; font-weight:700; font-size:17px}
 .pold{color:var(--muted); text-decoration:line-through; font-size:13px}
 .ptier{font-size:12px; color:var(--green-dark); font-weight:600; background:#EAF7EF; border-radius:6px; padding:2px 7px; width:fit-content}
 .addbtn{margin-top:auto; background:var(--green); color:#fff; font-weight:700; border-radius:9px; padding:9px; transition:.15s}
@@ -102,7 +104,7 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .badge.sale{background:var(--amber)} .badge.new{background:var(--green)}
 .oos .pimg{filter:grayscale(1); opacity:.55}
 .oosband{position:absolute; top:42%; left:0; right:0; background:rgba(220,38,38,.92); color:#fff; text-align:center; font-weight:700; padding:5px; font-size:13.5px; z-index:2}
-.oosbtn{margin-top:auto; background:#F1F2F5; color:#9AA1AE; font-weight:700; border-radius:9px; padding:9px; cursor:not-allowed}
+.oosbtn{margin-top:auto; background:#F1F2F5; color:#5F6B7A; font-weight:700; border-radius:9px; padding:9px; cursor:not-allowed}
 
 /* Cart bar & drawer */
 .cartbar{position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--ink); color:#fff; padding:11px 16px; display:none; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 -3px 14px rgba(0,0,0,.18)}
@@ -242,7 +244,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .toast.show{opacity:1}
 
 .sortbar{align-items:center; gap:7px}
-.disclaim{margin-top:10px; font-size:12px; color:#8E9BB5}
+.disclaim{margin-top:10px; font-size:12px; color:#6B7280}
 .totopbtn{display:block; width:100%; margin:6px 0 18px; background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:13px; font-size:15px; font-weight:700; color:var(--ink)}
 .totopbtn:active{background:#F3F6FB}
 .pptop{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 0 4px}
@@ -295,7 +297,7 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .backbtn{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:7px 16px;font-weight:700;margin:14px 0 4px}
 .pp{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:10px}
 .ppmainwrap{background:#fff;display:flex;align-items:center;justify-content:center;padding:16px;min-height:230px}
-.ppmainwrap img{max-height:300px;object-fit:contain}
+.ppmainwrap img{width:100%; height:300px; max-height:300px; object-fit:contain}
 .ppthumbs{display:flex;gap:8px;padding:0 14px 12px;overflow-x:auto}
 .ppthumbs img{width:58px;height:58px;object-fit:contain;border:2px solid var(--line);border-radius:9px;background:#fff;cursor:pointer}
 .ppthumbs img.on{border-color:var(--green)}
@@ -1640,7 +1642,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 59</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 60</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1693,7 +1695,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 59</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 60</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2141,7 +2143,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 59</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 60</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2660,7 +2662,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "59";
+const APP_VER = "60";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
