@@ -1103,6 +1103,7 @@ function render(){
     <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
     <div class="disclaim">* התמונות להמחשה בלבד</div>
+    ${statsCfg().on ? `<div class="disclaim">האתר אוסף נתוני גלישה אנונימיים לצורך סטטיסטיקה, ללא עוגיות.</div>` : ""}
   </footer>
   <div class="cartbar" id="cartbar">
     <div style="min-width:0"><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div><div class="cbn" id="cbnudge"></div></div>
@@ -1406,6 +1407,7 @@ function renderProduct(){
     <div>וואטסאפ: <a href="https://wa.me/972528864040" style="color:#4ADE80;text-decoration:none">052-886-4040</a></div>
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
     <div class="disclaim">* התמונות להמחשה בלבד</div>
+    ${statsCfg().on ? `<div class="disclaim">האתר אוסף נתוני גלישה אנונימיים לצורך סטטיסטיקה, ללא עוגיות.</div>` : ""}
   </footer>
   <div class="cartbar" id="cartbar">
     <div style="min-width:0"><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div><div class="cbn" id="cbnudge"></div></div>
@@ -1658,10 +1660,11 @@ function sendMailGmail(){
 let adminAuthed = false;
 
 function renderAdmin(){
+  markOwnerDevice();
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 67</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 68</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1714,7 +1717,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 67</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 68</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1990,6 +1993,33 @@ function drawPromo(){
     }
   };
 }
+function openStats(){
+  const c = statsCfg(), m = $("#modal");
+  m.innerHTML = `<div class="mbox"><h3>📊 סטטיסטיקת כניסות</h3>
+    <div class="chk"><input type="checkbox" id="st_on" ${c.on ? "checked" : ""}><label for="st_on">הפעלת מעקב כניסות לאתר</label></div>
+    <div class="fld"><label>קוד Cloudflare (Token)</label>
+      <input id="st_tok" dir="ltr" value="${esc(c.token)}" placeholder="מחרוזת של אותיות ומספרים">
+      <div class="hint">מעתיקים מ-Cloudflare את הערך שמופיע אחרי "token": בקוד שהם נותנים.</div>
+    </div>
+    <div class="hint" style="margin:-2px 0 12px">
+      הכניסות שלך מהמכשיר הזה לא נספרות, כדי לא לעוות את הנתונים.<br>
+      את הדוחות רואים באתר <b dir="ltr">dash.cloudflare.com</b> ← Web Analytics.
+    </div>
+    <div class="mact"><button class="save" id="st_save">שמירה</button><button class="cancel" id="st_cancel">ביטול</button></div>
+  </div>`;
+  m.classList.add("show");
+  $("#st_cancel").onclick = () => m.classList.remove("show");
+  $("#st_save").onclick = async () => {
+    let tok = $("#st_tok").value.trim();
+    const mt = tok.match(/"token"\s*:\s*"([a-f0-9]+)"/i);   /* אם הדביקו את כל הקוד – שולפים רק את ה-token */
+    if(mt) tok = mt[1];
+    const on = $("#st_on").checked;
+    if(on && !/^[a-f0-9]{20,}$/i.test(tok)){ toast("הקוד לא נראה תקין"); return; }
+    DB.settings = DB.settings || {};
+    DB.settings.analytics = {on, token: tok};
+    if(await saveDB()){ m.classList.remove("show"); toast(on ? "המעקב הופעל" : "המעקב כבוי"); render(); }
+  };
+}
 function openSettings(){
   const m = $("#modal");
   m.innerHTML = `<div class="mbox"><h3>הגדרות</h3>
@@ -2003,12 +2033,14 @@ function openSettings(){
     <button class="abtn" id="setordsale" style="width:100%;margin-bottom:8px">↕ סדר המוצרים במבצע</button>
     <button class="abtn" id="setordnew" style="width:100%;margin-bottom:8px">↕ סדר המוצרים החדשים</button>
     <button class="abtn" id="setpromo" style="width:100%;margin-bottom:8px">🎟️ הנחות וקופונים</button>
+    <button class="abtn" id="setstats" style="width:100%;margin-bottom:8px">📊 סטטיסטיקת כניסות</button>
     <button class="abtn" id="sethist" style="width:100%;margin-bottom:12px">📜 היסטוריית מוצרים</button>
     <div class="mact"><button class="save" id="setsave">שמירה</button><button class="cancel" id="setcancel">ביטול</button></div>
   </div>`;
   m.classList.add("show");
   $("#sethist").onclick = openHistory;
   $("#setpromo").onclick = openPromo;
+  $("#setstats").onclick = openStats;
   $("#setquick").onclick = openQuickPicker;
   $("#setordsale").onclick = () => openOrderManager("sale");
   $("#setordnew").onclick = () => openOrderManager("new");
@@ -2162,7 +2194,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 67</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 68</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2681,7 +2713,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "67";
+const APP_VER = "68";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
@@ -2845,10 +2877,34 @@ function initA11y(){
   $("#a11ystmtclose").onclick = () => $("#a11ystmtmodal").classList.remove("show");
   $("#a11ystmtmodal").onclick = e => { if(e.target.id === "a11ystmtmodal") e.currentTarget.classList.remove("show"); };
 }
+/* ===== סטטיסטיקת כניסות (Cloudflare Web Analytics – בלי עוגיות) ===== */
+function statsCfg(){
+  const a = (DB && DB.settings && DB.settings.analytics) || {};
+  return {on: a.on === true, token: String(a.token || "").trim()};
+}
+function isOwnerDevice(){
+  try{ return localStorage.getItem("chai_owner") === "1"; }catch(e){ return false; }
+}
+function markOwnerDevice(){
+  try{ localStorage.setItem("chai_owner", "1"); }catch(e){}
+}
+let statsLoaded = false;
+function loadStats(){
+  if(statsLoaded || isAdminRoute() || isOwnerDevice()) return;   /* הכניסות שלך לא נספרות */
+  const c = statsCfg();
+  if(!c.on || !/^[a-f0-9]{20,}$/i.test(c.token)) return;
+  statsLoaded = true;
+  const s = document.createElement("script");
+  s.defer = true;
+  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  s.setAttribute("data-cf-beacon", JSON.stringify({token: c.token, spa: true}));
+  document.head.appendChild(s);
+}
 (async function(){
   ensureLatest();
   initA11y();
   await loadDB();
+  loadStats();
   if(DB && DB.products){
     const ids = new Set(DB.products.map(p => p.id));
     let changed = false;
