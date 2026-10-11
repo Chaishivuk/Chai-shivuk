@@ -1664,7 +1664,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 68</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 69</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1717,12 +1717,13 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 68</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 69</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
         <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "📤 שיתוף מוצרים לסטטוס"}</button>
         <button class="abtn" id="cats">ניהול קטגוריות</button>
+        <a class="abtn" id="statslink" href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank" rel="noopener" style="text-decoration:none">📊 סטטיסטיקה</a>
         <button class="abtn" id="settings">⚙️ הגדרות</button>
         <button class="abtn o" id="tostore">→ לאתר הלקוחות</button>
       </div>
@@ -2005,6 +2006,7 @@ function openStats(){
       הכניסות שלך מהמכשיר הזה לא נספרות, כדי לא לעוות את הנתונים.<br>
       את הדוחות רואים באתר <b dir="ltr">dash.cloudflare.com</b> ← Web Analytics.
     </div>
+    <a class="abtn" href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">📊 פתיחת הדוחות</a>
     <div class="mact"><button class="save" id="st_save">שמירה</button><button class="cancel" id="st_cancel">ביטול</button></div>
   </div>`;
   m.classList.add("show");
@@ -2194,7 +2196,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 68</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 69</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2713,7 +2715,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "68";
+const APP_VER = "69";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
