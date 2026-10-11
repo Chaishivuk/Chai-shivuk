@@ -223,6 +223,30 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .modal{position:fixed; inset:0; z-index:80; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 12px}
 .modal.show{display:flex}
 .mbox{background:#fff; border-radius:16px; width:100%; max-width:480px; padding:20px}
+.mbox.wide{max-width:760px}
+.stcards{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px}
+@media(min-width:620px){.stcards{grid-template-columns:repeat(4,1fr)}}
+.stcard{background:#F6F7F9; border:1px solid var(--line); border-radius:12px; padding:10px 12px}
+.stcard .l{font-size:12.5px; color:var(--muted); font-weight:600}
+.stcard .v{font-size:24px; font-weight:800; font-family:'Rubik','Segoe UI',system-ui,Arial,sans-serif; margin-top:2px}
+.stcard .d{font-size:12px; font-weight:700; margin-top:1px}
+.stcard .d.up{color:var(--green)} .stcard .d.dn{color:#A81D23} .stcard .d.eq{color:var(--muted)}
+.stsec{margin:16px 0 6px; font-size:15px; font-weight:800}
+.stsub{font-size:12px; color:var(--muted); margin:-2px 0 8px}
+.stbars{display:flex; align-items:flex-end; gap:2px; height:120px; border-bottom:1px solid var(--line); padding-top:6px; direction:ltr}
+.stbars .b{flex:1; background:var(--green); border-radius:3px 3px 0 0; min-height:2px}
+.stbars .b.z{background:#E5E8EE}
+.stbars .b.hi{background:#0B5E2B}
+.staxis{display:flex; gap:2px; direction:ltr; font-size:10.5px; color:var(--muted); margin-top:3px}
+.staxis span{flex:1; text-align:center; white-space:nowrap}
+.stlist .r{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #F0F2F5; font-size:14px}
+.stlist .r:last-child{border-bottom:none}
+.stlist .n{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.stlist .bar{flex:0 0 32%; height:8px; background:#EEF2F8; border-radius:5px; overflow:hidden}
+.stlist .bar i{display:block; height:100%; background:var(--green); border-radius:5px}
+.stlist .c{flex:0 0 44px; text-align:left; font-weight:700; font-size:13.5px}
+.stgrid{display:grid; grid-template-columns:1fr; gap:4px 18px}
+@media(min-width:620px){.stgrid{grid-template-columns:1fr 1fr}}
 .mbox h3{margin-bottom:14px; font-size:18px}
 .fld{margin-bottom:12px}
 .fld label{display:block; font-weight:700; font-size:13.5px; margin-bottom:5px}
@@ -1664,7 +1688,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 69</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 70</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1717,13 +1741,13 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 69</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 70</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
         <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "📤 שיתוף מוצרים לסטטוס"}</button>
         <button class="abtn" id="cats">ניהול קטגוריות</button>
-        <a class="abtn" id="statslink" href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank" rel="noopener" style="text-decoration:none">📊 סטטיסטיקה</a>
+        <button class="abtn" id="statsbtn">📊 סטטיסטיקה</button>
         <button class="abtn" id="settings">⚙️ הגדרות</button>
         <button class="abtn o" id="tostore">→ לאתר הלקוחות</button>
       </div>
@@ -1744,6 +1768,7 @@ function renderAdmin(){
   $("#addp").onclick = () => openEditor(null);
   $("#cats").onclick = openCatManager;
   $("#settings").onclick = openSettings;
+  $("#statsbtn").onclick = openStatsDash;
   document.querySelectorAll("[data-acat]").forEach(b => b.onclick = () => { adminView.cat = b.dataset.acat; render(); });
   const asearch = $("#asearch");
   asearch.oninput = () => {
@@ -1994,6 +2019,166 @@ function drawPromo(){
     }
   };
 }
+/* ===== לוח סטטיסטיקה בתוך הניהול – נתונים מ-Cloudflare דרך Worker פרטי ===== */
+const CF_DASH = "https://dash.cloudflare.com/?to=/:account/web-analytics";
+function getStatsLink(){ try{ return localStorage.getItem("chai_stats_link") || ""; }catch(e){ return ""; } }
+function setStatsLink(v){ try{ v ? localStorage.setItem("chai_stats_link", v) : localStorage.removeItem("chai_stats_link"); }catch(e){} }
+function statsConnect(msg){
+  const m = $("#modal");
+  m.innerHTML = `<div class="mbox"><h3>📊 חיבור לוח הסטטיסטיקה</h3>
+    ${msg ? `<div class="err" style="margin-bottom:10px">${esc(msg)}</div>` : ""}
+    <div class="fld"><label>קישור החיבור</label>
+      <input id="sc_link" dir="ltr" value="${esc(getStatsLink())}" placeholder="https://....workers.dev/?k=...">
+      <div class="hint">מדביקים פעם אחת בכל מכשיר. הקישור נשמר רק במכשיר הזה ולא באתר.</div>
+    </div>
+    <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">פתיחה ב-Cloudflare במקום</a>
+    <div class="mact"><button class="save" id="sc_ok">חיבור</button><button class="cancel" id="sc_no">סגירה</button></div>
+  </div>`;
+  m.classList.add("show");
+  $("#sc_no").onclick = () => m.classList.remove("show");
+  $("#sc_ok").onclick = () => {
+    const v = $("#sc_link").value.trim();
+    if(!/^https:\/\/\S+\.workers\.dev\/?\?k=[A-Za-z0-9]{12,}$/.test(v)){ toast("הקישור לא נראה תקין"); return; }
+    setStatsLink(v);
+    openStatsDash();
+  };
+}
+async function openStatsDash(){
+  const link = getStatsLink();
+  if(!link) return statsConnect();
+  const m = $("#modal");
+  m.innerHTML = `<div class="mbox wide"><h3>📊 סטטיסטיקה</h3><div class="hint" style="padding:30px 0;text-align:center">טוען נתונים…</div></div>`;
+  m.classList.add("show");
+  try{
+    const u = new URL(link);
+    u.searchParams.set("days", "30");
+    const r = await fetch(u.toString(), {cache: "no-store"});
+    const d = await r.json();
+    if(!r.ok || d.error) throw new Error(d.error === "unauthorized" ? "קוד הגישה שגוי" : (d.error || ("שגיאה " + r.status)));
+    drawStatsDash(d);
+  }catch(e){
+    statsConnect("לא הצלחתי לטעון את הנתונים: " + (e.message || e));
+  }
+}
+function ilDate(d){ return d.toLocaleDateString("en-CA", {timeZone: "Asia/Jerusalem"}); }
+function ilHour(d){ return +d.toLocaleString("en-GB", {timeZone: "Asia/Jerusalem", hour: "2-digit", hour12: false}) % 24; }
+function stDelta(cur, prev){
+  if(!prev && !cur) return `<div class="d eq">—</div>`;
+  if(!prev) return `<div class="d up">חדש</div>`;
+  const p = Math.round((cur - prev) / prev * 100);
+  if(p === 0) return `<div class="d eq">כמו השבוע הקודם</div>`;
+  return `<div class="d ${p > 0 ? "up" : "dn"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% מהשבוע הקודם</div>`;
+}
+function stBars(vals, labels, hiIdx, tips){
+  const mx = Math.max(1, ...vals);
+  return `<div class="stbars">${vals.map((v, i) =>
+      `<div class="b ${v ? "" : "z"} ${i === hiIdx && v ? "hi" : ""}" style="height:${Math.max(2, v / mx * 100)}%" title="${esc((tips || labels)[i] || "")}: ${v}"></div>`).join("")}</div>
+    <div class="staxis">${labels.map(l => `<span>${esc(l)}</span>`).join("")}</div>`;
+}
+function stList(rows){
+  if(!rows.length) return `<div class="hint">אין עדיין נתונים</div>`;
+  const mx = Math.max(1, ...rows.map(r => r.v));
+  return `<div class="stlist">${rows.map(r => `<div class="r"><span class="n">${esc(r.n)}</span>
+    <span class="bar"><i style="width:${r.v / mx * 100}%"></i></span><span class="c">${r.v}</span></div>`).join("")}</div>`;
+}
+function drawStatsDash(d){
+  /* כל החישובים בשעון ישראל, מתוך נתוני השעות */
+  const now = new Date();
+  const days = [];
+  for(let i = 29; i >= 0; i--) days.push(ilDate(new Date(now.getTime() - i * 864e5)));
+  const perDay = Object.fromEntries(days.map(x => [x, 0]));
+  const perHour = Array(24).fill(0), perWd = Array(7).fill(0);
+  let views = 0;
+  (d.hours || []).forEach(h => {
+    const t = new Date(h.t);
+    const key = ilDate(t);
+    if(!(key in perDay)) return;
+    perDay[key] += h.visits;
+    perHour[ilHour(t)] += h.visits;
+    perWd[new Date(key + "T12:00:00").getDay()] += h.visits;
+    views += h.views;
+  });
+  const dv = days.map(x => perDay[x]);
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const today = dv[29], yest = dv[28];
+  const w = sum(dv.slice(23)), pw = sum(dv.slice(16, 23)), mth = sum(dv);
+  const peakH = perHour.indexOf(Math.max(...perHour));
+  const wdNames = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+  const peakWd = perWd.indexOf(Math.max(...perWd));
+
+  /* עמודים → שמות מוצרים */
+  const byId = Object.fromEntries((DB.products || []).map(p => [p.id, p.name]));
+  const pageName = path => {
+    const mm = String(path).match(/[?&]p=([^&#]+)/);
+    if(mm) return byId[decodeURIComponent(mm[1])] || ("מוצר " + mm[1]);
+    if(/^\/(Chai-shivuk\/?)?(index\.html)?$/i.test(path)) return "עמוד הבית";
+    return path;
+  };
+  const pages = {};
+  (d.paths || []).forEach(p => { const n = pageName(p.path); pages[n] = (pages[n] || 0) + p.views; });
+  const pageRows = Object.entries(pages).map(([n, v]) => ({n, v})).sort((a, b) => b.v - a.v).slice(0, 12);
+
+  const refName = h => {
+    h = String(h || "").toLowerCase();
+    if(!h || h === "chaishivuk.github.io") return "כניסה ישירה";
+    if(/whatsapp|wa\.me|wl\.co/.test(h)) return "וואטסאפ";
+    if(/google/.test(h)) return "גוגל";
+    if(/facebook|fb\./.test(h)) return "פייסבוק";
+    if(/instagram/.test(h)) return "אינסטגרם";
+    return h;
+  };
+  const refs = {};
+  (d.refs || []).forEach(r => { const n = refName(r.host); refs[n] = (refs[n] || 0) + r.visits; });
+  const refRows = Object.entries(refs).map(([n, v]) => ({n, v})).sort((a, b) => b.v - a.v).slice(0, 8);
+
+  const devName = {mobile: "טלפון", desktop: "מחשב", tablet: "טאבלט"};
+  const devRows = (d.devices || []).map(x => ({n: devName[x.type] || x.type || "אחר", v: x.visits})).sort((a, b) => b.v - a.v);
+  const ctryHe = {Israel: "ישראל", "United States": "ארה״ב", "United Kingdom": "בריטניה", France: "צרפת", Germany: "גרמניה", Canada: "קנדה", Russia: "רוסיה", Ukraine: "אוקראינה", Belgium: "בלגיה", Netherlands: "הולנד"};
+  const ctryRows = (d.countries || []).map(x => ({n: ctryHe[x.name] || x.name || "לא ידוע", v: x.visits})).sort((a, b) => b.v - a.v).slice(0, 8);
+
+  const errs = d.errors && Object.keys(d.errors).length
+    ? `<div class="hint" style="margin-top:10px;color:#A81D23">חלק מהנתונים לא נטענו (${esc(Object.keys(d.errors).join(", "))}).</div>` : "";
+  const m = $("#modal");
+  m.innerHTML = `<div class="mbox wide"><h3>📊 סטטיסטיקה · 30 הימים האחרונים</h3>
+    <div class="stcards">
+      <div class="stcard"><div class="l">היום</div><div class="v">${today}</div><div class="d eq">אתמול: ${yest}</div></div>
+      <div class="stcard"><div class="l">7 ימים</div><div class="v">${w}</div>${stDelta(w, pw)}</div>
+      <div class="stcard"><div class="l">30 ימים</div><div class="v">${mth}</div><div class="d eq">${views} צפיות בעמודים</div></div>
+      <div class="stcard"><div class="l">שעת שיא</div><div class="v">${mth ? String(peakH).padStart(2, "0") + ":00" : "—"}</div><div class="d eq">יום חזק: ${mth ? wdNames[peakWd] : "—"}</div></div>
+    </div>
+
+    <div class="stsec">כניסות לפי יום</div>
+    ${stBars(dv, days.map((x, i) => (i % 5 === 4 || i === 29) ? x.slice(8) + "/" + x.slice(5, 7) : ""), 29,
+             days.map(x => x.slice(8) + "/" + x.slice(5, 7)))}
+
+    <div class="stgrid">
+      <div><div class="stsec">לפי שעה ביום</div><div class="stsub">שעון ישראל</div>
+        ${stBars(perHour, perHour.map((_, i) => i % 3 === 0 ? String(i) : ""), peakH, perHour.map((_, i) => i + ":00"))}</div>
+      <div><div class="stsec">לפי יום בשבוע</div><div class="stsub">30 הימים האחרונים</div>
+        ${stBars(perWd, wdNames, peakWd)}</div>
+    </div>
+
+    <div class="stgrid">
+      <div><div class="stsec">העמודים והמוצרים הנצפים</div>${stList(pageRows)}</div>
+      <div><div class="stsec">מאיפה הגיעו</div>${stList(refRows)}</div>
+      <div><div class="stsec">מכשירים</div>${stList(devRows)}</div>
+      <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
+    </div>
+    ${errs}
+    <div class="hint" style="margin-top:12px">"כניסה" = ביקור של מבקר אחד. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות.</div>
+    <div class="mact" style="flex-wrap:wrap">
+      <button class="save" id="sd_ref">רענון</button>
+      <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
+      <button class="cancel" id="sd_link">החלפת קישור</button>
+      <button class="cancel" id="sd_close">סגירה</button>
+    </div>
+  </div>`;
+  m.scrollTop = 0;
+  $("#sd_ref").onclick = openStatsDash;
+  $("#sd_link").onclick = () => statsConnect();
+  $("#sd_close").onclick = () => m.classList.remove("show");
+}
+
 function openStats(){
   const c = statsCfg(), m = $("#modal");
   m.innerHTML = `<div class="mbox"><h3>📊 סטטיסטיקת כניסות</h3>
@@ -2196,7 +2381,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 69</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 70</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2715,7 +2900,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "69";
+const APP_VER = "70";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
