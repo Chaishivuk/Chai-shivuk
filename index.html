@@ -1688,7 +1688,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 70</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 71</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1741,7 +1741,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 70</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 71</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2088,15 +2088,16 @@ function drawStatsDash(d){
   for(let i = 29; i >= 0; i--) days.push(ilDate(new Date(now.getTime() - i * 864e5)));
   const perDay = Object.fromEntries(days.map(x => [x, 0]));
   const perHour = Array(24).fill(0), perWd = Array(7).fill(0);
-  let views = 0;
+  let visitsTotal = 0;
   (d.hours || []).forEach(h => {
     const t = new Date(h.t);
     const key = ilDate(t);
     if(!(key in perDay)) return;
-    perDay[key] += h.visits;
-    perHour[ilHour(t)] += h.visits;
-    perWd[new Date(key + "T12:00:00").getDay()] += h.visits;
-    views += h.views;
+    const v = h.views || 0;
+    perDay[key] += v;
+    perHour[ilHour(t)] += v;
+    perWd[new Date(key + "T12:00:00").getDay()] += v;
+    visitsTotal += h.visits || 0;
   });
   const dv = days.map(x => perDay[x]);
   const sum = a => a.reduce((x, y) => x + y, 0);
@@ -2128,26 +2129,26 @@ function drawStatsDash(d){
     return h;
   };
   const refs = {};
-  (d.refs || []).forEach(r => { const n = refName(r.host); refs[n] = (refs[n] || 0) + r.visits; });
+  (d.refs || []).forEach(r => { const n = refName(r.host); refs[n] = (refs[n] || 0) + (r.views != null ? r.views : r.visits); });
   const refRows = Object.entries(refs).map(([n, v]) => ({n, v})).sort((a, b) => b.v - a.v).slice(0, 8);
 
   const devName = {mobile: "טלפון", desktop: "מחשב", tablet: "טאבלט"};
-  const devRows = (d.devices || []).map(x => ({n: devName[x.type] || x.type || "אחר", v: x.visits})).sort((a, b) => b.v - a.v);
+  const devRows = (d.devices || []).map(x => ({n: devName[x.type] || x.type || "אחר", v: x.views != null ? x.views : x.visits})).sort((a, b) => b.v - a.v);
   const ctryHe = {Israel: "ישראל", "United States": "ארה״ב", "United Kingdom": "בריטניה", France: "צרפת", Germany: "גרמניה", Canada: "קנדה", Russia: "רוסיה", Ukraine: "אוקראינה", Belgium: "בלגיה", Netherlands: "הולנד"};
-  const ctryRows = (d.countries || []).map(x => ({n: ctryHe[x.name] || x.name || "לא ידוע", v: x.visits})).sort((a, b) => b.v - a.v).slice(0, 8);
+  const ctryRows = (d.countries || []).map(x => ({n: ctryHe[x.name] || x.name || "לא ידוע", v: x.views != null ? x.views : x.visits})).sort((a, b) => b.v - a.v).slice(0, 8);
 
   const errs = d.errors && Object.keys(d.errors).length
     ? `<div class="hint" style="margin-top:10px;color:#A81D23">חלק מהנתונים לא נטענו (${esc(Object.keys(d.errors).join(", "))}).</div>` : "";
   const m = $("#modal");
   m.innerHTML = `<div class="mbox wide"><h3>📊 סטטיסטיקה · 30 הימים האחרונים</h3>
     <div class="stcards">
-      <div class="stcard"><div class="l">היום</div><div class="v">${today}</div><div class="d eq">אתמול: ${yest}</div></div>
+      <div class="stcard"><div class="l">צפיות היום</div><div class="v">${today}</div><div class="d eq">אתמול: ${yest}</div></div>
       <div class="stcard"><div class="l">7 ימים</div><div class="v">${w}</div>${stDelta(w, pw)}</div>
-      <div class="stcard"><div class="l">30 ימים</div><div class="v">${mth}</div><div class="d eq">${views} צפיות בעמודים</div></div>
+      <div class="stcard"><div class="l">30 ימים</div><div class="v">${mth}</div><div class="d eq">${visitsTotal ? visitsTotal + " ביקורים מאתרים אחרים" : "צפיות בעמודים ובמוצרים"}</div></div>
       <div class="stcard"><div class="l">שעת שיא</div><div class="v">${mth ? String(peakH).padStart(2, "0") + ":00" : "—"}</div><div class="d eq">יום חזק: ${mth ? wdNames[peakWd] : "—"}</div></div>
     </div>
 
-    <div class="stsec">כניסות לפי יום</div>
+    <div class="stsec">צפיות לפי יום</div>
     ${stBars(dv, days.map((x, i) => (i % 5 === 4 || i === 29) ? x.slice(8) + "/" + x.slice(5, 7) : ""), 29,
              days.map(x => x.slice(8) + "/" + x.slice(5, 7)))}
 
@@ -2165,7 +2166,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">"כניסה" = ביקור של מבקר אחד. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות.</div>
+    <div class="hint" style="margin-top:12px">"צפייה" = כל פתיחה של האתר או של מוצר. צפיות מהמכשירים שלך (שנכנסו לניהול) לא נספרות. הנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2381,7 +2382,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 70</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 71</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2900,7 +2901,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "70";
+const APP_VER = "71";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
