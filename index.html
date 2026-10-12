@@ -493,27 +493,39 @@ function ghHeaders(){ return {"Authorization": "Bearer " + ghToken(), "Accept": 
 
 let dbSha = null;   /* גרסת data.json שנטענה – לזיהוי שינוי חיצוני */
 async function loadDB(){
-  try{
-    if(ghToken()){
-      /* מנהל: קוראים ישירות מ-GitHub כדי לא לקבל גרסה ישנה מהמטמון */
-      const r = await fetch(GH_API + "data.json?t=" + Date.now(), {headers: ghHeaders(), cache: "no-store"});
-      if(r.ok){
-        const j = await r.json();
-        dbSha = j.sha;
-        DB = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g, "")), c => c.charCodeAt(0))));
+  /* טעינה עמידה: מנסים כמה מקורות, ופעמיים – הראשון שמצליח מנצח */
+  const ok = async (url, opts) => { const r = await fetch(url, opts); if(!r.ok) throw new Error(r.status); return r; };
+  const sources = [];
+  if(ghToken()){
+    /* מנהל: ישירות מ-GitHub כדי לא לקבל גרסה ישנה מהמטמון */
+    sources.push(async () => {
+      const j = await (await ok(GH_API + "data.json?t=" + Date.now(), {headers: ghHeaders(), cache: "no-store"})).json();
+      const db = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g, "")), c => c.charCodeAt(0))));
+      dbSha = j.sha;
+      return db;
+    });
+  }
+  sources.push(async () => (await ok("data.json?t=" + Date.now(), {cache: "no-store"})).json());
+  sources.push(async () => (await ok(location.origin + "/" + GH_REPO + "/data.json?t=" + Date.now(), {cache: "no-store"})).json());
+  sources.push(async () => (await ok("https://raw.githubusercontent.com/" + GH_OWNER + "/" + GH_REPO + "/main/data.json?t=" + Date.now(), {cache: "no-store"})).json());
+
+  let last = null;
+  for(let round = 0; round < 2; round++){
+    for(const src of sources){
+      try{
+        const db = await src();
+        if(!db || !Array.isArray(db.products)) throw new Error("bad data");
+        DB = db;
         DB.settings = DB.settings || {};
         return;
-      }
+      }catch(e){ last = e; }
     }
-    const r = await fetch("data.json?t=" + Date.now(), {cache: "no-store"});
-    if(!r.ok) throw new Error(r.status);
-    DB = await r.json();
-    DB.settings = DB.settings || {};
-  }catch(e){
-    document.getElementById("app").innerHTML =
-      '<div class="empty">שגיאה בטעינת הקטלוג – בדוק חיבור לאינטרנט ורענן את הדף</div>';
-    throw e;
+    await new Promise(r => setTimeout(r, 1200));
   }
+  document.getElementById("app").innerHTML =
+    '<div class="empty">שגיאה בטעינת הקטלוג – בדוק חיבור לאינטרנט<br><br>' +
+    '<button class="abtn" onclick="location.reload()">נסה שוב</button></div>';
+  throw last || new Error("load failed");
 }
 async function ghGetSha(path){
   const r = await fetch(GH_API + path + "?t=" + Date.now(), {headers: ghHeaders(), cache: "no-store"});
@@ -1688,7 +1700,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 71</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 72</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1741,7 +1753,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 71</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 72</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2382,7 +2394,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 71</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 72</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2901,7 +2913,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "71";
+const APP_VER = "72";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
