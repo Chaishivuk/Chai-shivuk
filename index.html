@@ -1700,7 +1700,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 72</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 73</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1753,7 +1753,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 72</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 73</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2101,12 +2101,14 @@ function drawStatsDash(d){
   const perDay = Object.fromEntries(days.map(x => [x, 0]));
   const perHour = Array(24).fill(0), perWd = Array(7).fill(0);
   let visitsTotal = 0;
+  const visDay = Object.fromEntries(days.map(x => [x, 0]));
   (d.hours || []).forEach(h => {
     const t = new Date(h.t);
     const key = ilDate(t);
     if(!(key in perDay)) return;
     const v = h.views || 0;
     perDay[key] += v;
+    visDay[key] += h.visits || 0;
     perHour[ilHour(t)] += v;
     perWd[new Date(key + "T12:00:00").getDay()] += v;
     visitsTotal += h.visits || 0;
@@ -2154,9 +2156,9 @@ function drawStatsDash(d){
   const m = $("#modal");
   m.innerHTML = `<div class="mbox wide"><h3>📊 סטטיסטיקה · 30 הימים האחרונים</h3>
     <div class="stcards">
-      <div class="stcard"><div class="l">צפיות היום</div><div class="v">${today}</div><div class="d eq">אתמול: ${yest}</div></div>
+      <div class="stcard"><div class="l">צפיות היום</div><div class="v">${today}</div><div class="d eq">${visDay[days[29]]} ביקורים · אתמול: ${yest}</div></div>
       <div class="stcard"><div class="l">7 ימים</div><div class="v">${w}</div>${stDelta(w, pw)}</div>
-      <div class="stcard"><div class="l">30 ימים</div><div class="v">${mth}</div><div class="d eq">${visitsTotal ? visitsTotal + " ביקורים מאתרים אחרים" : "צפיות בעמודים ובמוצרים"}</div></div>
+      <div class="stcard"><div class="l">30 ימים</div><div class="v">${mth}</div><div class="d eq">${visitsTotal} ביקורים</div></div>
       <div class="stcard"><div class="l">שעת שיא</div><div class="v">${mth ? String(peakH).padStart(2, "0") + ":00" : "—"}</div><div class="d eq">יום חזק: ${mth ? wdNames[peakWd] : "—"}</div></div>
     </div>
 
@@ -2178,7 +2180,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">"צפייה" = כל פתיחה של האתר או של מוצר. צפיות מהמכשירים שלך (שנכנסו לניהול) לא נספרות. הנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">"ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2394,7 +2396,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 72</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 73</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2913,7 +2915,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "72";
+const APP_VER = "73";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
