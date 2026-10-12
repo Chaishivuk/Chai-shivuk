@@ -175,6 +175,10 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .instsm.show{display:flex}
 .instep{display:flex; gap:9px; align-items:flex-start; font-size:14.5px; margin-bottom:10px; line-height:1.5}
 .instep b.num{flex:0 0 22px; height:22px; border-radius:50%; background:var(--ink); color:#fff; font-size:12.5px; display:flex; align-items:center; justify-content:center; margin-top:1px}
+.devcredit{margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14); display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 12px; font-size:13px; color:#B9C4DC}
+.devcredit b{color:#fff; font-weight:700}
+.devbtn{display:inline-flex; align-items:center; gap:6px; background:var(--green); color:#fff !important; text-decoration:none; font-weight:700; font-size:13px; border-radius:999px; padding:6px 13px}
+.devbtn svg{width:15px; height:15px}
 footer{background:var(--ink); color:#B9C4DC; text-align:center; padding:26px 16px 34px; margin-top:36px; font-size:14px}
 footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .empty{text-align:center; color:var(--muted); padding:44px 0; font-size:15px}
@@ -1140,6 +1144,7 @@ function render(){
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
     <div class="disclaim">* התמונות להמחשה בלבד</div>
     ${statsCfg().on ? `<div class="disclaim">האתר אוסף נתוני גלישה אנונימיים לצורך סטטיסטיקה, ללא עוגיות.</div>` : ""}
+    <div class="devcredit"><span>תכנון, פיתוח ועיצוב: <b>ש. סופר</b></span><a class="devbtn" href="https://wa.me/972543914641?text=%D7%A9%D7%9C%D7%95%D7%9D%20%D7%A9%D7%99%D7%9E%D7%99%20%F0%9F%91%8B%0A%D7%94%D7%92%D7%A2%D7%AA%D7%99%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%93%D7%A8%D7%9A%20%D7%90%D7%AA%D7%A8%20%27%D7%97%D7%99%20%D7%A9%D7%99%D7%95%D7%95%D7%A7%27%20%D7%95%D7%9E%D7%90%D7%95%D7%93%20%D7%94%D7%AA%D7%A8%D7%A9%D7%9E%D7%AA%D7%99%20%D7%9E%D7%9E%D7%A0%D7%95.%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A7%D7%91%D7%9C%20%D7%94%D7%A6%D7%A2%D7%AA%20%D7%9E%D7%97%D7%99%D7%A8%20%D7%9C%D7%91%D7%A0%D7%99%D7%99%D7%AA%20%D7%90%D7%AA%D7%A8%20%D7%92%D7%9D%20%D7%9C%D7%A2%D7%A1%D7%A7%20%D7%A9%D7%9C%D7%99." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.1-1.2-.2-.2-.4-.3z"/></svg>להצעת מחיר</a></div>
   </footer>
   <div class="cartbar" id="cartbar">
     <div style="min-width:0"><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div><div class="cbn" id="cbnudge"></div></div>
@@ -1444,6 +1449,7 @@ function renderProduct(){
     <div>מייל להזמנות: <a href="mailto:Ys0533126330@gmail.com" style="color:#4ADE80;text-decoration:none">Ys0533126330@gmail.com</a></div>
     <div class="disclaim">* התמונות להמחשה בלבד</div>
     ${statsCfg().on ? `<div class="disclaim">האתר אוסף נתוני גלישה אנונימיים לצורך סטטיסטיקה, ללא עוגיות.</div>` : ""}
+    <div class="devcredit"><span>תכנון, פיתוח ועיצוב: <b>ש. סופר</b></span><a class="devbtn" href="https://wa.me/972543914641?text=%D7%A9%D7%9C%D7%95%D7%9D%20%D7%A9%D7%99%D7%9E%D7%99%20%F0%9F%91%8B%0A%D7%94%D7%92%D7%A2%D7%AA%D7%99%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%93%D7%A8%D7%9A%20%D7%90%D7%AA%D7%A8%20%27%D7%97%D7%99%20%D7%A9%D7%99%D7%95%D7%95%D7%A7%27%20%D7%95%D7%9E%D7%90%D7%95%D7%93%20%D7%94%D7%AA%D7%A8%D7%A9%D7%9E%D7%AA%D7%99%20%D7%9E%D7%9E%D7%A0%D7%95.%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A7%D7%91%D7%9C%20%D7%94%D7%A6%D7%A2%D7%AA%20%D7%9E%D7%97%D7%99%D7%A8%20%D7%9C%D7%91%D7%A0%D7%99%D7%99%D7%AA%20%D7%90%D7%AA%D7%A8%20%D7%92%D7%9D%20%D7%9C%D7%A2%D7%A1%D7%A7%20%D7%A9%D7%9C%D7%99." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.1-1.2-.2-.2-.4-.3z"/></svg>להצעת מחיר</a></div>
   </footer>
   <div class="cartbar" id="cartbar">
     <div style="min-width:0"><div style="font-size:12.5px;color:#B9C4DC" id="cbcount"></div><div class="sum" id="cbsum"></div><div class="cbn" id="cbnudge"></div></div>
@@ -1700,7 +1706,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 73</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 74</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1753,7 +1759,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 73</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 74</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2396,7 +2402,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 73</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 74</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2915,7 +2921,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "73";
+const APP_VER = "74";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
