@@ -1706,7 +1706,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 76</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 77</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1759,7 +1759,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 76</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 77</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2402,7 +2402,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 76</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 77</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2755,12 +2755,17 @@ async function exportOrderForm(){
         dataRows.push(r.number);
         if(p.img){
           try{
+            /* התמונות באתר הן WebP – אקסל לא מציג אותן, אז ממירים ל-JPEG */
             const blob = await (await fetch(p.img)).blob();
-            const b64 = await new Promise(rs => {
-              const fr = new FileReader();
-              fr.onload = () => rs(fr.result.split(",")[1]);
-              fr.readAsDataURL(blob);
-            });
+            const bmp = await createImageBitmap(blob);
+            const sc = Math.min(1, 200 / Math.max(bmp.width, bmp.height));
+            const cv = document.createElement("canvas");
+            cv.width = Math.max(1, Math.round(bmp.width * sc));
+            cv.height = Math.max(1, Math.round(bmp.height * sc));
+            const cx = cv.getContext("2d");
+            cx.fillStyle = "#ffffff"; cx.fillRect(0, 0, cv.width, cv.height);
+            cx.drawImage(bmp, 0, 0, cv.width, cv.height);
+            const b64 = cv.toDataURL("image/jpeg", 0.85).split(",")[1];
             const imgId = wb.addImage({base64: b64, extension: "jpeg"});
             ws.addImage(imgId, {tl: {col: 0.06, row: r.number - 1 + 0.04}, ext: {width: 72, height: 66}});
           }catch(e){}
@@ -2921,7 +2926,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "76";
+const APP_VER = "77";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
