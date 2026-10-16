@@ -1706,7 +1706,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 77</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 78</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1759,7 +1759,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 77</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 78</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2402,7 +2402,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 77</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 78</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2733,7 +2733,8 @@ async function exportOrderForm(){
     const head = ws.addRow(["תמונה", "שם המוצר", "מק\"ט", "מחיר", "כמות להזמנה", "סה\"כ"]);
     head.font = {bold: true};
     head.eachCell(c => c.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFE5E8EE"}});
-    const dataRows = [];
+    const dataRows = [], vatRows = [];
+    const rate = Math.round(vatRate() * 100);
     for(const c of DB.categories){
       const ps = DB.products.filter(p => p.cat === c.id && p.stock);
       if(!ps.length) continue;
@@ -2743,7 +2744,7 @@ async function exportOrderForm(){
       const thin = {style: "thin", color: {argb: "FFBFC6D1"}};
       for(const p of ps){
         const price = p.sale != null ? p.sale : p.price;
-        const r = ws.addRow(["", p.name + (p.tier ? " (מעל " + p.tier.qty + " יח' – ₪" + p.tier.price + " ליח')" : ""), p.sku, price, "", ""]);
+        const r = ws.addRow(["", p.name + (p.tier ? " (מעל " + p.tier.qty + " יח' – ₪" + p.tier.price + " ליח')" : "") + (needsVat(p) ? "\nהמחיר לא כולל מע\"מ" : ""), p.sku, price, "", ""]);
         r.height = 58;
         r.alignment = {vertical: "middle", wrapText: true};
         r.getCell(4).numFmt = '₪#,##0';
@@ -2753,6 +2754,7 @@ async function exportOrderForm(){
         r.getCell(5).dataValidation = {type: "whole", operator: "between", formulae: [0, 99999], allowBlank: true, showErrorMessage: true, error: "נא להזין מספר שלם"};
         for(let ci = 1; ci <= 6; ci++) r.getCell(ci).border = {top: thin, left: thin, bottom: thin, right: thin};
         dataRows.push(r.number);
+        if(needsVat(p)) vatRows.push(r.number);
         if(p.img){
           try{
             /* התמונות באתר הן WebP – אקסל לא מציג אותן, אז ממירים ל-JPEG */
@@ -2773,11 +2775,26 @@ async function exportOrderForm(){
       }
     }
     ws.addRow([]);
-    const tot = ws.addRow(["", "", "", "", "סה\"כ לתשלום (כולל מע\"מ):", ""]);
+    const sumOf = rows => rows.length ? "SUM(" + rows.map(n => "F" + n).join(",") + ")" : "0";
+    const sub = ws.addRow(["", "", "", "", "סכום ביניים:", ""]);
+    sub.font = {bold: true};
+    sub.getCell(6).value = {formula: sumOf(dataRows)};
+    sub.getCell(6).numFmt = '₪#,##0.00';
+    const vat = ws.addRow(["", "", "", "", "מע\"מ " + rate + "% על האביזרים:", ""]);
+    vat.font = {bold: true};
+    vat.getCell(6).value = {formula: "ROUND(" + sumOf(vatRows) + "*" + (rate / 100) + ",2)"};
+    vat.getCell(6).numFmt = '₪#,##0.00';
+    const tot = ws.addRow(["", "", "", "", "סה\"כ לתשלום:", ""]);
     tot.font = {bold: true, size: 13};
-    tot.getCell(6).value = {formula: dataRows.length ? "SUM(" + dataRows.map(n => "F" + n).join(",") + ")" : "0"};
-    tot.getCell(6).numFmt = '₪#,##0';
+    tot.getCell(6).value = {formula: "F" + sub.number + "+F" + vat.number};
+    tot.getCell(6).numFmt = '₪#,##0.00';
     tot.getCell(6).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFDCFCE7"}};
+    ws.addRow([]);
+    const note = ws.addRow(["", "מחירי המכשירים כוללים מע\"מ. לאביזרים מתווסף מע\"מ " + rate + "% בסיכום, כמו באתר. הנחות וקופונים מחושבים בהזמנה דרך האתר."]);
+    note.font = {italic: true, size: 10, color: {argb: "FF6B7280"}};
+    ws.mergeCells(note.number, 2, note.number, 6);
+    note.alignment = {wrapText: true, vertical: "top"};
+    note.height = 30;
     const out = await wb.xlsx.writeBuffer();
     // fix: some viewers (Google Sheets) read the image size from the shape, which ExcelJS leaves at 0x0
     if(!window.JSZip) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
@@ -2926,7 +2943,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "77";
+const APP_VER = "78";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
