@@ -722,9 +722,18 @@ function findCoupon(code){
   if(!c.on || !k) return null;
   return c.coupons.find(x => x.on !== false && String(x.code || "").trim().toUpperCase() === k) || null;
 }
+function usedCoupons(){ try{ return JSON.parse(localStorage.getItem("chai-used-coupons") || "[]"); }catch(e){ return []; } }
+function markCouponUsed(){
+  const k = cartCalc();
+  if(!k.cp || !k.cp.once) return;
+  const code = String(k.cp.code).toUpperCase();
+  const u = usedCoupons();
+  if(!u.includes(code)){ u.push(code); try{ localStorage.setItem("chai-used-coupons", JSON.stringify(u)); }catch(e){} }
+}
 function couponCheck(code, sum){
   const cp = findCoupon(code);
   if(!cp) return {cp:null, why:"קוד קופון לא תקין"};
+  if(cp.once && usedCoupons().includes(String(cp.code).toUpperCase())) return {cp:null, why:"הקופון כבר נוצל בהזמנה קודמת"};
   if(cp.until && new Date(cp.until + "T23:59:59") < new Date()) return {cp:null, why:"תוקף הקופון הסתיים"};
   if((+cp.min || 0) > sum) return {cp:null, why:"הקופון תקף בקנייה מעל " + nis(+cp.min || 0)};
   return {cp, why:""};
@@ -1672,10 +1681,12 @@ function sendWA(){
   if(!lines) return;
   const txt = lines.map(l => "\u200F" + l).join("\n");
   window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(txt), "_blank");
+  markCouponUsed();
 }
 function buildMailParts(){
   const lines = orderLines();
   if(!lines) return null;
+  markCouponUsed();
   const subject = "הזמנה חדשה – חי שיווק";
   const body = lines.join("\n") + "\n\nשם הלקוח:\nטלפון:\nהערות:";
   return {subject, body};
@@ -1706,7 +1717,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 78</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 79</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1759,7 +1770,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 78</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 79</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -1944,6 +1955,7 @@ function readPromo(){
     t.min   = +row.querySelector("[data-f=min]").value || 0;
     t.until = row.querySelector("[data-f=until]").value || "";
     t.on    = row.querySelector("[data-f=on]").checked;
+    t.once  = row.querySelector("[data-f=once]").checked;
   });
 }
 function drawPromo(){
@@ -1965,7 +1977,8 @@ function drawPromo(){
   const cpRows = d.coupons.map((t, i) => `
     <div class="prow" data-cp="${i}">
       <div class="top">
-        <label class="chk" style="margin:0"><input type="checkbox" data-f="on" ${t.on !== false ? "checked" : ""}>קופון פעיל</label>
+        <span style="display:flex;gap:12px;flex-wrap:wrap"><label class="chk" style="margin:0"><input type="checkbox" data-f="on" ${t.on !== false ? "checked" : ""}>קופון פעיל</label>
+        <label class="chk" style="margin:0"><input type="checkbox" data-f="once" ${t.once ? "checked" : ""}>פעם אחת ללקוח</label></span>
         <button class="del" data-dcp="${i}">מחיקה</button>
       </div>
       <div class="three">
@@ -2009,7 +2022,7 @@ function drawPromo(){
   m.scrollTop = 0;
 
   $("#pm_addtier").onclick = () => { readPromo(); promoDraft.tiers.push({min:200, type:"percent", val:5, label:"", on:true}); drawPromo(); };
-  $("#pm_addcp").onclick   = () => { readPromo(); promoDraft.coupons.push({code:"", type:"percent", val:10, min:0, until:"", on:true}); drawPromo(); };
+  $("#pm_addcp").onclick   = () => { readPromo(); promoDraft.coupons.push({code:"", type:"percent", val:10, min:0, until:"", on:true, once:false}); drawPromo(); };
   document.querySelectorAll("[data-dtier]").forEach(b => b.onclick = () => { readPromo(); promoDraft.tiers.splice(+b.dataset.dtier, 1); drawPromo(); });
   document.querySelectorAll("[data-dcp]").forEach(b => b.onclick = () => { readPromo(); promoDraft.coupons.splice(+b.dataset.dcp, 1); drawPromo(); });
   $("#pm_cancel").onclick = () => { promoDraft = null; m.classList.remove("show"); };
@@ -2402,7 +2415,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 78</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 79</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2943,7 +2956,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "78";
+const APP_VER = "79";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
