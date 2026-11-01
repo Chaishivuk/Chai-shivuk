@@ -82,7 +82,7 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .sv-head{display:flex; align-items:center; gap:10px; padding:4px 12px 8px}
 .sv-head img{width:36px; height:36px; border-radius:50%; background:#fff; padding:3px; box-sizing:border-box}
 .sv-head .t{font-weight:800; font-size:15px} .sv-head .s{font-size:12px; color:#B9C4DC}
-.sv-x{margin-right:auto; font-size:24px; color:#fff; background:none; padding:6px 10px; line-height:1}
+.sv-x{font-size:24px; color:#fff; background:none; padding:6px 10px; line-height:1}
 .sv-stage{flex:1; position:relative; display:flex; align-items:center; justify-content:center; min-height:0; padding:0 14px; touch-action:pan-y}
 .sv-card{position:relative; background:#fff; border-radius:22px; width:100%; max-width:440px; max-height:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; overflow:hidden}
 .sv-card img{max-width:92%; max-height:92%; object-fit:contain}
@@ -105,6 +105,16 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .sv-add{flex:1; height:46px; border-radius:12px; background:var(--green); color:#fff; font-weight:800; font-size:16px}
 .sv-more{height:46px; border-radius:12px; padding:0 14px; background:rgba(255,255,255,.12); color:#fff; font-weight:700; font-size:14px}
 #storyv.sv-paused .sv-bars{opacity:.55}
+#storyv:focus, #storyv .sv-tap:focus, #storyv .sv-tap:focus-visible{outline:none !important}
+#storyv button{-webkit-tap-highlight-color:transparent}
+.sv-buy{flex:1; display:flex; gap:8px; min-width:0}
+.sv-incart{flex:1; display:flex; align-items:center; justify-content:space-between; background:rgba(22,163,74,.22); border:2px solid #22C55E; border-radius:12px; padding:0 2px 0 14px; height:46px; box-sizing:border-box}
+.sv-incart .ok{font-weight:800; color:#4ADE80; font-size:16px}
+.sv-incart .sv-qty{background:none}
+@keyframes svpop{0%{transform:scale(1)} 40%{transform:scale(1.07)} 100%{transform:scale(1)}}
+.sv-incart.pop, .sv-cart.pop{animation:svpop .35s ease}
+.sv-cart{margin-right:auto; display:flex; align-items:center; gap:5px; background:rgba(255,255,255,.14); color:#fff; border-radius:99px; padding:5px 12px; font-size:14px}
+.sv-cart b{font-size:15px}
 
 
 main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
@@ -1760,7 +1770,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 83</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 84</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1813,7 +1823,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 83</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 84</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2342,6 +2352,7 @@ function openStories(){
     <div class="sv-head">
       <img src="logo-v3.png" alt="">
       <div><div class="t">חי שיווק · חדשים</div><div class="s" id="sv-pos"></div></div>
+      <button class="sv-cart" id="sv-cart" aria-label="מעבר לסל"></button>
       <button class="sv-x" id="sv-x" aria-label="סגירה">✕</button>
     </div>
     <div class="sv-stage" id="sv-stage">
@@ -2351,11 +2362,14 @@ function openStories(){
     </div>
     <div class="sv-info" id="sv-info"></div>`;
   el.classList.add("show");
+  el.tabIndex = -1;
   document.body.style.overflow = "hidden";
 
   $("#sv-x").onclick = () => closeStories();
-  $("#sv-next").onclick = () => { if(sv.suppress){ sv.suppress = false; return; } storyGo(1); };
-  $("#sv-prev").onclick = () => { if(sv.suppress){ sv.suppress = false; return; } storyGo(-1); };
+  $("#sv-cart").onclick = () => { closeStories(); openCart(); };
+  $("#sv-next").onclick = e => { e.currentTarget.blur(); if(sv.suppress){ sv.suppress = false; return; } storyGo(1); };
+  $("#sv-prev").onclick = e => { e.currentTarget.blur(); if(sv.suppress){ sv.suppress = false; return; } storyGo(-1); };
+  svCart();
 
   /* החזקת אצבע = עצירה, החלקה למטה = סגירה */
   const stage = $("#sv-stage");
@@ -2378,7 +2392,7 @@ function openStories(){
   storyShow();
   sv.last = performance.now();
   sv.raf = requestAnimationFrame(storyTick);
-  setTimeout(() => { const x = $("#sv-x"); if(x) x.focus(); }, 50);
+  setTimeout(() => { if(sv) sv.el.focus({preventScroll: true}); }, 50);
 }
 function storyShow(){
   const p = sv.list[sv.i];
@@ -2396,35 +2410,66 @@ function storyShow(){
     <div class="sv-price">${price}</div>
     ${cols.length ? `<div class="sv-cols"><button class="sv-col on" data-svc="">לא משנה</button>${cols.map(c =>
         `<button class="sv-col" data-svc="${esc(c.n)}">${esc(c.n)}</button>`).join("")}</div>` : ""}
-    <div class="sv-row">
-      <div class="sv-qty"><button id="sv-plus" aria-label="הוספת יחידה">+</button><b id="sv-q">1</b><button id="sv-minus" aria-label="הפחתת יחידה">−</button></div>
-      <button class="sv-add" id="sv-add">הוסף לסל</button>
-      <button class="sv-more" id="sv-more">לפרטים</button>
-    </div>`;
+    <div class="sv-row"><div class="sv-buy" id="sv-buy"></div><button class="sv-more" id="sv-more">לפרטים</button></div>`;
   const info = $("#sv-info");
   info.onpointerdown = () => { sv.paused = true; sv.el.classList.add("sv-paused"); };
   info.querySelectorAll("[data-svc]").forEach(b => b.onclick = () => {
     sv.color = b.dataset.svc || null;
     info.querySelectorAll("[data-svc]").forEach(x => x.classList.toggle("on", x === b));
+    svBuy();
   });
-  $("#sv-plus").onclick = () => { sv.qty++; $("#sv-q").textContent = sv.qty; };
-  $("#sv-minus").onclick = () => { sv.qty = Math.max(1, sv.qty - 1); $("#sv-q").textContent = sv.qty; };
-  $("#sv-add").onclick = storyAdd;
+  svBuy();
   $("#sv-more").onclick = () => { const id = p.id; closeStories(); openProduct(id); };
   const nx = sv.list[sv.i + 1];
   if(nx && nx.img){ const im = new Image(); im.src = nx.img; }
 }
+function svKey(){ const p = sv.list[sv.i]; return ckey(p.id, sv.color); }
+function svCartTotal(){ return Object.values(cart).reduce((t, n) => t + n, 0); }
+function svCart(bump){
+  const c = $("#sv-cart");
+  if(!c) return;
+  const n = svCartTotal();
+  c.innerHTML = `🛒 <b>${n}</b>`;
+  if(bump){ c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); }
+}
+/* לפני הוספה: בוחרים כמות. אחרי: רואים "✓ בסל" עם הכמות שבסל, ואפשר לשנות אותה ישירות */
+function svBuy(pop){
+  const box = $("#sv-buy");
+  if(!box) return;
+  const inCart = cart[svKey()] || 0;
+  if(!inCart){
+    box.innerHTML = `<div class="sv-qty"><button id="sv-plus" aria-label="הוספת יחידה">+</button><b id="sv-q">${sv.qty}</b><button id="sv-minus" aria-label="הפחתת יחידה">−</button></div>
+      <button class="sv-add" id="sv-add">הוסף לסל</button>`;
+    $("#sv-plus").onclick = () => { sv.qty++; $("#sv-q").textContent = sv.qty; };
+    $("#sv-minus").onclick = () => { sv.qty = Math.max(1, sv.qty - 1); $("#sv-q").textContent = sv.qty; };
+    $("#sv-add").onclick = storyAdd;
+  }else{
+    box.innerHTML = `<div class="sv-incart${pop ? " pop" : ""}" role="status">
+        <span class="ok">✓ בסל</span>
+        <div class="sv-qty"><button id="sv-cplus" aria-label="עוד יחידה בסל">+</button><b>${inCart}</b><button id="sv-cminus" aria-label="יחידה אחת פחות בסל">−</button></div>
+      </div>`;
+    const set = d => { bump(svKey(), d); saveCart(); updateCartUI(); sv.added = true; svCart(true); svBuy(); };
+    $("#sv-cplus").onclick = () => set(1);
+    $("#sv-cminus").onclick = () => set(-1);
+  }
+}
 function storyAdd(){
   const p = sv.list[sv.i];
-  const k = ckey(p.id, sv.color);
+  const k = svKey();
   cart[k] = (cart[k] || 0) + sv.qty;
   saveCart();
   updateCartUI();
   sv.added = true;
-  toast(`נוסף לסל: ${sv.qty} × ${p.name}`);
-  sv.paused = false;
-  sv.el.classList.remove("sv-paused");
-  sv.qty = 1; $("#sv-q").textContent = 1;
+  try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
+  toast(`✓ נוסף לסל: ${sv.qty} יח' – ${p.name}`);
+  sv.qty = 1;
+  svBuy(true);
+  svCart(true);
+  /* עוצרים רגע כדי שיראו את האישור, ואז ממשיכים */
+  sv.paused = true;
+  sv.el.classList.add("sv-paused");
+  clearTimeout(sv.resumeT);
+  sv.resumeT = setTimeout(() => { if(sv){ sv.paused = false; sv.el.classList.remove("sv-paused"); } }, 1800);
 }
 function storyGo(d){
   if(!sv) return;
@@ -2763,7 +2808,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 83</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 84</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3305,7 +3350,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "83";
+const APP_VER = "84";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
