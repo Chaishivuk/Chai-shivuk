@@ -197,6 +197,7 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .qty button{width:30px; height:30px; font-size:17px; font-weight:700; color:var(--ink)}
 .qty b{min-width:22px; text-align:center; font-size:14px}
 .dsum{padding:13px 16px; border-top:1px solid var(--line)}
+.clrbtn{font-size:13px; font-weight:700; color:#A81D23; background:#FDECEC; border-radius:999px; padding:6px 12px}
 .dsum .srow{display:flex; justify-content:space-between; font-size:14px; color:var(--muted); margin-bottom:5px}
 .dsum .srow.disc{color:var(--green); font-weight:700}
 .pnudge{background:#FFF7E0; border:1px solid #F5D98B; color:#8A5B00; font-weight:700; font-size:13.5px; border-radius:10px; padding:9px 11px; margin-bottom:10px; text-align:center}
@@ -1221,7 +1222,7 @@ function render(){
     <div class="smlist">${menuLinks()}</div>
   </aside>
   <div class="drawer" id="drawer">
-    <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
+    <div class="dhead"><h3>ההזמנה שלי</h3><span style="display:flex;align-items:center;gap:12px"><button id="clearcart" class="clrbtn">🗑️ ריקון העגלה</button><button id="closecart" style="font-size:22px">✕</button></span></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
       <div id="dsumbox"></div>
@@ -1440,6 +1441,7 @@ function bindCustomer(){
   };
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
+  $("#clearcart").onclick = askClearCart;
   $("#overlay").onclick = () => { closeCart(); closeMenu(); };
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
@@ -1522,7 +1524,7 @@ function renderProduct(){
   </div>
   <div class="overlay" id="overlay"></div>
   <div class="drawer" id="drawer">
-    <div class="dhead"><h3>ההזמנה שלי</h3><button id="closecart" style="font-size:22px">✕</button></div>
+    <div class="dhead"><h3>ההזמנה שלי</h3><span style="display:flex;align-items:center;gap:12px"><button id="clearcart" class="clrbtn">🗑️ ריקון העגלה</button><button id="closecart" style="font-size:22px">✕</button></span></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
       <div id="dsumbox"></div>
@@ -1554,6 +1556,7 @@ function renderProduct(){
   });
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
+  $("#clearcart").onclick = askClearCart;
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
@@ -1706,6 +1709,32 @@ function openCart(){
   $("#overlay").classList.add("show");
   $("#drawer").classList.add("show");
 }
+function clearCart(){
+  Object.keys(cart).forEach(k => delete cart[k]);
+  saveCart();
+  couponCode = ""; saveCoupon("");
+  closeCart(); render();
+}
+function askClearCart(msg){
+  const m = $("#modal");
+  m.innerHTML = `<div class="mbox"><h3>${msg ? "✅ ההזמנה נשלחה?" : "🗑️ ריקון העגלה"}</h3>
+    <div class="hint" style="margin-bottom:14px">${msg || "כל המוצרים יוסרו מהעגלה. אי אפשר לבטל."}</div>
+    <div class="mact"><button class="save" id="cc_yes">${msg ? "כן – לרוקן את העגלה" : "לרוקן"}</button><button class="cancel" id="cc_no">${msg ? "לא, להשאיר" : "ביטול"}</button></div></div>`;
+  m.classList.add("show");
+  $("#cc_yes").onclick = () => { m.classList.remove("show"); clearCart(); toast("העגלה רוקנה"); };
+  $("#cc_no").onclick = () => m.classList.remove("show");
+}
+/* אחרי שליחת הזמנה – כשהלקוח חוזר לאתר, שואלים אם לרוקן את העגלה */
+let orderSentAt = 0;
+function afterOrderSent(){
+  orderSentAt = Date.now();
+}
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState !== "visible" || !orderSentAt) return;
+  if(Date.now() - orderSentAt < 1500) return;
+  orderSentAt = 0;
+  if(Object.keys(cart).length) askClearCart("אם ההזמנה נשלחה בהצלחה, אפשר לרוקן את העגלה כדי שתהיה מוכנה להזמנה הבאה.");
+});
 function closeCart(){
   const o = $("#overlay"), d = $("#drawer");
   if(o) o.classList.remove("show");
@@ -1739,11 +1768,13 @@ function sendWA(){
   const txt = lines.map(l => "\u200F" + l).join("\n");
   window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(txt), "_blank");
   markCouponUsed();
+  afterOrderSent();
 }
 function buildMailParts(){
   const lines = orderLines();
   if(!lines) return null;
   markCouponUsed();
+  afterOrderSent();
   const subject = "הזמנה חדשה – חי שיווק";
   const body = lines.join("\n") + "\n\nשם הלקוח:\nטלפון:\nהערות:";
   return {subject, body};
@@ -1774,7 +1805,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 85</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 86</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1827,7 +1858,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 85</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 86</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2272,7 +2303,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 85 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 86 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2846,7 +2877,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 85</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 86</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3394,7 +3425,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "85";
+const APP_VER = "86";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
