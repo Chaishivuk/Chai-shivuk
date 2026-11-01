@@ -69,6 +69,11 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .catring.story.seen{background:#CBD5E1}
 .catring.story .inner{width:100%; height:100%; border-radius:50%; background:#fff; padding:2px; box-sizing:border-box; display:flex; overflow:hidden}
 .catring.story img{width:100%; height:100%; object-fit:cover; border-radius:50%}
+.catring.story .inner.logo{align-items:center; justify-content:center}
+.catring.story .inner.logo img{width:74%; height:74%; object-fit:contain; border-radius:0}
+.storywrap{position:relative; display:block}
+.storycnt{position:absolute; top:-2px; left:-2px; min-width:24px; height:24px; padding:0 6px; box-sizing:border-box; border-radius:12px;
+  background:#DC2626; color:#fff; font-size:12.5px; font-weight:800; line-height:24px; text-align:center; border:2px solid #fff; font-family:'Rubik','Segoe UI',system-ui,Arial,sans-serif}
 #storyv{position:fixed; inset:0; z-index:120; background:#0B1220; display:none; flex-direction:column; color:#fff; user-select:none; -webkit-user-select:none}
 #storyv.show{display:flex}
 .sv-bars{display:flex; gap:3px; padding:calc(10px + env(safe-area-inset-top, 0px)) 10px 6px; direction:rtl}
@@ -1755,7 +1760,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 80</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 81</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1808,7 +1813,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 80</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 81</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2299,10 +2304,13 @@ function storyChip(){
   const list = storyList();
   if(!list.length) return "";
   const seen = seenStories();
-  const allSeen = list.every(p => seen.has(p.id));
-  const img = list[0].img;
-  return `<button class="catbtn" id="storybtn" aria-label="מוצרים חדשים – צפייה כמו סטטוס">
-      <span class="catring story ${allSeen ? "seen" : ""}"><span class="inner">${img ? `<img src="${img}" alt="" loading="lazy">` : ""}</span></span>
+  const unseen = list.filter(p => !seen.has(p.id)).length;
+  const cnt = unseen > 99 ? "99+" : unseen;
+  return `<button class="catbtn" id="storybtn" aria-label="מוצרים חדשים${unseen ? ` – ${unseen} שעוד לא ראית` : ""}">
+      <span class="storywrap">
+        <span class="catring story ${unseen ? "" : "seen"}"><span class="inner logo"><img src="logo-v3.png" alt=""></span></span>
+        ${unseen ? `<span class="storycnt" aria-hidden="true">${cnt}</span>` : ""}
+      </span>
       <span class="catlbl">חדשים</span>
     </button>`;
 }
@@ -2445,9 +2453,13 @@ function closeStories(){
   document.body.style.overflow = "";
   if(added) render();
   else{
-    const list = storyList(), seen = seenStories();
-    const ring = document.querySelector("#storybtn .catring");
-    if(ring) ring.classList.toggle("seen", list.every(p => seen.has(p.id)));
+    const btn = document.getElementById("storybtn");
+    if(btn){
+      const tmp = document.createElement("div");
+      tmp.innerHTML = storyChip();
+      const fresh = tmp.firstElementChild;
+      if(fresh){ btn.replaceWith(fresh); fresh.onclick = () => openStories(); }
+    }
   }
   const b = $("#storybtn");
   if(b) b.focus();
@@ -2657,7 +2669,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 80</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 81</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3199,7 +3211,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "80";
+const APP_VER = "81";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
