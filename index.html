@@ -1760,7 +1760,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 82</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 83</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1813,10 +1813,11 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 82</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 83</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
+        <button class="abtn" id="newstatusbtn">🆕 סטטוס "חדשים"</button>
         <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "📤 שיתוף מוצרים לסטטוס"}</button>
         <button class="abtn" id="cats">ניהול קטגוריות</button>
         <button class="abtn" id="statsbtn">📊 סטטיסטיקה</button>
@@ -1854,6 +1855,7 @@ function renderAdmin(){
   $("#xls").onclick = exportXLS;
   $("#tostore").onclick = () => { adminMode = false; if(location.hash) location.hash = ""; render(); window.scrollTo(0,0); };
   $("#selbtn").onclick = () => { selMode = !selMode; selIds.clear(); render(); };
+  $("#newstatusbtn").onclick = shareNewStatus;
   document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEditor(b.dataset.edit));
   document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
     const id = b.dataset.pick;
@@ -2474,6 +2476,90 @@ document.addEventListener("keydown", e => {
   else if(e.key === " " && e.target === document.body){ e.preventDefault(); sv.paused = !sv.paused; }
 });
 
+/* ===== סטטוס "מוצרים חדשים" – תמונה + קישור ישיר לסטורי ===== */
+const NEW_LINK = location.origin + location.pathname.replace(/index\.html$/, "") + "?new";
+function newStatusCaption(){
+  return "🆕 הגיעו מוצרים חדשים לחי שיווק!\nלוחצים ורואים את כולם כמו סטטוס 👇\n" + NEW_LINK;
+}
+async function buildNewStatusCanvas(){
+  try{ if(document.fonts) await document.fonts.ready; }catch(e){}
+  const W = 1080, H = 1920;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d");
+  const F = (w, s) => `${w} ${s}px Rubik, "Segoe UI", Arial, sans-serif`;
+  x.direction = "rtl"; x.textAlign = "center";
+
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#1B2C55"); g.addColorStop(1, "#0B1220");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  const glow = x.createRadialGradient(W / 2, 980, 60, W / 2, 980, 760);
+  glow.addColorStop(0, "rgba(74,222,128,.22)"); glow.addColorStop(1, "rgba(74,222,128,0)");
+  x.fillStyle = glow; x.fillRect(0, 0, W, H);
+
+  /* לוגו + שם */
+  try{
+    const logo = await loadImg("logo-v3.png");
+    x.fillStyle = "#fff"; roundRect(x, W / 2 + 70, 120, 120, 120, 30); x.fill();
+    x.drawImage(logo, W / 2 + 82, 132, 96, 96);
+  }catch(e){}
+  x.textAlign = "right";
+  x.fillStyle = "#fff"; x.font = F(800, 76); x.fillText("חי", W / 2 + 40, 200);
+  x.fillStyle = "#4ADE80"; x.fillText("שיווק", W / 2 + 40 - x.measureText("חי ").width, 200);
+  x.textAlign = "center";
+
+  /* תגית + כותרת */
+  x.fillStyle = "rgba(74,222,128,.16)"; roundRect(x, W / 2 - 170, 300, 340, 76, 38); x.fill();
+  x.strokeStyle = "rgba(74,222,128,.6)"; x.lineWidth = 3; roundRect(x, W / 2 - 170, 300, 340, 76, 38); x.stroke();
+  x.fillStyle = "#4ADE80"; x.font = F(800, 40); x.fillText("🆕 חדש באתר", W / 2, 352);
+  x.fillStyle = "#fff"; x.font = F(900, 96); x.fillText("הגיעו מוצרים", W / 2, 510);
+  x.fillText("חדשים!", W / 2, 615);
+
+  /* 4 המוצרים החדשים */
+  const list = storyList().filter(p => p.img).slice(0, 4);
+  const S = 400, gap = 36, x0 = (W - 2 * S - gap) / 2, y0 = 680;
+  for(let k = 0; k < list.length; k++){
+    const p = list[k];
+    const cx = x0 + (k % 2 === 0 ? S + gap : 0), cy = y0 + Math.floor(k / 2) * (S + gap);
+    x.fillStyle = "#fff"; roundRect(x, cx, cy, S, S, 34); x.fill();
+    try{
+      const im = await loadImg(p.img);
+      const r = Math.min((S - 50) / im.width, (S - 50) / im.height);
+      x.drawImage(im, cx + (S - im.width * r) / 2, cy + (S - im.height * r) / 2, im.width * r, im.height * r);
+    }catch(e){}
+  }
+
+  /* הנחיה */
+  const ty = y0 + 2 * S + gap + 96;
+  x.fillStyle = "#D6DEEF"; x.font = F(700, 44);
+  x.fillText("עוברים על כולם כמו סטטוס", W / 2, ty);
+  x.fillText("ומוסיפים לסל בלחיצה", W / 2, ty + 60);
+  x.fillStyle = "#16A34A"; roundRect(x, W / 2 - 300, H - 196, 600, 108, 54); x.fill();
+  x.fillStyle = "#fff"; x.font = F(900, 52); x.fillText("👇 לחצו על הקישור", W / 2, H - 124);
+  return cv;
+}
+async function shareNewStatus(){
+  if(!storyList().length){ toast("אין כרגע מוצרים חדשים במלאי"); return; }
+  toast("מכין תמונה...");
+  let file;
+  try{
+    const cv = await buildNewStatusCanvas();
+    const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.92));
+    file = new File([blob], "chai-new.jpg", {type: "image/jpeg"});
+  }catch(e){ toast("שגיאה בהכנת התמונה"); return; }
+  const text = newStatusCaption();
+  if(navigator.canShare && navigator.canShare({files: [file]})){
+    try{ await navigator.share({files: [file], text}); return; }
+    catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  saveFiles([file]);
+  try{ await navigator.clipboard.writeText(text); toast("התמונה ירדה והטקסט עם הקישור הועתק"); }
+  catch(e){ toast("התמונה ירדה – הקישור: " + NEW_LINK); }
+}
+async function copyNewLink(){
+  try{ await navigator.clipboard.writeText(NEW_LINK); toast("הקישור הועתק"); }
+  catch(e){ prompt("העתיקו את הקישור:", NEW_LINK); }
+}
+
 /* ---------- הגדרות בניהול ---------- */
 function openStorySettings(){
   const c = storyCfg(), m = $("#modal");
@@ -2484,9 +2570,15 @@ function openStorySettings(){
     <div class="fld"><label>מספר מוצרים מקסימלי</label>
       <input id="ss_max" type="number" inputmode="numeric" min="1" max="60" value="${c.max}">
       <div class="hint">מוצגים המוצרים המסומנים "חדש" שבמלאי, בסדר של שורת "מוצרים חדשים".</div></div>
+    <div class="fld"><label>קישור ישיר לסטורי</label>
+      <div style="display:flex;gap:8px"><input dir="ltr" readonly value="${esc(NEW_LINK)}" style="flex:1;min-width:0">
+      <button class="abtn" id="ss_copy" type="button">העתקה</button></div></div>
+    <button class="abtn g" id="ss_share" type="button" style="width:100%;margin-bottom:12px">🆕 שיתוף לסטטוס – תמונה + קישור</button>
     <div class="mact"><button class="save" id="ss_save">שמירה</button><button class="cancel" id="ss_no">ביטול</button></div></div>`;
   m.classList.add("show");
   $("#ss_no").onclick = () => m.classList.remove("show");
+  $("#ss_copy").onclick = copyNewLink;
+  $("#ss_share").onclick = shareNewStatus;
   $("#ss_save").onclick = async () => {
     DB.settings = DB.settings || {};
     DB.settings.stories = {on: $("#ss_on").checked, sec: +$("#ss_sec").value,
@@ -2671,7 +2763,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 82</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 83</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3213,7 +3305,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "82";
+const APP_VER = "83";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
