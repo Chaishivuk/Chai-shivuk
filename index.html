@@ -1709,6 +1709,17 @@ function openCart(){
   $("#overlay").classList.add("show");
   $("#drawer").classList.add("show");
 }
+/* חלון קופץ זמין גם בעמודי הלקוח (לא רק בניהול) */
+function ensureModal(){
+  let m = document.getElementById("modal");
+  if(!m){
+    m = document.createElement("div");
+    m.className = "modal"; m.id = "modal";
+    m.addEventListener("click", e => { if(e.target === m) m.classList.remove("show"); });
+    document.body.appendChild(m);
+  }
+  return m;
+}
 function clearCart(){
   Object.keys(cart).forEach(k => delete cart[k]);
   saveCart();
@@ -1716,7 +1727,7 @@ function clearCart(){
   closeCart(); render();
 }
 function askClearCart(msg){
-  const m = $("#modal");
+  const m = ensureModal();
   m.innerHTML = `<div class="mbox"><h3>${msg ? "✅ ההזמנה נשלחה?" : "🗑️ ריקון העגלה"}</h3>
     <div class="hint" style="margin-bottom:14px">${msg || "כל המוצרים יוסרו מהעגלה. אי אפשר לבטל."}</div>
     <div class="mact"><button class="save" id="cc_yes">${msg ? "כן – לרוקן את העגלה" : "לרוקן"}</button><button class="cancel" id="cc_no">${msg ? "לא, להשאיר" : "ביטול"}</button></div></div>`;
@@ -1805,7 +1816,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 86</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 87</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1858,7 +1869,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 86</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 87</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2303,7 +2314,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 86 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 87 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2877,7 +2888,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 86</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 87</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3425,7 +3436,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "86";
+const APP_VER = "87";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
@@ -3513,7 +3524,7 @@ function installHelp(){
       "מאשרים – והאייקון של חי שיווק יופיע במסך הבית"
     ];
   }
-  const m = $("#modal");
+  const m = ensureModal();
   m.innerHTML = `<div class="mbox"><h3>📲 התקנת האפליקציה</h3>
     <div class="hint" style="margin-bottom:12px">האתר נפתח כאפליקציה מלאה, עם אייקון במסך הבית ובלי שורת הכתובת. לא תופס כמעט מקום בטלפון.</div>
     ${steps.map((t, i) => `<div class="instep"><b class="num">${i + 1}</b><span>${esc(t)}</span></div>`).join("")}
