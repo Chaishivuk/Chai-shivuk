@@ -65,6 +65,42 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .catlbl{font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.25; text-align:center; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
 .catbtn.on .catring{border-color:var(--ink); box-shadow:0 0 0 3px rgba(20,33,61,.12)}
 .catbtn.on .catlbl{color:var(--ink); font-weight:800}
+.catring.story{border:none; padding:3px; background:conic-gradient(#22C55E, #4ADE80, #107C3A, #22C55E)}
+.catring.story.seen{background:#CBD5E1}
+.catring.story .inner{width:100%; height:100%; border-radius:50%; background:#fff; padding:2px; box-sizing:border-box; display:flex; overflow:hidden}
+.catring.story img{width:100%; height:100%; object-fit:cover; border-radius:50%}
+#storyv{position:fixed; inset:0; z-index:120; background:#0B1220; display:none; flex-direction:column; color:#fff; user-select:none; -webkit-user-select:none}
+#storyv.show{display:flex}
+.sv-bars{display:flex; gap:3px; padding:calc(10px + env(safe-area-inset-top, 0px)) 10px 6px; direction:rtl}
+.sv-bar{flex:1; height:3px; background:rgba(255,255,255,.28); border-radius:2px; overflow:hidden}
+.sv-bar i{display:block; height:100%; width:0; background:#fff}
+.sv-head{display:flex; align-items:center; gap:10px; padding:4px 12px 8px}
+.sv-head img{width:36px; height:36px; border-radius:50%; background:#fff; padding:3px; box-sizing:border-box}
+.sv-head .t{font-weight:800; font-size:15px} .sv-head .s{font-size:12px; color:#B9C4DC}
+.sv-x{margin-right:auto; font-size:24px; color:#fff; background:none; padding:6px 10px; line-height:1}
+.sv-stage{flex:1; position:relative; display:flex; align-items:center; justify-content:center; min-height:0; padding:0 14px; touch-action:pan-y}
+.sv-card{position:relative; background:#fff; border-radius:22px; width:100%; max-width:440px; max-height:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; overflow:hidden}
+.sv-card img{max-width:92%; max-height:92%; object-fit:contain}
+.sv-card .noimg{color:#6B7280}
+.sv-badge{position:absolute; top:12px; right:12px; background:var(--green); color:#fff; font-weight:800; font-size:13px; border-radius:8px; padding:3px 10px}
+.sv-badge.sale{background:var(--amber)}
+.sv-tap{position:absolute; top:0; bottom:0; width:42%; background:none; -webkit-tap-highlight-color:transparent}
+.sv-tapL{left:0} .sv-tapR{right:0}
+.sv-info{padding:14px 18px calc(16px + env(safe-area-inset-bottom, 0px)); max-width:520px; width:100%; margin:0 auto; box-sizing:border-box}
+.sv-name{font-size:18px; font-weight:800; line-height:1.3}
+.sv-price{font-family:'Rubik','Segoe UI',system-ui,Arial,sans-serif; font-size:24px; font-weight:800; color:#4ADE80; margin-top:4px}
+.sv-old{color:#9AA3B2; text-decoration:line-through; font-size:15px; margin-right:8px; font-weight:600}
+.sv-cols{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+.sv-col{border:1.5px solid rgba(255,255,255,.45); border-radius:99px; padding:5px 12px; font-size:13px; font-weight:700; color:#fff; background:none}
+.sv-col.on{background:#fff; color:#14213D; border-color:#fff}
+.sv-row{display:flex; gap:8px; align-items:center; margin-top:12px}
+.sv-qty{display:flex; align-items:center; background:rgba(255,255,255,.12); border-radius:12px}
+.sv-qty button{color:#fff; font-size:22px; font-weight:800; width:42px; height:46px; background:none}
+.sv-qty b{min-width:26px; text-align:center; font-size:18px}
+.sv-add{flex:1; height:46px; border-radius:12px; background:var(--green); color:#fff; font-weight:800; font-size:16px}
+.sv-more{height:46px; border-radius:12px; padding:0 14px; background:rgba(255,255,255,.12); color:#fff; font-weight:700; font-size:14px}
+#storyv.sv-paused .sv-bars{opacity:.55}
+
 
 main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .sect{margin-top:18px}
@@ -1093,6 +1129,7 @@ function render(){
       <span class="catring">${c.id === "home" ? `<span class="cathome">🏠</span>` : catThumb(c.id)}</span>
       <span class="catlbl">${esc(c.name)}</span>
     </button>`).join("");
+  const chipsAll = storyChip() + chips;
 
   let body = "";
   const q = view.q.trim();
@@ -1144,7 +1181,7 @@ function render(){
     </div>
   </header>
   ${vatBanner()}
-  <nav class="catstrip">${chips}</nav>
+  <nav class="catstrip">${chipsAll}</nav>
   <main>${body}${body ? `<button class="totopbtn" id="totop">↑ חזרה לתחילת הרשימה</button>` : ""}</main>
   <footer>
     <button class="instbtn" id="instbtn"><span class="ic">📲</span> התקנת האפליקציה בנייד</button>
@@ -1315,6 +1352,8 @@ function autoRail(el){
   railRaf = requestAnimationFrame(step);
 }
 function bindCustomer(){
+  const sbtn = document.getElementById("storybtn");
+  if(sbtn) sbtn.onclick = () => openStories();
   /* שורות הגלילה (מבצעים) – נשארות בדיוק איפה שהלקוח עצר, גם אחרי הוספה לסל */
   document.querySelectorAll("[data-rail]").forEach(r => {
     const k = r.dataset.rail;
@@ -1340,13 +1379,12 @@ function bindCustomer(){
       if(e.pointerType !== "mouse") return;
       dragging = true; moved = false;
       dragStartX = e.clientX; dragStartScroll = strip.scrollLeft;
-      strip.classList.add("dragging");
     });
     window.addEventListener("pointermove", e => {
       if(!dragging || e.pointerType !== "mouse") return;
       const dx = e.clientX - dragStartX;
-      if(Math.abs(dx) > 4) moved = true;
-      strip.scrollLeft = dragStartScroll - dx;
+      if(Math.abs(dx) > 4 && !moved){ moved = true; strip.classList.add("dragging"); }   /* רק גרירה אמיתית חוסמת לחיצה */
+      if(moved) strip.scrollLeft = dragStartScroll - dx;
     });
     window.addEventListener("pointerup", e => {
       if(e.pointerType !== "mouse") return;
@@ -1717,7 +1755,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 79</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 80</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1770,7 +1808,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 79</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 80</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2241,6 +2279,208 @@ function openStats(){
     if(await saveDB()){ m.classList.remove("show"); toast(on ? "המעקב הופעל" : "המעקב כבוי"); render(); }
   };
 }
+/* ===== "חדשים" בסגנון סטטוסים של וואטסאפ ===== */
+function storyCfg(){
+  const s = (DB && DB.settings && DB.settings.stories) || {};
+  return {on: s.on !== false, sec: [3, 5, 8].includes(+s.sec) ? +s.sec : 5, max: +s.max > 0 ? Math.min(60, +s.max) : 30};
+}
+function storyList(){
+  if(!storyCfg().on) return [];
+  return groupList("new").filter(p => p.stock).slice(0, storyCfg().max);
+}
+function seenStories(){ try{ return new Set(JSON.parse(localStorage.getItem("chai-seen-stories") || "[]")); }catch(e){ return new Set(); } }
+function markSeen(id){
+  const s = seenStories();
+  if(s.has(id)) return;
+  s.add(id);
+  try{ localStorage.setItem("chai-seen-stories", JSON.stringify([...s].slice(-400))); }catch(e){}
+}
+function storyChip(){
+  const list = storyList();
+  if(!list.length) return "";
+  const seen = seenStories();
+  const allSeen = list.every(p => seen.has(p.id));
+  const img = list[0].img;
+  return `<button class="catbtn" id="storybtn" aria-label="מוצרים חדשים – צפייה כמו סטטוס">
+      <span class="catring story ${allSeen ? "seen" : ""}"><span class="inner">${img ? `<img src="${img}" alt="" loading="lazy">` : ""}</span></span>
+      <span class="catlbl">חדשים</span>
+    </button>`;
+}
+
+let sv = null;                                   /* מצב הצפייה הפתוחה */
+function storyOpen(){ return !!sv; }
+function openStories(){
+  const list = storyList();
+  if(!list.length) return;
+  const seen = seenStories();
+  let i = list.findIndex(p => !seen.has(p.id));
+  if(i < 0) i = 0;
+  let el = document.getElementById("storyv");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "storyv";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.setAttribute("aria-label", "מוצרים חדשים");
+    document.body.appendChild(el);
+  }
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  sv = {list, i, el, dur: storyCfg().sec * 1000, elapsed: 0, last: 0, paused: false, hold: false,
+        suppress: false, raf: null, qty: 1, color: null, auto: !reduce, added: false};
+  el.innerHTML = `
+    <div class="sv-bars">${list.map(() => `<div class="sv-bar"><i></i></div>`).join("")}</div>
+    <div class="sv-head">
+      <img src="logo-v3.png" alt="">
+      <div><div class="t">חי שיווק · חדשים</div><div class="s" id="sv-pos"></div></div>
+      <button class="sv-x" id="sv-x" aria-label="סגירה">✕</button>
+    </div>
+    <div class="sv-stage" id="sv-stage">
+      <div class="sv-card" id="sv-card"></div>
+      <button class="sv-tap sv-tapR" id="sv-prev" aria-label="המוצר הקודם"></button>
+      <button class="sv-tap sv-tapL" id="sv-next" aria-label="המוצר הבא"></button>
+    </div>
+    <div class="sv-info" id="sv-info"></div>`;
+  el.classList.add("show");
+  document.body.style.overflow = "hidden";
+
+  $("#sv-x").onclick = () => closeStories();
+  $("#sv-next").onclick = () => { if(sv.suppress){ sv.suppress = false; return; } storyGo(1); };
+  $("#sv-prev").onclick = () => { if(sv.suppress){ sv.suppress = false; return; } storyGo(-1); };
+
+  /* החזקת אצבע = עצירה, החלקה למטה = סגירה */
+  const stage = $("#sv-stage");
+  let holdT = null, sy = 0, sx = 0;
+  stage.addEventListener("pointerdown", e => {
+    sy = e.clientY; sx = e.clientX;
+    holdT = setTimeout(() => { if(sv){ sv.hold = true; sv.el.classList.add("sv-paused"); } }, 230);
+  });
+  const release = () => {
+    clearTimeout(holdT);
+    if(sv && sv.hold){ sv.hold = false; sv.suppress = true; sv.el.classList.remove("sv-paused"); }
+  };
+  stage.addEventListener("pointerup", e => {
+    release();
+    if(e.clientY - sy > 90 && Math.abs(e.clientX - sx) < 80) closeStories();
+  });
+  stage.addEventListener("pointercancel", release);
+  stage.addEventListener("pointerleave", release);
+
+  storyShow();
+  sv.last = performance.now();
+  sv.raf = requestAnimationFrame(storyTick);
+  setTimeout(() => { const x = $("#sv-x"); if(x) x.focus(); }, 50);
+}
+function storyShow(){
+  const p = sv.list[sv.i];
+  sv.elapsed = 0; sv.qty = 1; sv.color = null; sv.paused = false;
+  markSeen(p.id);
+  sv.el.querySelectorAll(".sv-bar i").forEach((b, j) => b.style.width = j < sv.i ? "100%" : "0%");
+  $("#sv-pos").textContent = `${sv.i + 1} מתוך ${sv.list.length}`;
+  const badge = p.sale != null ? `<span class="sv-badge sale">מבצע</span>` : `<span class="sv-badge">חדש</span>`;
+  $("#sv-card").innerHTML = (p.img ? `<img src="${p.img}" alt="${esc(p.name)}">` : `<span class="noimg">ללא תמונה</span>`) + badge;
+  const price = (p.sale != null && p.sale !== p.price)
+    ? `${nis(p.sale)}<span class="sv-old">${nis(p.price)}</span>` : nis(basePrice(p));
+  const cols = (Array.isArray(p.colors) ? p.colors : []).filter(c => c.s !== false);
+  $("#sv-info").innerHTML = `
+    <div class="sv-name">${esc(p.name)}</div>
+    <div class="sv-price">${price}</div>
+    ${cols.length ? `<div class="sv-cols"><button class="sv-col on" data-svc="">לא משנה</button>${cols.map(c =>
+        `<button class="sv-col" data-svc="${esc(c.n)}">${esc(c.n)}</button>`).join("")}</div>` : ""}
+    <div class="sv-row">
+      <div class="sv-qty"><button id="sv-plus" aria-label="הוספת יחידה">+</button><b id="sv-q">1</b><button id="sv-minus" aria-label="הפחתת יחידה">−</button></div>
+      <button class="sv-add" id="sv-add">הוסף לסל</button>
+      <button class="sv-more" id="sv-more">לפרטים</button>
+    </div>`;
+  const info = $("#sv-info");
+  info.onpointerdown = () => { sv.paused = true; sv.el.classList.add("sv-paused"); };
+  info.querySelectorAll("[data-svc]").forEach(b => b.onclick = () => {
+    sv.color = b.dataset.svc || null;
+    info.querySelectorAll("[data-svc]").forEach(x => x.classList.toggle("on", x === b));
+  });
+  $("#sv-plus").onclick = () => { sv.qty++; $("#sv-q").textContent = sv.qty; };
+  $("#sv-minus").onclick = () => { sv.qty = Math.max(1, sv.qty - 1); $("#sv-q").textContent = sv.qty; };
+  $("#sv-add").onclick = storyAdd;
+  $("#sv-more").onclick = () => { const id = p.id; closeStories(); openProduct(id); };
+  const nx = sv.list[sv.i + 1];
+  if(nx && nx.img){ const im = new Image(); im.src = nx.img; }
+}
+function storyAdd(){
+  const p = sv.list[sv.i];
+  const k = ckey(p.id, sv.color);
+  cart[k] = (cart[k] || 0) + sv.qty;
+  saveCart();
+  updateCartUI();
+  sv.added = true;
+  toast(`נוסף לסל: ${sv.qty} × ${p.name}`);
+  sv.paused = false;
+  sv.el.classList.remove("sv-paused");
+  sv.qty = 1; $("#sv-q").textContent = 1;
+}
+function storyGo(d){
+  if(!sv) return;
+  const n = sv.i + d;
+  if(n >= sv.list.length){ closeStories(); return; }
+  if(n < 0){ sv.elapsed = 0; return; }
+  sv.i = n;
+  storyShow();
+}
+function storyTick(now){
+  if(!sv) return;
+  sv.raf = requestAnimationFrame(storyTick);
+  const dt = Math.min(100, now - sv.last);
+  sv.last = now;
+  if(sv.auto && !sv.paused && !sv.hold && !document.hidden) sv.elapsed += dt;
+  const bar = sv.el.querySelectorAll(".sv-bar i")[sv.i];
+  const f = sv.auto ? Math.min(1, sv.elapsed / sv.dur) : 1;
+  if(bar) bar.style.width = (f * 100) + "%";
+  if(sv.auto && f >= 1) storyGo(1);
+}
+function closeStories(){
+  if(!sv) return;
+  cancelAnimationFrame(sv.raf);
+  const added = sv.added;
+  sv.el.classList.remove("show", "sv-paused");
+  sv.el.innerHTML = "";
+  sv = null;
+  document.body.style.overflow = "";
+  if(added) render();
+  else{
+    const list = storyList(), seen = seenStories();
+    const ring = document.querySelector("#storybtn .catring");
+    if(ring) ring.classList.toggle("seen", list.every(p => seen.has(p.id)));
+  }
+  const b = $("#storybtn");
+  if(b) b.focus();
+}
+document.addEventListener("keydown", e => {
+  if(!sv) return;
+  if(e.key === "Escape"){ e.preventDefault(); closeStories(); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); storyGo(1); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); storyGo(-1); }
+  else if(e.key === " " && e.target === document.body){ e.preventDefault(); sv.paused = !sv.paused; }
+});
+
+/* ---------- הגדרות בניהול ---------- */
+function openStorySettings(){
+  const c = storyCfg(), m = $("#modal");
+  m.innerHTML = `<div class="mbox"><h3>📸 סטורי "חדשים"</h3>
+    <div class="chk"><input type="checkbox" id="ss_on" ${c.on ? "checked" : ""}><label for="ss_on">להציג את עיגול "חדשים" בראש האתר</label></div>
+    <div class="fld"><label>כמה זמן כל מוצר מוצג</label>
+      <select id="ss_sec">${[3, 5, 8].map(s => `<option value="${s}" ${c.sec === s ? "selected" : ""}>${s} שניות</option>`).join("")}</select></div>
+    <div class="fld"><label>מספר מוצרים מקסימלי</label>
+      <input id="ss_max" type="number" inputmode="numeric" min="1" max="60" value="${c.max}">
+      <div class="hint">מוצגים המוצרים המסומנים "חדש" שבמלאי, בסדר של שורת "מוצרים חדשים".</div></div>
+    <div class="mact"><button class="save" id="ss_save">שמירה</button><button class="cancel" id="ss_no">ביטול</button></div></div>`;
+  m.classList.add("show");
+  $("#ss_no").onclick = () => m.classList.remove("show");
+  $("#ss_save").onclick = async () => {
+    DB.settings = DB.settings || {};
+    DB.settings.stories = {on: $("#ss_on").checked, sec: +$("#ss_sec").value,
+                           max: Math.max(1, Math.min(60, +$("#ss_max").value || 30))};
+    if(await saveDB()){ m.classList.remove("show"); toast("נשמר"); render(); }
+  };
+}
+
 function openSettings(){
   const m = $("#modal");
   m.innerHTML = `<div class="mbox"><h3>הגדרות</h3>
@@ -2254,6 +2494,7 @@ function openSettings(){
     <button class="abtn" id="setordsale" style="width:100%;margin-bottom:8px">↕ סדר המוצרים במבצע</button>
     <button class="abtn" id="setordnew" style="width:100%;margin-bottom:8px">↕ סדר המוצרים החדשים</button>
     <button class="abtn" id="setpromo" style="width:100%;margin-bottom:8px">🎟️ הנחות וקופונים</button>
+    <button class="abtn" id="setstory" style="width:100%;margin-bottom:8px">📸 סטורי "חדשים"</button>
     <button class="abtn" id="setstats" style="width:100%;margin-bottom:8px">📊 סטטיסטיקת כניסות</button>
     <button class="abtn" id="sethist" style="width:100%;margin-bottom:12px">📜 היסטוריית מוצרים</button>
     <div class="mact"><button class="save" id="setsave">שמירה</button><button class="cancel" id="setcancel">ביטול</button></div>
@@ -2261,6 +2502,7 @@ function openSettings(){
   m.classList.add("show");
   $("#sethist").onclick = openHistory;
   $("#setpromo").onclick = openPromo;
+  $("#setstory").onclick = openStorySettings;
   $("#setstats").onclick = openStats;
   $("#setquick").onclick = openQuickPicker;
   $("#setordsale").onclick = () => openOrderManager("sale");
@@ -2415,7 +2657,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 79</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 80</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -2919,6 +3161,7 @@ window.addEventListener("hashchange", () => { if(!isAdminRoute()) applyHash(); r
 window.addEventListener("popstate", () => { if(!isAdminRoute() && view.page !== "product") applyHash(); });
 let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
+  if(storyOpen()){ closeStories(); history.pushState({}, ""); return; }
   if(menuOpen()){ closeMenu(); history.pushState({}, ""); return; }
   const d = $("#drawer");
   if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
@@ -2956,7 +3199,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "79";
+const APP_VER = "80";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
