@@ -938,6 +938,8 @@ function hashKey(){
     const q = new URLSearchParams(location.search).get("p");
     if(q) return q;
   }catch(e){}
+  const pm = location.pathname.match(/\/product-([^\/]+)$/);
+  if(pm) return decodeURIComponent(pm[1]);
   const m = location.hash.match(/^#p=(.+)$/);
   return m ? decodeURIComponent(m[1]) : null;
 }
@@ -979,12 +981,12 @@ let justReturned = false; /* חזרנו הרגע לרשימה – לחיצה נ�
 function openProduct(id){
   if(view.page !== "product") listScroll = window.scrollY || 0;
   view.page = "product"; view.pid = id; view.color = null;
-  history.pushState({}, "", location.pathname + "?p=" + encodeURIComponent(id));
+  history.pushState({}, "", BASE_PATH + "product-" + encodeURIComponent(id));
   render(); window.scrollTo(0, 0);
 }
 function backToList(){
   view.page = "list";
-  history.pushState({}, "", location.pathname);
+  history.pushState({}, "", BASE_PATH);
   render();
   const y = listScroll;
   requestAnimationFrame(() => window.scrollTo(0, y));
@@ -992,8 +994,9 @@ function backToList(){
   setTimeout(() => justReturned = false, 6000);
 }
 function toTop(){ justReturned = false; window.scrollTo({top: 0, behavior: "smooth"}); }
+const BASE_PATH = location.pathname.replace(/[^\/]*$/, "");
 function productUrl(p){
-  return location.origin + location.pathname + "?p=" + encodeURIComponent(p.id);
+  return location.origin + BASE_PATH + "?p=" + encodeURIComponent(p.id);
 }
 async function shareProduct(p){
   const url = productUrl(p);
@@ -1713,8 +1716,9 @@ function orderLines(){
   if(!items.length) return null;
   const n = items.reduce((t, i) => t + i.qty, 0);
   let lines = ["🛒 הזמנה חדשה – חי שיווק", "――――――――――――"];
-  items.forEach(({p, qty, color}, i) => {
-    lines.push(`${i + 1}. ${p.name}${color ? " – צבע: " + color : ""}`);
+  const fromStory = storyKeys();
+  items.forEach(({p, qty, color, key}, i) => {
+    lines.push(`${i + 1}. ${p.name}${color ? " – צבע: " + color : ""}${fromStory.has(key) ? " 📸 מהסטטוס" : ""}`);
     lines.push(`    מק"ט ${p.sku} | ${qty} יח' × ${nis(effPrice(p, qty))} = ${nis(effPrice(p, qty) * qty)}`);
   });
   const k = cartCalc();
@@ -1770,7 +1774,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 84</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 85</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1823,7 +1827,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 84</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 85</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2197,15 +2201,20 @@ function drawStatsDash(d){
 
   /* עמודים → שמות מוצרים */
   const byId = Object.fromEntries((DB.products || []).map(p => [p.id, p.name]));
-  const pageName = path => {
-    const mm = String(path).match(/[?&]p=([^&#]+)/);
-    if(mm) return byId[decodeURIComponent(mm[1])] || ("מוצר " + mm[1]);
-    if(/^\/(Chai-shivuk\/?)?(index\.html)?$/i.test(path)) return "עמוד הבית";
-    return path;
-  };
-  const pages = {};
-  (d.paths || []).forEach(p => { const n = pageName(p.path); pages[n] = (pages[n] || 0) + p.views; });
-  const pageRows = Object.entries(pages).map(([n, v]) => ({n, v})).sort((a, b) => b.v - a.v).slice(0, 12);
+  /* כתובות: product-<id> = עמוד מוצר, story-<id> = צפייה בסטורי, story-add-<id> = הוספה לסל מהסטורי */
+  const nm = id => byId[decodeURIComponent(id)] || ("מוצר " + id);
+  const prodV = {}, storyV = {}, storyA = {};
+  let homeV = 0, storyTotal = 0, addTotal = 0;
+  (d.paths || []).forEach(x => {
+    const path = String(x.path), v = x.views || 0;
+    let m;
+    if((m = path.match(/\/story-add-([^\/]+)$/))){ storyA[nm(m[1])] = (storyA[nm(m[1])] || 0) + v; addTotal += v; }
+    else if((m = path.match(/\/story-([^\/]+)$/))){ storyV[nm(m[1])] = (storyV[nm(m[1])] || 0) + v; storyTotal += v; }
+    else if((m = path.match(/\/product-([^\/]+)$/))){ prodV[nm(m[1])] = (prodV[nm(m[1])] || 0) + v; }
+    else homeV += v;
+  });
+  const top = (o, n) => Object.entries(o).map(([k, v]) => ({n: k, v})).sort((a, b) => b.v - a.v).slice(0, n);
+  const pageRows = top(prodV, 10);
 
   const refName = h => {
     h = String(h || "").toLowerCase();
@@ -2247,14 +2256,23 @@ function drawStatsDash(d){
         ${stBars(perWd, wdNames, peakWd)}</div>
     </div>
 
+    <div class="stsec">📸 סטורי "חדשים"</div>
+    <div class="stcards">
+      <div class="stcard"><div class="l">צפיות במוצרים בסטורי</div><div class="v">${storyTotal}</div></div>
+      <div class="stcard"><div class="l">הוספות לסל מהסטורי</div><div class="v">${addTotal}</div></div>
+    </div>
     <div class="stgrid">
-      <div><div class="stsec">העמודים והמוצרים הנצפים</div>${stList(pageRows)}</div>
+      <div><div class="stsec">הכי נצפים בסטורי</div>${stList(top(storyV, 8))}</div>
+      <div><div class="stsec">הכי נוספו לסל מהסטורי</div>${stList(top(storyA, 8))}</div>
+    </div>
+    <div class="stgrid">
+      <div><div class="stsec">המוצרים הנצפים באתר</div>${stList(pageRows)}</div>
       <div><div class="stsec">מאיפה הגיעו</div>${stList(refRows)}</div>
       <div><div class="stsec">מכשירים</div>${stList(devRows)}</div>
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">"ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 85 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2345,7 +2363,7 @@ function openStories(){
     document.body.appendChild(el);
   }
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  sv = {list, i, el, dur: storyCfg().sec * 1000, elapsed: 0, last: 0, paused: false, hold: false,
+  sv = {pushes: 0, list, i, el, dur: storyCfg().sec * 1000, elapsed: 0, last: 0, paused: false, hold: false,
         suppress: false, raf: null, qty: 1, color: null, auto: !reduce, added: false};
   el.innerHTML = `
     <div class="sv-bars">${list.map(() => `<div class="sv-bar"><i></i></div>`).join("")}</div>
@@ -2398,6 +2416,7 @@ function storyShow(){
   const p = sv.list[sv.i];
   sv.elapsed = 0; sv.qty = 1; sv.color = null; sv.paused = false;
   markSeen(p.id);
+  svTrack("story-" + p.id);
   sv.el.querySelectorAll(".sv-bar i").forEach((b, j) => b.style.width = j < sv.i ? "100%" : "0%");
   $("#sv-pos").textContent = `${sv.i + 1} מתוך ${sv.list.length}`;
   const badge = p.sale != null ? `<span class="sv-badge sale">מבצע</span>` : `<span class="sv-badge">חדש</span>`;
@@ -2422,6 +2441,19 @@ function storyShow(){
   $("#sv-more").onclick = () => { const id = p.id; closeStories(); openProduct(id); };
   const nx = sv.list[sv.i + 1];
   if(nx && nx.img){ const im = new Image(); im.src = nx.img; }
+}
+/* כל צפייה/הוספה בסטורי נרשמת כ"עמוד" נפרד בסטטיסטיקה; בסגירה חוזרים לכתובת המקורית */
+let svUnwinding = false;
+function svTrack(slug){
+  if(!sv) return;
+  try{ history.pushState({sv: 1}, "", BASE_PATH + slug); sv.pushes++; }catch(e){}
+}
+const STORY_KEYS = "chai-story-keys";
+function storyKeys(){ try{ return new Set(JSON.parse(localStorage.getItem(STORY_KEYS) || "[]")); }catch(e){ return new Set(); } }
+function markStoryKey(k){
+  const s = storyKeys(); s.add(k);
+  const live = [...s].filter(x => cart[x]);          /* שומרים רק מה שעדיין בסל */
+  try{ localStorage.setItem(STORY_KEYS, JSON.stringify(live)); }catch(e){}
 }
 function svKey(){ const p = sv.list[sv.i]; return ckey(p.id, sv.color); }
 function svCartTotal(){ return Object.values(cart).reduce((t, n) => t + n, 0); }
@@ -2448,7 +2480,7 @@ function svBuy(pop){
         <span class="ok">✓ בסל</span>
         <div class="sv-qty"><button id="sv-cplus" aria-label="עוד יחידה בסל">+</button><b>${inCart}</b><button id="sv-cminus" aria-label="יחידה אחת פחות בסל">−</button></div>
       </div>`;
-    const set = d => { bump(svKey(), d); saveCart(); updateCartUI(); sv.added = true; svCart(true); svBuy(); };
+    const set = d => { bump(svKey(), d); saveCart(); if(d > 0) markStoryKey(svKey()); updateCartUI(); sv.added = true; svCart(true); svBuy(); };
     $("#sv-cplus").onclick = () => set(1);
     $("#sv-cminus").onclick = () => set(-1);
   }
@@ -2458,6 +2490,8 @@ function storyAdd(){
   const k = svKey();
   cart[k] = (cart[k] || 0) + sv.qty;
   saveCart();
+  markStoryKey(k);
+  svTrack("story-add-" + p.id);
   updateCartUI();
   sv.added = true;
   try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
@@ -2493,13 +2527,13 @@ function storyTick(now){
 function closeStories(){
   if(!sv) return;
   cancelAnimationFrame(sv.raf);
-  const added = sv.added;
+  const added = sv.added, pushes = sv.pushes;
   sv.el.classList.remove("show", "sv-paused");
   sv.el.innerHTML = "";
   sv = null;
   document.body.style.overflow = "";
-  /* נכנסו מקישור ?new – מנקים את הכתובת כדי שרענון לא יפתח שוב */
-  try{ if(new URLSearchParams(location.search).has("new")) history.replaceState(history.state, "", location.pathname); }catch(e){}
+  if(pushes > 0){ svUnwinding = true; history.go(-pushes); }   /* חוזרים לכתובת שלפני הסטורי */
+  else svCleanNew();
   if(added) render();
   else{
     const btn = document.getElementById("storybtn");
@@ -2513,6 +2547,10 @@ function closeStories(){
   const b = $("#storybtn");
   if(b) b.focus();
 }
+/* נכנסו מקישור ?new – מנקים את הכתובת כדי שרענון לא יפתח שוב */
+function svCleanNew(){
+  try{ if(new URLSearchParams(location.search).has("new")) history.replaceState(history.state, "", BASE_PATH); }catch(e){}
+}
 document.addEventListener("keydown", e => {
   if(!sv) return;
   if(e.key === "Escape"){ e.preventDefault(); closeStories(); }
@@ -2522,7 +2560,7 @@ document.addEventListener("keydown", e => {
 });
 
 /* ===== סטטוס "מוצרים חדשים" – תמונה + קישור ישיר לסטורי ===== */
-const NEW_LINK = location.origin + location.pathname.replace(/index\.html$/, "") + "?new";
+const NEW_LINK = location.origin + BASE_PATH + "?new";
 function newStatusCaption(){
   return "🆕 הגיעו מוצרים חדשים לחי שיווק!\nלוחצים ורואים את כולם כמו סטטוס 👇\n" + NEW_LINK;
 }
@@ -2808,7 +2846,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 84</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 85</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3312,7 +3350,13 @@ window.addEventListener("hashchange", () => { if(!isAdminRoute()) applyHash(); r
 window.addEventListener("popstate", () => { if(!isAdminRoute() && view.page !== "product") applyHash(); });
 let backArmed = false, adminBackArmed = false;
 window.addEventListener("popstate", () => {
-  if(storyOpen()){ closeStories(); history.pushState({}, ""); return; }
+  if(svUnwinding){ svUnwinding = false; svCleanNew(); return; }
+  if(storyOpen()){
+    sv.pushes = Math.max(0, sv.pushes - 1);
+    closeStories();
+    if(!svUnwinding) history.pushState({}, "");
+    return;
+  }
   if(menuOpen()){ closeMenu(); history.pushState({}, ""); return; }
   const d = $("#drawer");
   if(d && d.classList.contains("show")){ closeCart(); history.pushState({}, ""); return; }
@@ -3350,7 +3394,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "84";
+const APP_VER = "85";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
@@ -3373,6 +3417,9 @@ async function ensureLatest(){
       }
     }catch(e){}
     const u = new URL(location.href);
+    /* כתובת וירטואלית (מוצר/סטורי) – חוזרים לכתובת האמיתית כדי שהרענון לא יגיע לעמוד שלא קיים */
+    const vm = u.pathname.match(/\/(product|story(?:-add)?)-([^\/]+)$/);
+    if(vm){ u.pathname = u.pathname.replace(/[^\/]*$/, ""); if(vm[1] === "product") u.searchParams.set("p", decodeURIComponent(vm[2])); }
     u.searchParams.set("v", v);
     location.replace(u.toString());
   }catch(e){}
