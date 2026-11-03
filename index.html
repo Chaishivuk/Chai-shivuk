@@ -67,6 +67,9 @@ header{position:sticky; top:0; z-index:40; background:var(--ink); color:#fff; pa
 .catbtn.on .catlbl{color:var(--ink); font-weight:800}
 .catring.story{border:none; padding:3px; background:conic-gradient(#22C55E, #4ADE80, #107C3A, #22C55E)}
 .catring.story.seen{background:#CBD5E1}
+/* טבעת מקוטעת כמו בסטטוס של וואטסאפ – קטע לכל מוצר, ירוק = לא נצפה, אפור = נצפה */
+.catring.story.segs{background:none; position:relative; padding:6px}
+.catring.story.segs .sring{position:absolute; inset:0; width:100%; height:100%; overflow:visible}
 .catring.story .inner{width:100%; height:100%; border-radius:50%; background:#fff; padding:2px; box-sizing:border-box; display:flex; overflow:hidden}
 .catring.story img{width:100%; height:100%; object-fit:cover; border-radius:50%}
 .catring.story .inner.logo{align-items:center; justify-content:center}
@@ -1822,7 +1825,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 88</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 89</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1875,7 +1878,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 88</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 89</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2320,7 +2323,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 88 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 89 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2378,6 +2381,18 @@ function markSeen(id){
   s.add(id);
   try{ localStorage.setItem("chai-seen-stories", JSON.stringify([...s].slice(-400))); }catch(e){}
 }
+function segRing(list, seen){
+  const n = list.length, R = 47, C = 50;
+  const col = p => seen.has(p.id) ? "#C4C9D2" : "#22C55E";
+  if(n === 1) return `<svg class="sring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="${R}" fill="none" stroke="${col(list[0])}" stroke-width="4.5"/></svg>`;
+  const gap = Math.min(12, 360 / n * 0.3), span = 360 / n - gap;
+  const pt = a => { const r = (a - 90) * Math.PI / 180; return (C + R * Math.cos(r)).toFixed(2) + " " + (C + R * Math.sin(r)).toFixed(2); };
+  const arcs = list.map((p, i) => {
+    const a0 = i * 360 / n + gap / 2, a1 = a0 + span;
+    return `<path d="M ${pt(a0)} A ${R} ${R} 0 ${span > 180 ? 1 : 0} 1 ${pt(a1)}" fill="none" stroke="${col(p)}" stroke-width="4.5" stroke-linecap="round"/>`;
+  }).join("");
+  return `<svg class="sring" viewBox="0 0 100 100" aria-hidden="true">${arcs}</svg>`;
+}
 function storyChip(){
   const list = storyList();
   if(!list.length) return "";
@@ -2386,7 +2401,7 @@ function storyChip(){
   const cnt = unseen > 99 ? "99+" : unseen;
   return `<button class="catbtn" id="storybtn" aria-label="מוצרים חדשים${unseen ? ` – ${unseen} שעוד לא ראית` : ""}">
       <span class="storywrap">
-        <span class="catring story ${unseen ? "" : "seen"}"><span class="inner logo"><img src="logo-v3.png" alt=""></span></span>
+        <span class="catring story segs">${segRing(list, seen)}<span class="inner logo"><img src="logo-v3.png" alt=""></span></span>
         ${unseen ? `<span class="storycnt" aria-hidden="true">${cnt}</span>` : ""}
       </span>
       <span class="catlbl">חדשים</span>
@@ -2894,7 +2909,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 88</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 89</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3442,7 +3457,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "88";
+const APP_VER = "89";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
