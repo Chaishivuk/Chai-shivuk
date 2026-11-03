@@ -200,6 +200,18 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .qty button{width:30px; height:30px; font-size:17px; font-weight:700; color:var(--ink)}
 .qty b{min-width:22px; text-align:center; font-size:14px}
 .dsum{padding:13px 16px; border-top:1px solid var(--line)}
+.tierbtn{display:block; width:100%; margin-top:10px; background:#EAF7EF; color:var(--green-dark); border:2px solid var(--green); font-weight:800; font-size:15.5px; border-radius:12px; padding:11px 12px}
+.ordrow{border:1px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:10px}
+.ordrow .oh{display:flex; justify-content:space-between; align-items:center; gap:8px}
+.ordrow .od{font-weight:800; font-size:15px}
+.ordrow .om{font-size:12.5px; color:var(--muted)}
+.ordrow .oi{margin-top:8px; font-size:13.5px; color:#374151; line-height:1.6}
+.ordrow .oa{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+.ordrow .oa button{font-weight:700; font-size:13.5px; border-radius:9px; padding:8px 12px}
+.ordrow .again{background:var(--green); color:#fff}
+.ordrow .prt{background:#EEF2F8; color:var(--ink)}
+.ordrow .del{background:#FDECEC; color:#A81D23}
+.ordlink{display:block; width:100%; text-align:center; font-weight:700; font-size:14px; color:var(--ink); background:#EEF2F8; border-radius:10px; padding:10px; margin:0 0 10px}
 .clrbtn{font-size:13px; font-weight:700; color:#A81D23; background:#FDECEC; border-radius:999px; padding:6px 12px}
 .dsum .srow{display:flex; justify-content:space-between; font-size:14px; color:var(--muted); margin-bottom:5px}
 .dsum .srow.disc{color:var(--green); font-weight:700}
@@ -1222,10 +1234,12 @@ function render(){
   <aside class="sidemenu" id="sidemenu">
     <div class="smhead"><h3>קטגוריות</h3><button id="closemenu">✕</button></div>
     <button class="instsm" id="instsm">📲 התקנת האפליקציה בנייד</button>
+    <button class="ordlink" id="myorders" style="width:calc(100% - 16px);margin:8px 8px 4px">📋 ההזמנות הקודמות שלי</button>
     <div class="smlist">${menuLinks()}</div>
   </aside>
   <div class="drawer" id="drawer">
     <div class="dhead"><h3>ההזמנה שלי</h3><span style="display:flex;align-items:center;gap:12px"><button id="clearcart" class="clrbtn">🗑️ ריקון העגלה</button><button id="closecart" style="font-size:22px">✕</button></span></div>
+    <div style="padding:10px 16px 0"><button class="ordlink" id="cartorders" style="margin:0">📋 ההזמנות הקודמות שלי</button></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
       <div id="dsumbox"></div>
@@ -1259,7 +1273,7 @@ function card(p){
     ? `<img src="${p.img}" alt="${esc(p.name)}" decoding="async"` +
       (first ? ` loading="eager" fetchpriority="high">` : ` loading="lazy">`)
     : `<span class="noimg">ללא תמונה</span>`;
-  const badge = p.sale != null ? `<span class="badge sale">מבצע</span>` : (p.isNew ? `<span class="badge new">חדש</span>` : "");
+  const badge = p.sale != null ? `<span class="badge sale">${saleLabel(p)}</span>` : (p.isNew ? `<span class="badge new">חדש</span>` : "");
   const prices = (p.sale != null && p.sale !== p.price)
     ? `<span class="pprice">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
     : `<span class="pprice">${nis(basePrice(p))}</span>`;
@@ -1445,12 +1459,14 @@ function bindCustomer(){
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
   $("#clearcart").onclick = askClearCart;
+  if($("#cartorders")) $("#cartorders").onclick = openOrders;
   $("#overlay").onclick = () => { closeCart(); closeMenu(); };
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
   $("#sendmailgmail").onclick = sendMailGmail;
   if($("#totop")) $("#totop").onclick = toTop;
   $("#menubtn").onclick = openMenu;
+  if($("#myorders")) $("#myorders").onclick = () => { closeMenu(); openOrders(); };
   $("#closemenu").onclick = closeMenu;
   document.querySelectorAll("[data-menu]").forEach(b => b.onclick = () => {
     view.cat = b.dataset.menu; view.sub = null; view.q = "";
@@ -1474,11 +1490,13 @@ function renderProduct(){
       </div>
     </div>` : "";
   const imgs = [p.img, ...(p.imgs || [])].filter(Boolean);
-  const badge = p.sale != null ? `<span class="tag sale">מבצע</span>` : (p.isNew ? `<span class="tag new">חדש</span>` : "");
+  const badge = p.sale != null ? `<span class="tag sale">${saleLabel(p)}</span>` : (p.isNew ? `<span class="tag new">חדש</span>` : "");
   const prices = (p.sale != null && p.sale !== p.price)
     ? `<span class="pprice" style="font-size:22px">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
     : `<span class="pprice" style="font-size:22px">${nis(basePrice(p))}</span>`;
   const tier = p.tier ? `<div class="ptier" style="margin-top:6px">מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</div>` : "";
+  const tierBtn = (p.tier && p.stock && qty < p.tier.qty)
+    ? `<button class="tierbtn" data-tierk="${esc(key)}" data-tierq="${p.tier.qty}">⚡ הוסף ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</button>` : "";
   let btn;
   if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button>`;
   else btn = qty === 0
@@ -1508,6 +1526,7 @@ function renderProduct(){
         ${tier}
         ${colorsBox}
         <div class="ppadd">${btn}</div>
+        ${tierBtn}
         ${p.desc ? `<div class="ppdesc">${esc(p.desc)}</div>` : ""}
       </div>
     </div>
@@ -1528,6 +1547,7 @@ function renderProduct(){
   <div class="overlay" id="overlay"></div>
   <div class="drawer" id="drawer">
     <div class="dhead"><h3>ההזמנה שלי</h3><span style="display:flex;align-items:center;gap:12px"><button id="clearcart" class="clrbtn">🗑️ ריקון העגלה</button><button id="closecart" style="font-size:22px">✕</button></span></div>
+    <div style="padding:10px 16px 0"><button class="ordlink" id="cartorders" style="margin:0">📋 ההזמנות הקודמות שלי</button></div>
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
       <div id="dsumbox"></div>
@@ -1557,9 +1577,15 @@ function renderProduct(){
   document.querySelectorAll("[data-subk]").forEach(b => b.onclick = () => {
     bump(b.dataset.subk, -1); render();
   });
+  document.querySelectorAll("[data-tierk]").forEach(b => b.onclick = () => {
+    const k = b.dataset.tierk, q = +b.dataset.tierq;
+    cart[k] = Math.max(cart[k] || 0, q);
+    render(); toast(q + " יח' נוספו לסל במחיר כמות");
+  });
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
   $("#clearcart").onclick = askClearCart;
+  if($("#cartorders")) $("#cartorders").onclick = openOrders;
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
   $("#sendmail").onclick = sendMail;
@@ -1574,6 +1600,11 @@ function renderKeepFocus(){
 }
 
 /* ---------- cart ---------- */
+function salePct(p){
+  if(p.sale == null || !(p.price > 0) || p.sale >= p.price) return 0;
+  return Math.round((p.price - p.sale) / p.price * 100);
+}
+function saleLabel(p){ const x = salePct(p); return x >= 1 ? "\u200E-" + x + "%" : "מבצע"; }
 function ckey(pid, color){ return color ? pid + "::" + color : pid; }
 function kpid(k){ const i = k.indexOf("::"); return i < 0 ? k : k.slice(0, i); }
 function kcol(k){ const i = k.indexOf("::"); return i < 0 ? null : k.slice(i + 2); }
@@ -1740,7 +1771,80 @@ function askClearCart(msg){
 }
 /* אחרי שליחת הזמנה – כשהלקוח חוזר לאתר, שואלים אם לרוקן את העגלה */
 let orderSentAt = 0;
+function loadOrders(){ try{ return JSON.parse(localStorage.getItem("chai-orders") || "[]"); }catch(e){ return []; } }
+function saveOrders(a){ try{ localStorage.setItem("chai-orders", JSON.stringify(a.slice(0, 30))); }catch(e){} }
+function recordOrder(){
+  const items = cartItems();
+  if(!items.length) return;
+  const k = cartCalc();
+  const now = Date.now(), list = loadOrders();
+  /* שליחה כפולה תוך דקה (למשל וואטסאפ ואז מייל) נשמרת פעם אחת */
+  if(list[0] && now - list[0].t < 60000 && list[0].sig === JSON.stringify(cart)) return;
+  list.unshift({
+    t: now, sig: JSON.stringify(cart), total: k.total,
+    coupon: k.cp ? String(k.cp.code).toUpperCase() : "",
+    items: items.map(({p, qty, color, key}) => ({key, pid: p.id, name: p.name, sku: p.sku, qty, color: color || "", price: effPrice(p, qty)}))
+  });
+  saveOrders(list);
+}
+function fmtDate(t){
+  const d = new Date(t);
+  return d.toLocaleDateString("he-IL", {day: "2-digit", month: "2-digit", year: "numeric"}) + " · " +
+         d.toLocaleTimeString("he-IL", {hour: "2-digit", minute: "2-digit"});
+}
+function openOrders(){
+  closeCart();
+  const m = ensureModal(), list = loadOrders();
+  const rows = list.map((o, i) => {
+    const n = o.items.reduce((t, x) => t + x.qty, 0);
+    return `<div class="ordrow">
+      <div class="oh"><span class="od">${fmtDate(o.t)}</span><b>${nis(o.total)}</b></div>
+      <div class="om">${o.items.length} מוצרים · ${n} יח'${o.coupon ? " · קופון " + esc(o.coupon) : ""}</div>
+      <div class="oi">${o.items.map(x => `${x.qty} × ${esc(x.name)}${x.color ? " (" + esc(x.color) + ")" : ""}`).join("<br>")}</div>
+      <div class="oa"><button class="again" data-again="${i}">🔁 הזמן שוב</button><button class="prt" data-oprint="${i}">🖨️ הדפסה</button><button class="del" data-odel="${i}">מחיקה</button></div>
+    </div>`;
+  }).join("");
+  m.innerHTML = `<div class="mbox"><h3>📋 ההזמנות הקודמות שלי</h3>
+    ${list.length ? `<div class="hint" style="margin-bottom:12px">ההזמנות נשמרות רק בטלפון הזה. "הזמן שוב" מכניס את המוצרים לעגלה במחירים העדכניים.</div>${rows}`
+                  : `<div class="hint" style="padding:18px 0;text-align:center">עוד אין הזמנות. אחרי שתשלחו הזמנה מהאתר, היא תופיע כאן.</div>`}
+    <div class="mact"><button class="cancel" id="ord_close" style="width:100%">סגירה</button></div></div>`;
+  m.classList.add("show"); m.scrollTop = 0;
+  $("#ord_close").onclick = () => m.classList.remove("show");
+  m.querySelectorAll("[data-again]").forEach(b => b.onclick = () => reorder(list[+b.dataset.again]));
+  m.querySelectorAll("[data-oprint]").forEach(b => b.onclick = () => printOrder(list[+b.dataset.oprint]));
+  m.querySelectorAll("[data-odel]").forEach(b => b.onclick = () => {
+    if(!confirm("למחוק את ההזמנה מהרשימה?")) return;
+    list.splice(+b.dataset.odel, 1); saveOrders(list); openOrders();
+  });
+}
+function reorder(o){
+  let added = 0, missing = [];
+  o.items.forEach(x => {
+    const p = DB.products.find(q => q.id === x.pid);
+    if(!p || !p.stock){ missing.push(x.name); return; }
+    const k = x.color && (p.colors || []).some(c => c.n === x.color && c.s !== false) ? ckey(p.id, x.color) : p.id;
+    cart[k] = (cart[k] || 0) + x.qty; added++;
+  });
+  ensureModal().classList.remove("show");
+  render();
+  if(added) openCart();
+  toast(missing.length ? `נוספו ${added} מוצרים. ${missing.length} כבר לא זמינים` : `${added} מוצרים נוספו לעגלה`);
+}
+function printOrder(o){
+  const rows = o.items.map(x => `<tr><td>${esc(x.sku)}</td><td>${esc(x.name)}${x.color ? " – " + esc(x.color) : ""}</td><td>${x.qty}</td><td>${nis(x.price)}</td><td>${nis(x.price * x.qty)}</td></tr>`).join("");
+  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הזמנה – חי שיווק</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#14213D}h1{margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{border:1px solid #D1D5DB;padding:7px 9px;text-align:right;font-size:14px}th{background:#F3F4F6}.t{margin-top:14px;font-size:18px;font-weight:700}</style></head>
+    <body><h1>חי שיווק – הזמנה</h1><div>${fmtDate(o.t)}${o.coupon ? " · קופון " + esc(o.coupon) : ""}</div>
+    <table><tr><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>מחיר ליח'</th><th>סה"כ</th></tr>${rows}</table>
+    <div class="t">סה"כ לתשלום: ${nis(o.total)}</div>
+    <script>window.onload=()=>{window.print()}<\/script></body></html>`;
+  const w = window.open("", "_blank");
+  if(!w){ toast("הדפדפן חסם את חלון ההדפסה"); return; }
+  w.document.write(html); w.document.close();
+}
 function afterOrderSent(){
+  recordOrder();
   orderSentAt = Date.now();
   /* במחשב, כשהמייל נפתח בתוכנה חיצונית הדף לא מוסתר – שואלים אחרי כמה שניות */
   setTimeout(() => {
@@ -1825,7 +1929,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 91</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 92</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1878,7 +1982,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 91</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 92</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2323,7 +2427,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 91 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 92 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
@@ -2483,7 +2587,7 @@ function storyShow(){
   svTrack("story-" + p.id);
   sv.el.querySelectorAll(".sv-bar i").forEach((b, j) => b.style.width = j < sv.i ? "100%" : "0%");
   $("#sv-pos").textContent = `${sv.i + 1} מתוך ${sv.list.length}`;
-  const badge = p.sale != null ? `<span class="sv-badge sale">מבצע</span>` : `<span class="sv-badge">חדש</span>`;
+  const badge = p.sale != null ? `<span class="sv-badge sale">${saleLabel(p)}</span>` : `<span class="sv-badge">חדש</span>`;
   $("#sv-card").innerHTML = (p.img ? `<img src="${p.img}" alt="${esc(p.name)}">` : `<span class="noimg">ללא תמונה</span>`) + badge;
   const price = (p.sale != null && p.sale !== p.price)
     ? `${nis(p.sale)}<span class="sv-old">${nis(p.price)}</span>` : nis(basePrice(p));
@@ -2910,7 +3014,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 91</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 92</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3458,7 +3562,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "91";
+const APP_VER = "92";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
