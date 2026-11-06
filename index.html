@@ -232,6 +232,10 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .dsum .row{display:flex; justify-content:space-between; font-weight:700; font-size:17px; margin-bottom:10px}
 .wabtn{width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:var(--green); color:#fff; font-weight:700; font-size:16.5px; border-radius:12px; padding:13px}
 .wabtn svg{width:21px; height:21px; fill:#fff}
+.custbox{margin:10px 0 2px; display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.custbox input{width:100%; box-sizing:border-box; border:1.5px solid var(--line); border-radius:10px; padding:10px 11px; font:inherit; font-size:15px; background:#fff}
+.custbox input.bad{border-color:#DC2626; background:#FEF2F2}
+.custbox .cunote{grid-column:1/-1; font-size:11.5px; color:var(--muted); margin-top:-2px}
 .mailbtn{width:100%; margin-top:9px; background:#fff; color:var(--ink); border:1.5px solid var(--line); font-weight:700; font-size:15.5px; border-radius:12px; padding:11px}
 .gmailbtn{width:100%; margin-top:7px; background:none; color:#1D4ED8; font-weight:700; font-size:13px; padding:6px; text-decoration:underline}
 
@@ -1257,6 +1261,11 @@ function render(){
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
       <div id="dsumbox"></div>
+      <div class="custbox">
+        <input id="cu_name" placeholder="שם החנות / העסק *" autocomplete="organization" maxlength="60">
+        <input id="cu_phone" type="tel" inputmode="tel" placeholder="טלפון *" autocomplete="tel" dir="ltr" maxlength="20">
+        <div class="cunote">השם והטלפון נשמרים לצורך טיפול בהזמנות.</div>
+      </div>
       <button class="wabtn" id="sendwa">
         <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.83 14.12c-.25.7-1.44 1.34-2 1.42-.51.08-1.16.11-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.6-.37.8-.37.2 0 .4 0 .57.01.18.01.43-.07.67.51.25.6.85 2.07.92 2.22.08.15.13.33.03.53-.1.2-.15.32-.3.5-.15.18-.31.4-.45.53-.15.15-.31.31-.13.61.18.3.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.52.3.15.48.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.17 1.42z"/></svg>
         שליחת ההזמנה בוואטסאפ
@@ -1473,6 +1482,7 @@ function bindCustomer(){
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
   $("#clearcart").onclick = askClearCart;
+  bindCustFields();
   if($("#cartorders")) $("#cartorders").onclick = openOrders;
   $("#overlay").onclick = () => { closeCart(); closeMenu(); };
   $("#sendwa").onclick = sendWA;
@@ -1565,6 +1575,11 @@ function renderProduct(){
     <div class="dlist" id="dlist"></div>
     <div class="dsum">
       <div id="dsumbox"></div>
+      <div class="custbox">
+        <input id="cu_name" placeholder="שם החנות / העסק *" autocomplete="organization" maxlength="60">
+        <input id="cu_phone" type="tel" inputmode="tel" placeholder="טלפון *" autocomplete="tel" dir="ltr" maxlength="20">
+        <div class="cunote">השם והטלפון נשמרים לצורך טיפול בהזמנות.</div>
+      </div>
       <button class="wabtn" id="sendwa">שליחת ההזמנה בוואטסאפ</button>
       <button class="mailbtn" id="sendmail">✉ שליחת ההזמנה במייל</button>
       <button class="gmailbtn" id="sendmailgmail">אין תוכנת מייל? שליחה דרך Gmail בדפדפן</button>
@@ -1599,6 +1614,7 @@ function renderProduct(){
   $("#opencart").onclick = openCart;
   $("#closecart").onclick = closeCart;
   $("#clearcart").onclick = askClearCart;
+  bindCustFields();
   if($("#cartorders")) $("#cartorders").onclick = openOrders;
   $("#overlay").onclick = closeCart;
   $("#sendwa").onclick = sendWA;
@@ -1811,7 +1827,9 @@ function recordOrder(){
   const now = Date.now(), list = loadOrders();
   /* שליחה כפולה תוך דקה (למשל וואטסאפ ואז מייל) נשמרת פעם אחת */
   if(list[0] && now - list[0].t < 60000 && list[0].sig === JSON.stringify(cart)) return;
+  const cu = loadCust();
   logEvent({t: "order", total: Math.round(k.total * 100) / 100,
+    cust: {name: String(cu.name || "").slice(0, 60), phone: normPhone(cu.phone).slice(0, 15)},
     items: items.slice(0, 100).map(({p, qty}) => ({pid: p.id, qty, price: effPrice(p, qty)}))});
   list.unshift({
     t: now, sig: JSON.stringify(cart), total: k.total,
@@ -1897,11 +1915,44 @@ function closeCart(){
   if(o) o.classList.remove("show");
   if(d) d.classList.remove("show");
 }
+function loadCust(){ try{ return JSON.parse(localStorage.getItem("chai-cust") || "{}"); }catch(e){ return {}; } }
+function saveCust(c){ try{ localStorage.setItem("chai-cust", JSON.stringify(c)); }catch(e){} }
+function normPhone(p){
+  let d = String(p || "").replace(/\D/g, "");
+  if(d.startsWith("972")) d = "0" + d.slice(3);
+  return d;
+}
+function bindCustFields(){
+  const n = $("#cu_name"), ph = $("#cu_phone");
+  if(!n || !ph) return;
+  const c = loadCust();
+  n.value = c.name || ""; ph.value = c.phone || "";
+  const upd = () => { n.classList.remove("bad"); ph.classList.remove("bad"); saveCust({name: n.value.trim(), phone: ph.value.trim()}); };
+  n.oninput = upd; ph.oninput = upd;
+}
+function custOk(){
+  const n = $("#cu_name"), ph = $("#cu_phone");
+  const c = {name: (n ? n.value : loadCust().name || "").trim(), phone: (ph ? ph.value : loadCust().phone || "").trim()};
+  const badN = c.name.length < 2, badP = !/^0\d{8,9}$/.test(normPhone(c.phone));
+  if(n) n.classList.toggle("bad", badN);
+  if(ph) ph.classList.toggle("bad", badP);
+  if(badN || badP){
+    toast(badN ? "נא למלא את שם החנות" : "נא למלא מספר טלפון תקין");
+    (badN ? n : ph) && (badN ? n : ph).focus();
+    return null;
+  }
+  saveCust(c);
+  return c;
+}
 function orderLines(){
   const items = cartItems();
   if(!items.length) return null;
   const n = items.reduce((t, i) => t + i.qty, 0);
-  let lines = ["🛒 הזמנה חדשה – חי שיווק", "――――――――――――"];
+  let lines = ["🛒 הזמנה חדשה – חי שיווק"];
+  const cu = loadCust();
+  if(cu.name) lines.push("🏪 " + cu.name);
+  if(cu.phone) lines.push("📞 " + cu.phone);
+  lines.push("――――――――――――");
   const fromStory = storyKeys();
   items.forEach(({p, qty, color, key}, i) => {
     lines.push(`${i + 1}. ${p.name}${color ? " – צבע: " + color : ""}${fromStory.has(key) ? " 📸 מהסטטוס" : ""}`);
@@ -1920,6 +1971,7 @@ function orderLines(){
   return lines;
 }
 function sendWA(){
+  if(!custOk()) return;
   const lines = orderLines();
   if(!lines) return;
   const txt = lines.map(l => "\u200F" + l).join("\n");
@@ -1928,12 +1980,13 @@ function sendWA(){
   afterOrderSent();
 }
 function buildMailParts(){
+  if(!custOk()) return null;
   const lines = orderLines();
   if(!lines) return null;
   markCouponUsed();
   afterOrderSent();
   const subject = "הזמנה חדשה – חי שיווק";
-  const body = lines.join("\n") + "\n\nשם הלקוח:\nטלפון:\nהערות:";
+  const body = lines.join("\n") + "\n\nהערות:";
   return {subject, body};
 }
 async function sendMail(){
@@ -1962,7 +2015,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 94</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 95</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2015,7 +2068,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 94</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 95</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2448,7 +2501,8 @@ function drawStatsDash(d){
       <div><div class="stsec">המוצרים הכי מוזמנים</div><div class="stsub">לפי כמות יחידות</div>${stList(itemRows)}</div>
       <div><div class="stsec">חיפושים בלי תוצאות</div><div class="stsub">מה לקוחות חיפשו ולא מצאו</div>${stList(nsRows)}</div>
     </div>
-    <div class="hint">נספרות לחיצות על "שליחת הזמנה" (וואטסאפ או מייל) – לא בהכרח הזמנות שאושרו. ההזמנות שלך מהמכשירים המחוברים לא נספרות.</div>`;
+    <div class="hint">נספרות לחיצות על "שליחת הזמנה" (וואטסאפ או מייל) – לא בהכרח הזמנות שאושרו. ההזמנות שלך מהמכשירים המחוברים לא נספרות.</div>
+    ${custSection(lg.customers || [])}`;
   } else {
     ordersHtml = `<div class="hint" style="margin-top:14px">🛒 יומן ההזמנות עוד לא מחובר לגשר – אחרי החיבור יופיעו כאן הזמנות לפי יום, המוצרים הכי מוזמנים וחיפושים בלי תוצאות.</div>`;
   }
@@ -2493,7 +2547,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 94 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 95 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -2506,11 +2560,51 @@ function drawStatsDash(d){
   m.scrollTop = 0;
   $("#sd_ref").onclick = openStatsDash;
   $("#sd_img").onclick = () => statsExportImage(m.querySelector(".mbox"));
+  if($("#sd_csv")) $("#sd_csv").onclick = exportCustCsv;
   $("#sd_pdf").onclick = () => statsExportPdf(m.querySelector(".mbox"));
   $("#sd_link").onclick = () => statsConnect();
   $("#sd_close").onclick = () => m.classList.remove("show");
 }
 
+let custCache = [];
+function waLink(phone, text){
+  let d = normPhone(phone); if(d.startsWith("0")) d = "972" + d.slice(1);
+  return "https://wa.me/" + d + (text ? "?text=" + encodeURIComponent(text) : "");
+}
+function custSection(rows){
+  custCache = rows;
+  const now = Date.now(), D = 864e5;
+  const ago = t => { const x = Math.floor((now - t) / D); return x <= 0 ? "היום" : x === 1 ? "אתמול" : "לפני " + x + " ימים"; };
+  const active = rows.filter(r => now - r.last < 30 * D).length;
+  const fresh = rows.filter(r => now - r.first < 30 * D).length;
+  const lost = rows.filter(r => now - r.last >= 30 * D).sort((a, b) => b.s - a.s);
+  const row = (r, call) => `<div class="r" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F0F2F5;font-size:14px">
+      <span style="flex:1;min-width:0"><b>${esc(r.name || "ללא שם")}</b><br><span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(r.phone)}</span></span>
+      <span style="text-align:left;font-size:12.5px;color:var(--muted)">${r.n} הזמנות · ${nis(Math.round(r.s || 0))}<br>${ago(r.last)}</span>
+      ${call ? `<a href="${waLink(r.phone, "שלום " + (r.name || "") + ", מה שלומך? רצינו לעדכן שיש מוצרים חדשים באתר חי שיווק: https://chaishivuk.github.io/Chai-shivuk/")}" target="_blank" rel="noopener" style="background:var(--green);color:#fff;border-radius:8px;padding:6px 9px;font-weight:700;font-size:12.5px;text-decoration:none">וואטסאפ</a>` : ""}
+    </div>`;
+  return `
+    <div class="stsec">👥 לקוחות</div>
+    <div class="stcards">
+      <div class="stcard"><div class="l">לקוחות שהזמינו</div><div class="v">${rows.length}</div><div class="d eq">מאז תחילת היומן</div></div>
+      <div class="stcard"><div class="l">פעילים ב-30 יום</div><div class="v">${active}</div><div class="d eq">חדשים: ${fresh}</div></div>
+      <div class="stcard"><div class="l">לא הזמינו 30+ יום</div><div class="v" style="color:${lost.length ? "#A81D23" : "inherit"}">${lost.length}</div><div class="d eq">כדאי ליצור קשר</div></div>
+    </div>
+    ${lost.length ? `<div class="stsec">⏰ לא הזמינו 30 יום ומעלה</div><div class="stsub">ממוינים לפי סכום ההזמנות שלהם</div>${lost.slice(0, 30).map(r => row(r, true)).join("")}` : ""}
+    <div class="stsec">כל הלקוחות</div><div class="stsub">לפי ההזמנה האחרונה</div>
+    ${rows.length ? rows.slice(0, 50).map(r => row(r, false)).join("") : `<div class="hint">עוד אין לקוחות ביומן</div>`}
+    ${rows.length ? `<button class="abtn" id="sd_csv" style="margin-top:10px">📥 ייצוא לקוחות לאקסל</button>` : ""}`;
+}
+function exportCustCsv(){
+  const q = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
+  const d = t => new Date(t).toLocaleDateString("he-IL");
+  const lines = [["שם החנות", "טלפון", "מספר הזמנות", "סה\"כ ₪", "ממוצע ₪", "הזמנה ראשונה", "הזמנה אחרונה"].map(q).join(",")];
+  custCache.forEach(r => lines.push([r.name, r.phone, r.n, Math.round(r.s || 0), r.n ? Math.round((r.s || 0) / r.n) : 0, d(r.first), d(r.last)].map(q).join(",")));
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {type: "text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "לקוחות-חי-שיווק-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
 function statsStamp(){ return new Date().toLocaleDateString("he-IL", {day: "2-digit", month: "2-digit", year: "numeric"}); }
 function statsExportPdf(box){
   let ps = document.getElementById("printstats");
@@ -3121,7 +3215,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 94</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 95</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3669,7 +3763,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "94";
+const APP_VER = "95";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
