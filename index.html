@@ -2585,7 +2585,7 @@ function drawStatsDash(d){
     const od = days.map(x => oDay[x]);
     const oCnt = sum(od), oSum = sum(days.map(x => sDay[x]));
     const conv = visitsTotal ? (oCnt / visitsTotal * 100) : 0;
-    const itemRows = (lg.items || []).map(r => ({n: (byId[r.pid] || ("מוצר " + r.pid)) + " · " + nis(Math.round(r.s || 0)), v: r.q}));
+    const itemRows = (lg.items || []).slice(0, 15).map(r => ({n: (byId[r.pid] || ("מוצר " + r.pid)) + " · " + nis(Math.round(r.s || 0)), v: r.q}));
     const nsRows = (lg.nosearch || []).map(r => ({n: "\u201C" + r.q + "\u201D", v: r.n}));
     ordersHtml = `
     <div class="stsec">🛒 הזמנות מהאתר</div>
