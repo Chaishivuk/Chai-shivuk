@@ -373,6 +373,8 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .logrow .ledit{flex:0 0 auto; color:var(--muted); font-size:13px}
 /* Print catalog */
 #printcat{display:none}
+#printstats{display:none}
+.stexport .stlist .n, #printstats .stlist .n{overflow:visible; white-space:normal; line-height:1.5; padding-bottom:2px}
 @media print{
   body *{visibility:hidden}
   #printcat, #printcat *{visibility:visible}
@@ -387,6 +389,11 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
   .pc-card .n{font-weight:700; font-size:12.5px}
   .pc-card .s{color:#777; font-size:10.5px}
   .pc-card .p{font-weight:700; font-size:14px; margin-top:2px}
+  body.pst > *:not(#printstats){display:none !important}
+  body.pst #printstats, body.pst #printstats *{visibility:visible}
+  body.pst #printstats{display:block; position:absolute; top:0; left:0; right:0; padding:6px 10px; direction:rtl}
+  body.pst #printstats *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body.pst #printstats .stcard, body.pst #printstats .stgrid > div{page-break-inside:avoid}
 }
 /* Product page */
 .backbtn{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:7px 16px;font-weight:700;margin:14px 0 4px}
@@ -1173,6 +1180,7 @@ function render(){
   const q = view.q.trim();
   if(q){
     const found = searchProducts(DB.products, q);
+    if(!found.length) logNoResults(q);
     body = found.length ? section(`תוצאות חיפוש (${found.length})`, "", found)
       : `<div class="empty">לא מצאנו מוצרים עבור "${esc(q)}".<br>נסו מילה אחרת, או
          <a href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent("שלום, אני מחפש: " + q)}" target="_blank" rel="noopener" style="color:var(--green);font-weight:700">שאלו אותנו בוואטסאפ</a></div>`;
@@ -1779,6 +1787,23 @@ function askClearCart(msg){
 let orderSentAt = 0;
 function loadOrders(){ try{ return JSON.parse(localStorage.getItem("chai-orders") || "[]"); }catch(e){ return []; } }
 function saveOrders(a){ try{ localStorage.setItem("chai-orders", JSON.stringify(a.slice(0, 30))); }catch(e){} }
+/* יומן הזמנות וחיפושים – נשלח לגשר הסטטיסטיקה. רק מספרים ומוצרים, בלי פרטי לקוח */
+const LOG_URL = "https://chai-stats.ys0533126330.workers.dev/e";
+function logEvent(obj){
+  try{
+    if(isAdminRoute() || isOwnerDevice()) return;   /* הפעולות שלך לא נספרות */
+    navigator.sendBeacon(LOG_URL, new Blob([JSON.stringify(obj)], {type: "text/plain"}));
+  }catch(e){}
+}
+let nsTimer = 0; const nsSent = new Set();
+function logNoResults(q){
+  clearTimeout(nsTimer);
+  nsTimer = setTimeout(() => {
+    const cur = (view.q || "").trim();
+    if(cur !== q || q.length < 2 || nsSent.has(q)) return;
+    nsSent.add(q); logEvent({t: "nosearch", q: q.slice(0, 60)});
+  }, 1800);
+}
 function recordOrder(){
   const items = cartItems();
   if(!items.length) return;
@@ -1786,6 +1811,8 @@ function recordOrder(){
   const now = Date.now(), list = loadOrders();
   /* שליחה כפולה תוך דקה (למשל וואטסאפ ואז מייל) נשמרת פעם אחת */
   if(list[0] && now - list[0].t < 60000 && list[0].sig === JSON.stringify(cart)) return;
+  logEvent({t: "order", total: Math.round(k.total * 100) / 100,
+    items: items.slice(0, 100).map(({p, qty}) => ({pid: p.id, qty, price: effPrice(p, qty)}))});
   list.unshift({
     t: now, sig: JSON.stringify(cart), total: k.total,
     coupon: k.cp ? String(k.cp.code).toUpperCase() : "",
@@ -1935,7 +1962,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 93</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 94</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -1988,7 +2015,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 93</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 94</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2395,6 +2422,37 @@ function drawStatsDash(d){
   const ctryHe = {Israel: "ישראל", "United States": "ארה״ב", "United Kingdom": "בריטניה", France: "צרפת", Germany: "גרמניה", Canada: "קנדה", Russia: "רוסיה", Ukraine: "אוקראינה", Belgium: "בלגיה", Netherlands: "הולנד"};
   const ctryRows = (d.countries || []).map(x => ({n: ctryHe[x.name] || x.name || "לא ידוע", v: x.views != null ? x.views : x.visits})).sort((a, b) => b.v - a.v).slice(0, 8);
 
+  /* יומן הזמנות (מהגשר, אם חובר) */
+  const lg = d.log || null;
+  let ordersHtml = "";
+  if(lg){
+    const oDay = Object.fromEntries(days.map(x => [x, 0])), sDay = Object.fromEntries(days.map(x => [x, 0]));
+    (lg.orders || []).forEach(r => { if(r.day in oDay){ oDay[r.day] += r.n; sDay[r.day] += r.s || 0; } });
+    const od = days.map(x => oDay[x]);
+    const oCnt = sum(od), oSum = sum(days.map(x => sDay[x]));
+    const conv = visitsTotal ? (oCnt / visitsTotal * 100) : 0;
+    const itemRows = (lg.items || []).map(r => ({n: (byId[r.pid] || ("מוצר " + r.pid)) + " · " + nis(Math.round(r.s || 0)), v: r.q}));
+    const nsRows = (lg.nosearch || []).map(r => ({n: "\u201C" + r.q + "\u201D", v: r.n}));
+    ordersHtml = `
+    <div class="stsec">🛒 הזמנות מהאתר</div>
+    <div class="stcards">
+      <div class="stcard"><div class="l">הזמנות היום</div><div class="v">${od[29]}</div><div class="d eq">${nis(Math.round(sDay[days[29]]))} · אתמול: ${od[28]}</div></div>
+      <div class="stcard"><div class="l">הזמנות 30 יום</div><div class="v">${oCnt}</div><div class="d eq">7 ימים: ${sum(od.slice(23))}</div></div>
+      <div class="stcard"><div class="l">סה"כ הזמנות</div><div class="v">${nis(Math.round(oSum))}</div><div class="d eq">ממוצע: ${oCnt ? nis(Math.round(oSum / oCnt)) : "—"}</div></div>
+      <div class="stcard"><div class="l">אחוז המרה</div><div class="v">${visitsTotal ? conv.toFixed(1) + "%" : "—"}</div><div class="d eq">מתוך ${visitsTotal} ביקורים</div></div>
+    </div>
+    <div class="stsec">הזמנות לפי יום</div>
+    ${stBars(od, days.map((x, i) => (i % 5 === 4 || i === 29) ? x.slice(8) + "/" + x.slice(5, 7) : ""), 29,
+             days.map(x => x.slice(8) + "/" + x.slice(5, 7)))}
+    <div class="stgrid">
+      <div><div class="stsec">המוצרים הכי מוזמנים</div><div class="stsub">לפי כמות יחידות</div>${stList(itemRows)}</div>
+      <div><div class="stsec">חיפושים בלי תוצאות</div><div class="stsub">מה לקוחות חיפשו ולא מצאו</div>${stList(nsRows)}</div>
+    </div>
+    <div class="hint">נספרות לחיצות על "שליחת הזמנה" (וואטסאפ או מייל) – לא בהכרח הזמנות שאושרו. ההזמנות שלך מהמכשירים המחוברים לא נספרות.</div>`;
+  } else {
+    ordersHtml = `<div class="hint" style="margin-top:14px">🛒 יומן ההזמנות עוד לא מחובר לגשר – אחרי החיבור יופיעו כאן הזמנות לפי יום, המוצרים הכי מוזמנים וחיפושים בלי תוצאות.</div>`;
+  }
+
   const errs = d.errors && Object.keys(d.errors).length
     ? `<div class="hint" style="margin-top:10px;color:#A81D23">חלק מהנתונים לא נטענו (${esc(Object.keys(d.errors).join(", "))}).</div>` : "";
   const m = $("#modal");
@@ -2417,6 +2475,8 @@ function drawStatsDash(d){
         ${stBars(perWd, wdNames, peakWd)}</div>
     </div>
 
+    ${ordersHtml}
+
     <div class="stsec">📸 סטורי "חדשים"</div>
     <div class="stcards">
       <div class="stcard"><div class="l">צפיות במוצרים בסטורי</div><div class="v">${storyTotal}</div></div>
@@ -2433,9 +2493,11 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 93 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 94 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
+      <button class="abtn" id="sd_img">📷 תמונה</button>
+      <button class="abtn" id="sd_pdf">📄 PDF</button>
       <a class="abtn" href="${CF_DASH}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center">ב-Cloudflare</a>
       <button class="cancel" id="sd_link">החלפת קישור</button>
       <button class="cancel" id="sd_close">סגירה</button>
@@ -2443,10 +2505,49 @@ function drawStatsDash(d){
   </div>`;
   m.scrollTop = 0;
   $("#sd_ref").onclick = openStatsDash;
+  $("#sd_img").onclick = () => statsExportImage(m.querySelector(".mbox"));
+  $("#sd_pdf").onclick = () => statsExportPdf(m.querySelector(".mbox"));
   $("#sd_link").onclick = () => statsConnect();
   $("#sd_close").onclick = () => m.classList.remove("show");
 }
 
+function statsStamp(){ return new Date().toLocaleDateString("he-IL", {day: "2-digit", month: "2-digit", year: "numeric"}); }
+function statsExportPdf(box){
+  let ps = document.getElementById("printstats");
+  if(!ps){ ps = document.createElement("div"); ps.id = "printstats"; document.body.appendChild(ps); }
+  ps.innerHTML = box.innerHTML;
+  ps.querySelectorAll(".mact").forEach(e => e.remove());
+  const h = ps.querySelector("h3"); if(h) h.textContent += " · הופק " + statsStamp();
+  document.body.classList.add("pst");
+  const done = () => { document.body.classList.remove("pst"); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  setTimeout(() => { window.print(); setTimeout(done, 1500); }, 60);
+}
+async function statsExportImage(box){
+  toast("מכין תמונה…");
+  try{
+    if(!window.html2canvas) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;left:-10000px;top:0;width:760px;background:#fff;padding:16px;direction:rtl";
+    wrap.className = "mbox wide stexport";
+    wrap.innerHTML = box.innerHTML;
+    wrap.querySelectorAll(".mact").forEach(e => e.remove());
+    const h = wrap.querySelector("h3"); if(h) h.textContent += " · " + statsStamp();
+    document.body.appendChild(wrap);
+    const cv = await html2canvas(wrap, {backgroundColor: "#ffffff", scale: 2, useCORS: true, logging: false});
+    wrap.remove();
+    const blob = await new Promise(r => cv.toBlob(r, "image/png"));
+    const name = "סטטיסטיקה-חי-שיווק-" + new Date().toISOString().slice(0, 10) + ".png";
+    const file = new File([blob], name, {type: "image/png"});
+    if(navigator.canShare && navigator.canShare({files: [file]})){
+      try{ await navigator.share({files: [file], title: "סטטיסטיקה – חי שיווק"}); return; }catch(e){ if(e && e.name === "AbortError") return; }
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("התמונה ירדה");
+  }catch(e){ toast("לא הצלחתי ליצור תמונה"); }
+}
 function openStats(){
   const c = statsCfg(), m = $("#modal");
   m.innerHTML = `<div class="mbox"><h3>📊 סטטיסטיקת כניסות</h3>
@@ -3020,7 +3121,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 93</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 94</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3568,7 +3669,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "93";
+const APP_VER = "94";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
