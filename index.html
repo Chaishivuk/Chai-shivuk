@@ -232,6 +232,16 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .dsum .row{display:flex; justify-content:space-between; font-weight:700; font-size:17px; margin-bottom:10px}
 .wabtn{width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:var(--green); color:#fff; font-weight:700; font-size:16.5px; border-radius:12px; padding:13px}
 .wabtn svg{width:21px; height:21px; fill:#fff}
+.recs{margin:6px 0 4px; padding:10px 0 2px; border-top:1px dashed var(--line)}
+.recs h4{margin:0 0 8px; font-size:14px}
+.recs .rr{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px}
+.recs .rc{flex:0 0 112px; border:1px solid var(--line); border-radius:10px; padding:6px; text-align:center; background:#fff}
+.recs .rc img{width:64px; height:64px; object-fit:contain}
+.recs .rc .n{font-size:11.5px; line-height:1.3; height:30px; overflow:hidden; margin:3px 0}
+.recs .rc .p{font-weight:800; font-size:13px}
+.recs .rc button{margin-top:4px; width:100%; background:var(--green); color:#fff; font-weight:700; font-size:12.5px; border-radius:8px; padding:5px 0}
+.notifybtn{width:100%; background:#FFF7E6; color:#8A5A00; border:1.5px solid #F5C26B; font-weight:700; border-radius:10px; padding:9px 6px; font-size:13.5px}
+.ppadd .notifybtn{padding:12px; font-size:15px; margin-top:8px}
 .custbox{margin:10px 0 2px; display:grid; grid-template-columns:1fr 1fr; gap:8px}
 .custbox input{width:100%; box-sizing:border-box; border:1.5px solid var(--line); border-radius:10px; padding:10px 11px; font:inherit; font-size:15px; background:#fff}
 .custbox input.bad{border-color:#DC2626; background:#FEF2F2}
@@ -1310,7 +1320,7 @@ function card(p){
         <div class="psku">מק"ט ${p.sku}</div>
         <div class="prices">${prices}</div>
         ${vatNote(p)}
-        <button class="oosbtn" disabled>לא זמין</button>
+        <button class="notifybtn" data-notify="${p.id}">🔔 עדכנו אותי כשחוזר</button>
       </div>
     </div>`;
   }
@@ -1522,7 +1532,7 @@ function renderProduct(){
   const tierBtn = (p.tier && p.stock && qty < p.tier.qty)
     ? `<button class="tierbtn" data-tierk="${esc(key)}" data-tierq="${p.tier.qty}">⚡ הוסף ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</button>` : "";
   let btn;
-  if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button>`;
+  if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button><button class="notifybtn" data-notify="${p.id}">🔔 עדכנו אותי כשהמוצר חוזר למלאי</button>`;
   else btn = qty === 0
     ? `<button class="addbtn" data-addk="${esc(key)}">הוסף לסל</button>`
     : `<div class="addbtn inc"><button data-addk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">+</button><b>${qty}</b><button data-subk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">−</button></div>`;
@@ -1608,6 +1618,7 @@ function renderProduct(){
   });
   document.querySelectorAll("[data-tierk]").forEach(b => b.onclick = () => {
     const k = b.dataset.tierk, q = +b.dataset.tierq;
+    logAdd(k, q - (cart[k] || 0));
     cart[k] = Math.max(cart[k] || 0, q);
     render(); toast(q + " יח' נוספו לסל במחיר כמות");
   });
@@ -1641,6 +1652,7 @@ function kcol(k){ const i = k.indexOf("::"); return i < 0 ? null : k.slice(i + 2
 function pidKeys(pid){ return Object.keys(cart).filter(k => kpid(k) === pid); }
 function pidQty(pid){ return pidKeys(pid).reduce((t, k) => t + cart[k], 0); }
 function bump(k, d){
+  if(d > 0) logAdd(k, d);
   cart[k] = Math.max(0, (cart[k] || 0) + d);
   if(!cart[k]) delete cart[k];
 }
@@ -1749,9 +1761,32 @@ function updateCartUI(){
   }
   promoPulse();
 }
+const REC_MAP = {phones: ["cables", "headsets", "powerbanks"], headsets: ["cables", "powerbanks"], speakers: ["cables", "powerbanks"],
+  players: ["headsets", "cables"], cameras: ["powerbanks", "cables"], lamps: ["powerbanks", "cables"], powerbanks: ["cables"],
+  cables: ["powerbanks", "headsets"], misc: ["cables", "powerbanks"]};
+function recsFor(items){
+  const inCart = new Set(items.map(i => i.p.id));
+  const cats = new Set(items.map(i => i.p.cat));
+  const want = [...new Set([...cats].flatMap(c => REC_MAP[c] || []))].filter(c => !cats.has(c) || cats.size === 1);
+  if(!want.length) return [];
+  const pool = (DB.products || []).filter(p => p.stock && !inCart.has(p.id) && want.includes(p.cat) && !(p.colors || []).length);
+  pool.sort((a, b) => (b.sale != null) - (a.sale != null) || effPrice(a, 1) - effPrice(b, 1));
+  const out = [], perCat = {};
+  for(const p of pool){ if((perCat[p.cat] = (perCat[p.cat] || 0) + 1) <= 2) out.push(p); if(out.length >= 6) break; }
+  return out;
+}
+function recsHTML(items){
+  const r = recsFor(items);
+  if(!r.length) return "";
+  return `<div class="recs"><h4>💡 מומלץ להוסיף להזמנה</h4><div class="rr">${r.map(p => `
+    <div class="rc">${p.img ? `<img src="${p.img}" alt="" loading="lazy">` : ""}
+      <div class="n">${esc(p.name)}</div><div class="p">${nis(effPrice(p, 1))}</div>
+      <button data-radd="${p.id}">+ הוסף</button></div>`).join("")}</div></div>`;
+}
 function openCart(){
   const list = $("#dlist");
-  list.innerHTML = cartItems().map(({p, qty, color, key}) => `
+  const _items = cartItems();
+  list.innerHTML = _items.map(({p, qty, color, key}) => `
     <div class="drow">
       ${p.img ? `<img src="${p.img}">` : `<div style="width:52px;height:52px;border:1px solid var(--line);border-radius:9px"></div>`}
       <div class="dinfo">
@@ -1761,7 +1796,8 @@ function openCart(){
       <div class="qty">
         <button data-cadd="${esc(key)}">+</button><b>${qty}</b><button data-csub="${esc(key)}">−</button>
       </div>
-    </div>`).join("");
+    </div>`).join("") + recsHTML(_items);
+  list.querySelectorAll("[data-radd]").forEach(b => b.onclick = () => { bump(b.dataset.radd, 1); saveCart(); openCart(); updateCartUI(); toast("נוסף להזמנה"); });
   const sb = $("#dsumbox");
   if(sb){ sb.innerHTML = sumBoxHTML(); bindSumBox(); }
   list.querySelectorAll("[data-cadd]").forEach(b => b.onclick = () => { bump(b.dataset.cadd, 1); openCart(); updateCartUI(); });
@@ -1784,8 +1820,36 @@ function ensureModal(){
   }
   return m;
 }
+function askNotify(pid){
+  const p = DB.products.find(x => x.id === pid); if(!p) return;
+  const c = loadCust(), m = ensureModal();
+  m.innerHTML = `<div class="mbox"><h3>🔔 עדכון כשחוזר למלאי</h3>
+    <div class="hint" style="margin-bottom:10px"><b>${esc(p.name)}</b> אזל כרגע. השאירו פרטים ונעדכן אתכם בוואטסאפ ברגע שהוא חוזר.</div>
+    <div class="custbox" style="margin-top:0">
+      <input id="nf_name" placeholder="שם החנות / העסק *" value="${esc(c.name || "")}" maxlength="60">
+      <input id="nf_phone" type="tel" inputmode="tel" dir="ltr" placeholder="טלפון *" value="${esc(c.phone || "")}" maxlength="20">
+      <div class="cunote">השם והטלפון נשמרים לצורך העדכון בלבד.</div>
+    </div>
+    <div class="mact"><button class="save" id="nf_ok">עדכנו אותי</button><button class="cancel" id="nf_no">ביטול</button></div></div>`;
+  m.classList.add("show");
+  $("#nf_no").onclick = () => m.classList.remove("show");
+  $("#nf_ok").onclick = () => {
+    const name = $("#nf_name").value.trim(), phone = $("#nf_phone").value.trim();
+    const badN = name.length < 2, badP = !/^0\d{8,9}$/.test(normPhone(phone));
+    $("#nf_name").classList.toggle("bad", badN); $("#nf_phone").classList.toggle("bad", badP);
+    if(badN || badP){ toast(badN ? "נא למלא שם" : "נא למלא טלפון תקין"); return; }
+    saveCust({name, phone});
+    logEvent({t: "notify", pid, cust: {name, phone: normPhone(phone)}});
+    m.classList.remove("show"); toast("נעדכן אתכם כשהמוצר יחזור 👍");
+  };
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-notify]");
+  if(b){ e.preventDefault(); e.stopPropagation(); askNotify(b.dataset.notify); }
+}, true);
 function clearCart(){
   Object.keys(cart).forEach(k => delete cart[k]);
+  resetCartSid();
   saveCart();
   couponCode = ""; saveCoupon("");
   closeCart(); render();
@@ -1811,6 +1875,41 @@ function logEvent(obj){
     navigator.sendBeacon(LOG_URL, new Blob([JSON.stringify(obj)], {type: "text/plain"}));
   }catch(e){}
 }
+/* מקור ההגעה (?src=status/qr/ad...) – נשמר 7 ימים ומצורף להזמנה */
+(function(){
+  try{
+    const u = new URLSearchParams(location.search);
+    const src = (u.get("src") || u.get("utm_source") || "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 20);
+    if(src) localStorage.setItem("chai-src", JSON.stringify({src, t: Date.now()}));
+  }catch(e){}
+})();
+function curSrc(){
+  try{ const x = JSON.parse(localStorage.getItem("chai-src") || "null"); return x && Date.now() - x.t < 7 * 864e5 ? x.src : ""; }catch(e){ return ""; }
+}
+/* מזהה עגלה – לזיהוי עגלות נטושות */
+function cartSid(){
+  try{
+    let x = localStorage.getItem("chai-cart-sid");
+    if(!x){ x = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem("chai-cart-sid", x); }
+    return x;
+  }catch(e){ return ""; }
+}
+function resetCartSid(){ try{ localStorage.removeItem("chai-cart-sid"); localStorage.setItem("chai-cart-snap", ""); }catch(e){} }
+function snapshotCart(){
+  try{
+    if(!Object.keys(cart).length) return;
+    const sig = JSON.stringify(cart);
+    if(sig === localStorage.getItem("chai-cart-sent") || sig === localStorage.getItem("chai-cart-snap")) return;
+    localStorage.setItem("chai-cart-snap", sig);
+    const items = cartItems(), k = cartCalc(), cu = loadCust();
+    logEvent({t: "cart", sid: cartSid(), total: Math.round(k.total * 100) / 100, src: curSrc(),
+      cust: {name: String(cu.name || "").slice(0, 60), phone: normPhone(cu.phone).slice(0, 15)},
+      items: items.slice(0, 100).map(({p, qty}) => ({pid: p.id, qty, price: effPrice(p, qty)}))});
+  }catch(e){}
+}
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") snapshotCart(); });
+window.addEventListener("pagehide", snapshotCart);
+function logAdd(k, d){ if(d > 0) logEvent({t: "add", pid: kpid(k), qty: d, src: curSrc()}); }
 let nsTimer = 0; const nsSent = new Set();
 function logNoResults(q){
   clearTimeout(nsTimer);
@@ -1828,9 +1927,11 @@ function recordOrder(){
   /* שליחה כפולה תוך דקה (למשל וואטסאפ ואז מייל) נשמרת פעם אחת */
   if(list[0] && now - list[0].t < 60000 && list[0].sig === JSON.stringify(cart)) return;
   const cu = loadCust();
-  logEvent({t: "order", total: Math.round(k.total * 100) / 100,
+  logEvent({t: "order", total: Math.round(k.total * 100) / 100, sid: cartSid(), src: curSrc(),
     cust: {name: String(cu.name || "").slice(0, 60), phone: normPhone(cu.phone).slice(0, 15)},
     items: items.slice(0, 100).map(({p, qty}) => ({pid: p.id, qty, price: effPrice(p, qty)}))});
+  try{ localStorage.setItem("chai-cart-sent", JSON.stringify(cart)); }catch(e){}
+  resetCartSid();
   list.unshift({
     t: now, sig: JSON.stringify(cart), total: k.total,
     coupon: k.cp ? String(k.cp.code).toUpperCase() : "",
@@ -2015,7 +2116,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 95</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 96</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2068,7 +2169,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 95</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 96</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2502,7 +2603,11 @@ function drawStatsDash(d){
       <div><div class="stsec">חיפושים בלי תוצאות</div><div class="stsub">מה לקוחות חיפשו ולא מצאו</div>${stList(nsRows)}</div>
     </div>
     <div class="hint">נספרות לחיצות על "שליחת הזמנה" (וואטסאפ או מייל) – לא בהכרח הזמנות שאושרו. ההזמנות שלך מהמכשירים המחוברים לא נספרות.</div>
-    ${custSection(lg.customers || [])}`;
+    ${custSection(lg.customers || [])}
+    ${abandonSection(lg)}
+    ${notifySection(lg.notify || [])}
+    ${channelSection(lg.sources || [])}
+    ${funnelSection(d, lg)}`;
   } else {
     ordersHtml = `<div class="hint" style="margin-top:14px">🛒 יומן ההזמנות עוד לא מחובר לגשר – אחרי החיבור יופיעו כאן הזמנות לפי יום, המוצרים הכי מוזמנים וחיפושים בלי תוצאות.</div>`;
   }
@@ -2547,7 +2652,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 95 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 96 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -2561,6 +2666,10 @@ function drawStatsDash(d){
   $("#sd_ref").onclick = openStatsDash;
   $("#sd_img").onclick = () => statsExportImage(m.querySelector(".mbox"));
   if($("#sd_csv")) $("#sd_csv").onclick = exportCustCsv;
+  m.querySelectorAll("[data-nfdone]").forEach(b => b.onclick = () => { if(confirm("לסמן שעדכנת את כולם ולהסיר מהרשימה?")) notifyDone(b.dataset.nfdone); });
+  m.querySelectorAll("[data-cplink]").forEach(b => b.onclick = async () => {
+    try{ await navigator.clipboard.writeText(b.dataset.cplink); toast("הקישור הועתק"); }catch(e){ prompt("העתיקו את הקישור:", b.dataset.cplink); }
+  });
   $("#sd_pdf").onclick = () => statsExportPdf(m.querySelector(".mbox"));
   $("#sd_link").onclick = () => statsConnect();
   $("#sd_close").onclick = () => m.classList.remove("show");
@@ -2594,6 +2703,91 @@ function custSection(rows){
     <div class="stsec">כל הלקוחות</div><div class="stsub">לפי ההזמנה האחרונה</div>
     ${rows.length ? rows.slice(0, 50).map(r => row(r, false)).join("") : `<div class="hint">עוד אין לקוחות ביומן</div>`}
     ${rows.length ? `<button class="abtn" id="sd_csv" style="margin-top:10px">📥 ייצוא לקוחות לאקסל</button>` : ""}`;
+}
+const SRC_NAMES = {status: "סטטוס וואטסאפ", qr: "שלט QR בחנות", ad: "מודעה", broadcast: "רשימת תפוצה", group: "קבוצת וואטסאפ", "": "ישיר / לא מסומן"};
+const BASE_URL = "https://chaishivuk.github.io/Chai-shivuk/";
+function agoTxt(t){ const x = Math.floor((Date.now() - t) / 864e5); return x <= 0 ? "היום" : x === 1 ? "אתמול" : "לפני " + x + " ימים"; }
+function waBtn(phone, text){
+  return phone ? `<a href="${waLink(phone, text)}" target="_blank" rel="noopener" style="background:var(--green);color:#fff;border-radius:8px;padding:6px 9px;font-weight:700;font-size:12.5px;text-decoration:none;white-space:nowrap">וואטסאפ</a>` : "";
+}
+const rowCss = "display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F0F2F5;font-size:14px";
+function abandonSection(lg){
+  const carts = lg.abandoned || [], items = lg.abandonedItems || [];
+  const byId = Object.fromEntries((DB.products || []).map(p => [p.id, p.name]));
+  const sumV = carts.reduce((t, c) => t + (c.total || 0), 0);
+  return `
+    <div class="stsec">🛒 עגלות נטושות</div><div class="stsub">הכניסו מוצרים לעגלה ויצאו בלי לשלוח (30 יום, לפחות שעה אחורה)</div>
+    <div class="stcards">
+      <div class="stcard"><div class="l">עגלות נטושות</div><div class="v">${carts.length}</div></div>
+      <div class="stcard"><div class="l">שווי העגלות</div><div class="v">${nis(Math.round(sumV))}</div><div class="d eq">כסף שכמעט נכנס</div></div>
+    </div>
+    <div class="stgrid">
+      <div><div class="stsec">העגלות האחרונות</div>
+        ${carts.length ? carts.slice(0, 15).map(c => `<div style="${rowCss}">
+          <span style="flex:1;min-width:0"><b>${esc(c.name || "לקוח לא מזוהה")}</b><br><span style="color:var(--muted);font-size:12.5px">${c.items} מוצרים · ${agoTxt(c.ts)}</span></span>
+          <b>${nis(Math.round(c.total || 0))}</b>
+          ${waBtn(c.phone, "שלום " + (c.name || "") + ", ראינו שהתחלת הזמנה באתר חי שיווק ולא סיימת 🙂 אפשר לעזור במשהו? " + BASE_URL)}
+        </div>`).join("") : `<div class="hint">אין עגלות נטושות</div>`}</div>
+      <div><div class="stsec">המוצרים שהכי ננטשים</div>${stList(items.map(r => ({n: byId[r.pid] || ("מוצר " + r.pid), v: r.q})))}</div>
+    </div>`;
+}
+function notifySection(rows){
+  const byP = {};
+  rows.forEach(r => (byP[r.pid] = byP[r.pid] || []).push(r));
+  const keys = Object.keys(byP).sort((a, b) => byP[b].length - byP[a].length);
+  const prod = id => (DB.products || []).find(p => p.id === id);
+  return `
+    <div class="stsec">🔔 ביקשו עדכון כשחוזר למלאי</div><div class="stsub">כדאי לשקול להזמין מהספק את מה שהכי מבוקש</div>
+    ${keys.length ? keys.map(pid => { const p = prod(pid), list = byP[pid];
+      return `<div style="border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <b>${esc(p ? p.name : pid)}</b>
+          <span style="font-size:12.5px;font-weight:700;color:${p && p.stock ? "var(--green)" : "#A81D23"}">${list.length} בקשות · ${p && p.stock ? "חזר למלאי ✓" : "עדיין אזל"}</span>
+        </div>
+        ${list.map(r => `<div style="${rowCss}"><span style="flex:1">${esc(r.name || "")} <span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(r.phone || "")}</span> · ${agoTxt(r.ts)}</span>
+          ${waBtn(r.phone, "שלום " + (r.name || "") + ", " + (p ? p.name : "המוצר") + " חזר למלאי בחי שיווק! 🎉 " + BASE_URL)}</div>`).join("")}
+        <button class="abtn" data-nfdone="${esc(pid)}" style="margin-top:8px">✓ סימון שעודכנו – הסרה מהרשימה</button>
+      </div>`; }).join("") : `<div class="hint">אין בקשות כרגע</div>`}`;
+}
+function channelSection(rows){
+  const list = rows.map(r => ({n: SRC_NAMES[r.src || ""] || r.src, v: r.n, s: r.s || 0})).sort((a, b) => b.v - a.v);
+  const links = ["status", "qr", "ad", "broadcast", "group"].map(k =>
+    `<div style="${rowCss}"><span style="flex:1;min-width:0"><b>${SRC_NAMES[k]}</b><br><span dir="ltr" style="font-size:12px;color:var(--muted)">${BASE_URL}?src=${k}</span></span>
+      <button class="abtn" data-cplink="${BASE_URL}?src=${k}">העתקה</button></div>`).join("");
+  return `
+    <div class="stgrid">
+      <div><div class="stsec">📣 הזמנות לפי ערוץ</div><div class="stsub">מאיזה קישור הגיעו הלקוחות שהזמינו (30 יום)</div>
+        ${stList(list.map(r => ({n: r.n + " · " + nis(Math.round(r.s)), v: r.v})))}</div>
+      <div><div class="stsec">🔗 הקישורים שלך לכל ערוץ</div><div class="stsub">משתמשים בקישור המתאים בכל מקום, וכאן תראו מה עובד</div>${links}</div>
+    </div>`;
+}
+function funnelSection(d, lg){
+  const views = {};
+  (d.paths || []).forEach(x => { const m = String(x.path).match(/\/product-([^\/]+)$/); if(m){ const id = decodeURIComponent(m[1]); views[id] = (views[id] || 0) + (x.views || 0); } });
+  const adds = Object.fromEntries((lg.adds || []).map(r => [r.pid, r.q]));
+  const ords = Object.fromEntries((lg.items || []).map(r => [r.pid, r.q]));
+  const ids = [...new Set([...Object.keys(views), ...Object.keys(adds), ...Object.keys(ords)])];
+  const byId = Object.fromEntries((DB.products || []).map(p => [p.id, p.name]));
+  const rows = ids.map(id => ({id, v: views[id] || 0, a: adds[id] || 0, o: ords[id] || 0})).sort((x, y) => y.v - x.v || y.a - x.a).slice(0, 25);
+  if(!rows.length) return `<div class="stsec">🔎 משפך מוצרים</div><div class="hint">אין עדיין נתונים</div>`;
+  const th = "padding:6px 4px;font-size:12px;color:var(--muted);text-align:center";
+  return `
+    <div class="stsec">🔎 משפך מוצרים</div><div class="stsub">צפו ← הוסיפו לסל ← הזמינו (יחידות). מסומן באדום: הרבה צפיות ומעט מכירות – כדאי לבדוק מחיר או תמונה</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13.5px">
+      <tr><th style="${th};text-align:right">מוצר</th><th style="${th}">צפיות</th><th style="${th}">לסל</th><th style="${th}">הוזמנו</th></tr>
+      ${rows.map(r => { const weak = r.v >= 8 && r.o === 0;
+        return `<tr style="border-top:1px solid #F0F2F5;${weak ? "background:#FEF2F2" : ""}"><td style="padding:6px 4px">${esc(byId[r.id] || r.id)}</td>
+          <td style="text-align:center">${r.v}</td><td style="text-align:center">${r.a}</td><td style="text-align:center;font-weight:700">${r.o}</td></tr>`; }).join("")}
+    </table></div>`;
+}
+async function notifyDone(pid){
+  const link = getStatsLink(); if(!link) return;
+  try{
+    const u = new URL(link); u.searchParams.set("act", "notified"); u.searchParams.set("pid", pid);
+    const r = await fetch(u.toString(), {cache: "no-store"});
+    if(!r.ok) throw 0;
+    toast("הוסר מהרשימה"); openStatsDash();
+  }catch(e){ toast("לא הצלחתי לעדכן – נסה שוב"); }
 }
 function exportCustCsv(){
   const q = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
@@ -3215,7 +3409,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 95</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 96</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3763,7 +3957,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "95";
+const APP_VER = "96";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
