@@ -2,6 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>try{window.__dataP=fetch("data.json?t="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()});window.__dataP.catch(function(){})}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
@@ -157,7 +158,7 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .badge{position:absolute; top:8px; right:8px; z-index:2; font-size:11.5px; font-weight:700; color:#fff; border-radius:6px; padding:3px 8px}
 .badge.sale{background:var(--amber)} .badge.new{background:var(--green)}
 .oos .pimg{filter:grayscale(1); opacity:.55}
-.oosband{position:absolute; top:42%; left:0; right:0; background:rgba(220,38,38,.92); color:#fff; text-align:center; font-weight:700; padding:5px; font-size:13.5px; z-index:2}
+.oosband{position:absolute; top:42%; left:0; right:0; background:rgba(185,28,28,.95); color:#fff; text-align:center; font-weight:700; padding:5px; font-size:13.5px; z-index:2}
 .oosbtn{margin-top:auto; background:#F1F2F5; color:#5F6B7A; font-weight:700; border-radius:9px; padding:9px; cursor:not-allowed}
 
 /* Cart bar & drawer */
@@ -603,7 +604,10 @@ async function loadDB(){
       return db;
     });
   }
-  sources.push(async () => (await ok("data.json?t=" + Date.now(), {cache: "no-store"})).json());
+  sources.push(async () => {
+    if(window.__dataP){ const p = window.__dataP; window.__dataP = null; try{ return await p; }catch(e){} }
+    return (await ok("data.json?t=" + Date.now(), {cache: "no-store"})).json();
+  });
   sources.push(async () => (await ok(location.origin + "/" + GH_REPO + "/data.json?t=" + Date.now(), {cache: "no-store"})).json());
   sources.push(async () => (await ok("https://raw.githubusercontent.com/" + GH_OWNER + "/" + GH_REPO + "/main/data.json?t=" + Date.now(), {cache: "no-store"})).json());
 
@@ -1296,7 +1300,7 @@ function render(){
           <button class="menubtn" id="menubtn" aria-label="קטגוריות"><span></span><span></span><span></span></button>
           <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
         </div>
-        <img class="hlogo" src="logo-v3.png" alt="חי שיווק">
+        <img class="hlogo" src="logo-v3-128.webp" alt="חי שיווק" width="64" height="64">
       </div>
       <div class="searchwrap">
         <input id="search" placeholder="חיפוש לפי שם או מק&quot;ט..." value="${esc(view.q)}">
@@ -1365,7 +1369,7 @@ function card(p){
   const qty = pidQty(p.id);
   const first = cardSeq++ < 4;
   const img = p.img
-    ? `<img src="${p.img}" alt="${esc(p.name)}" decoding="async"` +
+    ? `<img src="${p.img}"${p.th ? ` srcset="${p.th} 320w, ${p.img} 500w" sizes="(max-width: 700px) 42vw, 230px"` : ""} alt="${esc(p.name)}" decoding="async"` +
       (first ? ` loading="eager" fetchpriority="high">` : ` loading="lazy">`)
     : `<span class="noimg">ללא תמונה</span>`;
   const badge = p.sale != null ? `<span class="badge sale">${saleLabel(p)}</span>` : (p.isNew ? `<span class="badge new">חדש</span>` : "");
@@ -1404,10 +1408,10 @@ function card(p){
 }
 
 /* ---------- גלילה אוטומטית בשורת המבצעים ---------- */
-let railRaf = null, railIO = null;
+let railRaf = null, railIO = null, railWait = null;
 function killRail(){
-  if(railRaf) cancelAnimationFrame(railRaf);
-  railRaf = null;
+  if(typeof railRaf === "number") cancelAnimationFrame(railRaf);
+  railRaf = null; railWait = null;
   if(railIO){ railIO.disconnect(); railIO = null; }
 }
 function autoRail(el){
@@ -1480,7 +1484,12 @@ function autoRail(el){
     el.scrollLeft = pos;
     railScroll[el.dataset.rail] = pos;
   };
-  railRaf = requestAnimationFrame(step);
+  /* מתחילים לגלול רק אחרי שהעמוד סיים להיטען – כדי לא להאט את הטעינה */
+  const me = {};
+  railWait = me;
+  const go = () => { if(railWait === me){ railWait = null; railRaf = requestAnimationFrame(step); } };
+  if(document.readyState === "complete" && performance.now() > 6000) go();
+  else{ setTimeout(go, 4500); ["touchstart", "scroll", "pointerdown"].forEach(ev => addEventListener(ev, go, {once: true, passive: true})); }
 }
 function bindCustomer(){
   const sbtn = document.getElementById("storybtn");
@@ -1602,7 +1611,7 @@ function renderProduct(){
   <header><div class="hcol" style="gap:0">
     <div class="brandrow">
       <div><div class="bsd">בס"ד</div><div class="logo">חי <b>שיווק</b></div></div>
-      <img class="hlogo" src="logo-v3.png" alt="חי שיווק">
+      <img class="hlogo" src="logo-v3-128.webp" alt="חי שיווק" width="64" height="64">
     </div>
   </div></header>
   ${vatBanner()}
@@ -2193,7 +2202,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 98</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 99</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2246,7 +2255,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 98</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 99</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2729,7 +2738,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 98 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 99 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -2978,7 +2987,7 @@ function storyChip(){
   const cnt = unseen > 99 ? "99+" : unseen;
   return `<button class="catbtn" id="storybtn" aria-label="מוצרים חדשים${unseen ? ` – ${unseen} שעוד לא ראית` : ""}">
       <span class="storywrap">
-        <span class="catring story segs">${segRing(list, seen)}<span class="inner logo"><img src="logo-v3.png" alt=""></span></span>
+        <span class="catring story segs">${segRing(list, seen)}<span class="inner logo"><img src="logo-v3-128.webp" alt=""></span></span>
         ${unseen ? `<span class="storycnt" aria-hidden="true">${cnt}</span>` : ""}
       </span>
       <span class="catlbl">חדשים</span>
@@ -3486,7 +3495,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 98</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 99</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -4034,7 +4043,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "98";
+const APP_VER = "99";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
