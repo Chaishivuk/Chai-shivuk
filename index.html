@@ -232,6 +232,12 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 .dsum .row{display:flex; justify-content:space-between; font-weight:700; font-size:17px; margin-bottom:10px}
 .wabtn{width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:var(--green); color:#fff; font-weight:700; font-size:16.5px; border-radius:12px; padding:13px}
 .wabtn svg{width:21px; height:21px; fill:#fff}
+.giftbar{display:block; width:100%; text-align:center; background:linear-gradient(90deg,#F5B83D,#FCD34D); color:#3B2A00; font-weight:800; font-size:14.5px; padding:9px 12px; border:0; line-height:1.4}
+.giftbox{margin:8px 0 6px; border:2px solid #F5B83D; background:#FFFBEB; border-radius:12px; padding:9px 11px; font-size:14px; color:#3B2A00}
+.giftbox b{font-weight:800}
+.giftbox label{display:flex; align-items:center; gap:8px; margin-top:6px; font-weight:700; cursor:pointer}
+.giftbox input{width:18px; height:18px; accent-color:#B45309}
+.giftbox .more{margin-top:6px; font-size:13px; color:#92400E}
 .recs{margin:6px 0 4px; padding:10px 0 2px; border-top:1px dashed var(--line)}
 .recs h4{margin:0 0 8px; font-size:14px}
 .recs .rr{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px}
@@ -900,11 +906,67 @@ function menuLinks(){
 function openMenu(){ $("#sidemenu").classList.add("show"); $("#overlay").classList.add("show"); }
 function closeMenu(){ const m = $("#sidemenu"); if(m) m.classList.remove("show"); $("#overlay").classList.remove("show"); }
 function menuOpen(){ const m = $("#sidemenu"); return !!(m && m.classList.contains("show")); }
+/* מבצע מתנות לפי סכום הזמנה – מוגדר ב-DB.settings.giftPromo */
+function giftPromo(){
+  const g = DB && DB.settings && DB.settings.giftPromo;
+  if(!g || !g.on) return null;
+  const now = Date.now();
+  if(g.from && now < Date.parse(g.from)) return null;
+  if(g.until && now > Date.parse(g.until)) return null;
+  return g;
+}
+function giftChoice(){ try{ return localStorage.getItem("chai-gift") || ""; }catch(e){ return ""; } }
+function giftState(total){
+  const g = giftPromo(); if(!g) return null;
+  const gifts = g.gifts || [];
+  if(total >= g.both) return {g, level: 2, gifts};
+  if(total >= g.one){
+    const ch = gifts.find(x => x.pid === giftChoice()) || null;
+    return {g, level: 1, gifts, choice: ch, toBoth: g.both - total};
+  }
+  return {g, level: 0, gifts, toOne: g.one - total};
+}
+function giftBannerHTML(){
+  const g = giftPromo(); if(!g) return "";
+  return `<button class="giftbar" id="giftbar">🎁 ${esc(g.title || "מבצע")}: מעל ${nis(g.one)} – מתנה לבחירה · מעל ${nis(g.both)} – שתי המתנות${g.untilText ? " · " + esc(g.untilText) : ""}</button>`;
+}
+function showGiftInfo(){
+  const g = giftPromo(); if(!g) return;
+  const m = ensureModal();
+  const card = x => { const p = (DB.products || []).find(q => q.id === x.pid);
+    return `<div style="flex:1;text-align:center;border:1px solid var(--line);border-radius:12px;padding:8px">
+      ${p && p.img ? `<img src="${p.img}" alt="" style="width:110px;height:110px;object-fit:contain">` : ""}
+      <div style="font-weight:800;font-size:14px;margin-top:4px">${esc(x.label)}</div></div>`; };
+  m.innerHTML = `<div class="mbox"><h3>🎁 ${esc(g.title || "מבצע")}</h3>
+    <div class="hint" style="margin-bottom:10px">${g.untilText ? esc(g.untilText) + ". " : ""}המתנה מצורפת להזמנה אוטומטית לפי סכום ההזמנה.</div>
+    <div style="font-weight:800;margin:6px 0">מעל ${nis(g.one)} – מתנה אחת לבחירתכם:</div>
+    <div style="display:flex;gap:8px;align-items:center">${(g.gifts || []).map(card).join('<b style="flex:0 0 auto">או</b>')}</div>
+    <div style="font-weight:800;margin:12px 0 4px">מעל ${nis(g.both)} – מקבלים את שתיהן! 🎉</div>
+    <div class="mact"><button class="save" id="gi_ok" style="width:100%">מעולה, לקניות</button></div></div>`;
+  m.classList.add("show");
+  $("#gi_ok").onclick = () => m.classList.remove("show");
+}
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("#giftbar"); if(b) showGiftInfo(); });
+function giftBoxHTML(total){
+  const st = giftState(total); if(!st) return "";
+  const lbl = st.gifts.map(x => x.label);
+  if(st.level === 2) return `<div class="giftbox">🎉 <b>מגיעות לך שתי המתנות:</b> ${esc(lbl.join(" + "))}</div>`;
+  if(st.level === 1) return `<div class="giftbox">🎁 <b>מגיעה לך מתנה – בחרו אחת:</b>
+      ${st.gifts.map(x => `<label><input type="radio" name="giftpick" value="${esc(x.pid)}" ${st.choice && st.choice.pid === x.pid ? "checked" : ""}>${esc(x.label)}</label>`).join("")}
+      <div class="more">עוד ${nis(Math.ceil(st.toBoth))} ומקבלים את שתי המתנות!</div></div>`;
+  return `<div class="giftbox">🎁 חסרים לך <b>${nis(Math.ceil(st.toOne))}</b> למתנה! (${esc(lbl.join(" או "))})</div>`;
+}
+function giftLines(total){
+  const st = giftState(total); if(!st || st.level === 0) return [];
+  if(st.level === 2) return ["🎁 מתנה (" + (st.g.title || "מבצע") + "): " + st.gifts.map(x => x.label).join(" + ")];
+  return ["🎁 מתנה (" + (st.g.title || "מבצע") + "): " + (st.choice ? st.choice.label : "לבחירה – " + st.gifts.map(x => x.label).join(" או "))];
+}
 function vatBanner(){
   const t = vatText();
-  if(!t.trim()) return "";
+  const gb = giftBannerHTML();
+  if(!t.trim()) return gb;
   const rows = t.split("\n").filter(x => x.trim()).map(x => `<div>${esc(x)}</div>`).join("");
-  return `<div class="vat">${rows}</div>`;
+  return `<div class="vat">${rows}</div>` + gb;
 }
 function savedOrder(kind){
   return (DB.settings && DB.settings.order && DB.settings.order[kind]) || [];
@@ -1697,6 +1759,7 @@ function sumBoxHTML(){
     if(k.vat > 0)   h += `<div class="srow"><span>מע"מ ${k.rate}% על האביזרים</span><span>+${nis(k.vat)}</span></div>`;
   }
   h += `<div class="row"><span>סה"כ לתשלום</span><b>${nis(k.total)}</b></div>`;
+  h += giftBoxHTML(k.total);
   if(hasCoupons()){
     if(k.cp){
       h += `<div class="cpbox"><input value="${esc(String(k.cp.code).toUpperCase())}" disabled><button id="cpclear">הסרה</button></div>
@@ -1710,6 +1773,9 @@ function sumBoxHTML(){
   return h;
 }
 function bindSumBox(){
+  document.querySelectorAll("input[name=giftpick]").forEach(r => r.onchange = () => {
+    try{ localStorage.setItem("chai-gift", r.value); }catch(e){}
+  });
   const ap = $("#cpapply"), cl = $("#cpclear"), inp = $("#cpin");
   if(ap) ap.onclick = () => {
     const v = ($("#cpin").value || "").trim();
@@ -2079,6 +2145,7 @@ function orderLines(){
     if(k.vat > 0)   lines.push(`מע"מ ${k.rate}% על האביזרים: +${nis(k.vat)}`);
   }
   lines.push(`💰 סה"כ לתשלום: ${nis(k.total)}`);
+  giftLines(k.total).forEach(x => lines.push(x));
   return lines;
 }
 function sendWA(){
@@ -2126,7 +2193,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 97</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 98</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2179,7 +2246,7 @@ function renderAdmin(){
       </div>
     </div>`;
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 97</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 98</div>
     <div class="awrap">
       <div class="abtns">
         <button class="abtn g" id="addp">+ מוצר חדש</button>
@@ -2662,7 +2729,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 97 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 98 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -3419,7 +3486,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 97</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 98</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3967,7 +4034,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "97";
+const APP_VER = "98";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
