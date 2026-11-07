@@ -280,6 +280,37 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 
 /* Admin */
 .adminbar{background:var(--amber); color:#fff; text-align:center; font-weight:700; padding:7px; font-size:14px}
+.atop{background:var(--ink); color:#fff; position:sticky; top:0; z-index:40}
+.atop .in{max-width:1100px; margin:0 auto; padding:10px 14px; display:flex; align-items:center; gap:10px}
+.atop img{width:38px; height:38px; border-radius:10px; background:#fff; padding:3px}
+.atop .t{flex:1; min-width:0; line-height:1.15}
+.atop .t b{display:block; font-size:16.5px}
+.atop .t span{font-size:11.5px; color:#9FB0CF}
+.atop .go{background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:999px; padding:7px 13px; font-weight:700; font-size:13px; white-space:nowrap}
+.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px}
+.kpi{background:#fff; border:1px solid var(--line); border-radius:12px; padding:9px 4px; text-align:center}
+.kpi b{display:block; font-size:21px; font-weight:800; color:var(--ink); line-height:1.1}
+.kpi span{font-size:12px; color:var(--muted); font-weight:700}
+.kpi.warn b{color:#B91C1C} .kpi.on{border-color:var(--ink); box-shadow:0 0 0 1.5px var(--ink) inset}
+.addbig{width:100%; background:var(--green); color:#fff; font-weight:800; font-size:16.5px; border-radius:12px; padding:13px; margin-bottom:12px}
+.toolbox{background:#fff; border:1px solid var(--line); border-radius:14px; padding:4px 12px 12px; margin-bottom:14px}
+.toolbox summary{cursor:pointer; font-weight:800; font-size:15px; padding:9px 2px; list-style:none; display:flex; justify-content:space-between; align-items:center}
+.toolbox summary::-webkit-details-marker{display:none}
+.toolbox summary::after{content:"▾"; color:var(--muted); transition:.2s}
+.toolbox[open] summary::after{transform:rotate(180deg)}
+.tgroup{font-size:12px; font-weight:800; color:var(--muted); margin:10px 2px 6px; letter-spacing:.2px}
+.tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:7px}
+.tgs{display:block}
+@media (min-width:900px){
+  .tgs{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+}
+.is-admin #a11ybtn{display:none !important}
+.tile{background:#F5F7FB; border:1px solid #E6EAF2; border-radius:12px; padding:9px 3px; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; font-weight:700; font-size:12px; color:var(--ink); line-height:1.25; min-height:68px; justify-content:center}
+.tile .i{font-size:20px; line-height:1}
+.tile:active{transform:scale(.97)}
+.tile.on{background:#FFF4E5; border-color:#F5C26B}
+.alhead{display:flex; justify-content:space-between; align-items:center; margin:2px 2px 8px; font-size:13px; color:var(--muted); font-weight:700}
 .awrap{max-width:1100px; margin:0 auto; padding:16px 14px 60px}
 .abtns{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
 .abtn{background:var(--ink); color:#fff; font-weight:700; border-radius:9px; padding:10px 16px; font-size:14.5px}
@@ -317,6 +348,11 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .sqrow.done .sqb{background:#8893A6}
 .aact{display:flex; gap:6px}
 .aact button{font-size:13px; font-weight:700; border-radius:7px; padding:6px 11px}
+.aact .dl{background:none !important; color:#9CA3AF !important; font-size:17px !important; padding:6px 8px !important; border-radius:8px !important}
+.aact .dl:hover{background:#FEE2E2 !important; color:#B91C1C !important}
+.apill{display:inline-block; font-size:11px; font-weight:800; border-radius:999px; padding:1px 8px; margin-inline-start:4px; vertical-align:middle}
+.apill.new{background:#DCFCE7; color:#166534} .apill.sale{background:#FFEDD5; color:#9A3412} .apill.oos{background:#FEE2E2; color:#991B1B}
+.ainfo .pr{font-weight:800; color:var(--ink); font-size:13.5px}
 .ed{background:#EAF0FB; color:#1D4ED8} .dl{background:#FDECEC; color:#A81D23}
 .oostag{font-size:11px; font-weight:700; color:#A81D23; background:#FDECEC; border-radius:5px; padding:2px 6px}
 .modal{position:fixed; inset:0; z-index:80; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 12px}
@@ -1254,6 +1290,7 @@ function render(){
   if(isAdminRoute()){ renderAdmin(); return; }
   if(view.page === "product"){ renderProduct(); return; }
   const app = $("#app");
+  document.body.classList.remove("is-admin");
   const chips = [
     {id:"home", name:"ראשי"},
     {id:"all", name:"כל המוצרים"},
@@ -2206,10 +2243,11 @@ let adminAuthed = false;
 
 function renderAdmin(){
   markOwnerDevice();
+  document.body.classList.add("is-admin");
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 100</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 101</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2245,10 +2283,10 @@ function renderAdmin(){
       ${selMode ? `<div class="selmark">${selIds.has(p.id) ? "✓" : ""}</div>` : ""}
       ${p.img ? `<img src="${p.img}">` : `<div style="width:44px;height:44px;border:1px solid var(--line);border-radius:8px"></div>`}
       <div class="ainfo">
-        <div class="n">${esc(p.name)} ${p.stock ? "" : '<span class="oostag">אזל</span>'}</div>
-        <div class="m">מק"ט ${p.sku} · ${esc(catName(p.cat))} · ${nis(p.sale != null ? p.sale : p.price)}${tags(p) ? " · " + tags(p) : ""}</div>
+        <div class="n">${esc(p.name)}${p.stock ? "" : '<span class="apill oos">אזל</span>'}${p.isNew ? '<span class="apill new">חדש</span>' : ""}${p.sale != null ? '<span class="apill sale">מבצע</span>' : ""}</div>
+        <div class="m"><span class="pr">${nis(p.sale != null ? p.sale : p.price)}</span> · מק"ט ${p.sku} · ${esc(catName(p.cat))}</div>
       </div>
-      ${selMode ? "" : `<div class="aact"><button class="dl" data-del="${p.id}">מחיקה</button></div>`}
+      ${selMode ? "" : `<div class="aact"><button class="dl" data-del="${p.id}" title="מחיקה" aria-label="מחיקת ${esc(p.name)}">🗑</button></div>`}
     </div>`).join("");
   const selBar = !selMode ? "" : `
     <div class="selbar">
@@ -2261,27 +2299,59 @@ function renderAdmin(){
         <button id="sel_off">סיום</button>
       </div>
     </div>`;
+  const cnt = f => DB.products.filter(f).length;
+  const kpi = (id, n, label, cls) => `<button class="kpi ${cls || ""} ${adminView.cat === id ? "on" : ""}" data-acat="${id}"><b>${n}</b><span>${label}</span></button>`;
+  const tile = (id, icon, label, cls) => `<button class="tile ${cls || ""}" id="${id}"><span class="i">${icon}</span>${label}</button>`;
+  let toolsOpen = true; try{ toolsOpen = localStorage.getItem("adm-tools") !== "0"; }catch(e){}
   app.innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 100</div>
+    <div class="atop"><div class="in">
+      <img src="logo-v3-128.webp" alt="">
+      <div class="t"><b>ניהול · חי שיווק</b><span>גרסה ${APP_VER}</span></div>
+      <button class="go" id="tostore">לאתר הלקוחות ←</button>
+    </div></div>
     <div class="awrap">
-      <div class="abtns">
-        <button class="abtn g" id="addp">+ מוצר חדש</button>
-        <button class="abtn" id="newstatusbtn">🆕 סטטוס "חדשים"</button>
-        <button class="abtn ${selMode ? "o" : ""}" id="selbtn">${selMode ? "✕ יציאה מבחירה" : "📤 שיתוף מוצרים לסטטוס"}</button>
-        <button class="abtn" id="cats">ניהול קטגוריות</button>
-        <button class="abtn" id="statsbtn">📊 סטטיסטיקה</button>
-        <button class="abtn" id="settings">⚙️ הגדרות</button>
-        <button class="abtn o" id="tostore">→ לאתר הלקוחות</button>
+      <div class="kpis">
+        ${kpi("all", DB.products.length, "מוצרים")}
+        ${kpi("oos", cnt(p => !p.stock), "אזלו", "warn")}
+        ${kpi("sale", cnt(p => p.sale != null), "במבצע")}
+        ${kpi("new", cnt(p => p.isNew), "חדשים")}
       </div>
-      <div class="agroup">ייצוא ושליחה</div>
-      <div class="abtns">
-        <button class="abtn" id="orderxls">📋 טופס הזמנה</button>
-        <button class="abtn" id="pdf">📄 קטלוג PDF</button>
-        <button class="abtn" id="xls">📊 אקסל נתונים</button>
-      </div>
+      <button class="addbig" id="addp">+ הוספת מוצר חדש</button>
+      <details class="toolbox" id="toolbox" ${toolsOpen ? "open" : ""}>
+        <summary>🧰 כלים</summary>
+        <div class="tgs">
+        <div><div class="tgroup">שיווק וסטטוס</div>
+        <div class="tiles">
+          ${tile("newstatusbtn", "🆕", "סטטוס חדשים")}
+          ${tile("selbtn", selMode ? "✕" : "📤", selMode ? "יציאה מבחירה" : "שיתוף לסטטוס", selMode ? "on" : "")}
+          ${tile("t_promo", "🎟️", "קופונים והנחות")}
+          ${tile("t_story", "📸", "סטורי חדשים")}
+        </div></div>
+        <div><div class="tgroup">קטלוג</div>
+        <div class="tiles">
+          ${tile("cats", "🗂️", "קטגוריות")}
+          ${tile("t_quick", "⚡", "עריכה מהירה")}
+          ${tile("t_ordsale", "↕️", "סדר המבצעים")}
+          ${tile("t_ordnew", "↕️", "סדר החדשים")}
+        </div></div>
+        <div><div class="tgroup">נתונים וייצוא</div>
+        <div class="tiles">
+          ${tile("statsbtn", "📊", "סטטיסטיקה")}
+          ${tile("orderxls", "📋", "טופס הזמנה")}
+          ${tile("pdf", "📄", "קטלוג PDF")}
+          ${tile("xls", "🧾", "אקסל נתונים")}
+        </div></div>
+        <div><div class="tgroup">מערכת</div>
+        <div class="tiles">
+          ${tile("t_hist", "📜", "היסטוריה")}
+          ${tile("settings", "⚙️", "הגדרות")}
+        </div></div>
+        </div>
+      </details>
       <input id="asearch" placeholder="חיפוש לפי שם או מק&quot;ט..." value="${esc(adminView.q)}"
         style="width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;background:#fff;margin-bottom:10px">
       <div class="chips" style="padding:0 0 12px;margin:0;max-width:none">${achips}</div>
+      <div class="alhead"><span>${list.length} מוצרים</span><span>לחיצה על מוצר = עריכה</span></div>
       <div class="atable">${rows || '<div class="empty">אין מוצרים תואמים</div>'}</div>
       ${selMode ? '<div class="selpad"></div>' : ""}
     </div>
@@ -2291,6 +2361,13 @@ function renderAdmin(){
   $("#cats").onclick = openCatManager;
   $("#settings").onclick = openSettings;
   $("#statsbtn").onclick = openStatsDash;
+  $("#t_promo").onclick = openPromo;
+  $("#t_story").onclick = openStorySettings;
+  $("#t_quick").onclick = openQuickPicker;
+  $("#t_ordsale").onclick = () => openOrderManager("sale");
+  $("#t_ordnew").onclick = () => openOrderManager("new");
+  $("#t_hist").onclick = openHistory;
+  $("#toolbox").addEventListener("toggle", e => { try{ localStorage.setItem("adm-tools", e.target.open ? "1" : "0"); }catch(_){} });
   document.querySelectorAll("[data-acat]").forEach(b => b.onclick = () => { adminView.cat = b.dataset.acat; render(); });
   const asearch = $("#asearch");
   asearch.oninput = () => {
@@ -2745,7 +2822,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 100 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 101 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -3502,7 +3579,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 100</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 101</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -4050,7 +4127,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "100";
+const APP_VER = "101";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
