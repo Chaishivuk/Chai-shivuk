@@ -314,6 +314,9 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .tile .i.gr{background:#16A34A} .tile .i.in{background:#6366F1} .tile .i.tl{background:#0D9488}
 .tile .i.pdf{background:#DC2626} .tile .i.xl{background:#107C41} .tile .i.gy{background:#64748B} .tile .i.dk{background:#334155}
 .tile .i.off{background:#94A3B8}
+.ahelp{background:#EEF4FF; border:1px solid #C7D7FE; color:#1E3A8A; border-radius:10px; padding:8px 11px; font-size:13.5px; line-height:1.5; margin:-2px 0 12px}
+.ahelp::before{content:"ℹ️ "}
+#toast.long{max-width:min(92vw,520px); white-space:normal; line-height:1.45; text-align:center}
 .toolbox summary .tt{display:flex; align-items:center; gap:8px}
 .toolbox summary .tt svg{width:20px; height:20px; color:var(--ink)}
 .tile:active{transform:scale(.97)}
@@ -824,9 +827,62 @@ function searchProducts(list, q){
   if(exact.length || /^\d+$/.test(nq)) return exact.map(x => x[1]);
   return scored.map(x => x[1]);
 }
-function toast(msg){
+function toast(msg, ms){
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 1800);
+  t.classList.toggle("long", !!ms);
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), ms || 1800);
+}
+/* הסבר קצר לכל כפתור באזור הניהול – מופיע כשלוחצים עליו */
+const ADM_HELP = {
+  newstatusbtn: ["toast", "יוצר תמונה מעוצבת של כל המוצרים החדשים, מוכנה לשיתוף בסטטוס בוואטסאפ"],
+  selbtn:       ["toast", "בוחרים מוצרים ברשימה למטה, ואז לוחצים \"שיתוף לסטטוס\" – כל מוצר יוצא כתמונה עם מחיר וקישור"],
+  t_promo:      ["box", "הנחות אוטומטיות לפי סכום הקנייה, וקודי קופון שהלקוח מקליד בעגלה"],
+  t_story:      ["box", "העיגול \"חדשים\" בראש האתר – אילו מוצרים מוצגים בו כמו סטטוס, וכמה"],
+  cats:         ["box", "הוספה, שינוי שם, סידור ומחיקה של קטגוריות ותתי-קטגוריות"],
+  t_quick:      ["box", "עוברים מוצר אחרי מוצר ומעדכנים מחיר, מבצע ומלאי במהירות – בלי לפתוח כל מוצר בנפרד"],
+  t_ordsale:    ["box", "קובעים באיזה סדר המוצרים מופיעים בשורת המבצעים באתר"],
+  t_ordnew:     ["box", "קובעים באיזה סדר המוצרים מופיעים בשורת המוצרים החדשים באתר"],
+  statsbtn:     ["box", "כניסות לאתר, הזמנות, לקוחות, עגלות נטושות, ערוצים ועוד – של 30 הימים האחרונים"],
+  orderxls:     ["toast", "מוריד טופס הזמנה באקסל עם כל המוצרים והמחירים – הלקוח ממלא כמויות והסכום מחושב לבד"],
+  pdf:          ["toast", "יוצר קטלוג מסודר של כל המוצרים עם תמונות ומחירים – להדפסה או לשמירה כ-PDF"],
+  xls:          ["toast", "מוריד קובץ אקסל עם כל נתוני המוצרים: שם, מק\"ט, קטגוריה, מחירים ומלאי"],
+  t_hist:       ["box", "כל השינויים שנעשו במוצרים – מה נוסף, נמחק או השתנה, ומתי"],
+  settings:     ["box", "הטקסט שמופיע בראש האתר, וסיסמת הכניסה לניהול"]
+};
+let admHelpNow = "";
+function putAdminHelp(){
+  const m = document.querySelector(".modal.show");
+  if(!m || !admHelpNow) return;
+  const box = m.querySelector(".mbox");
+  if(!box || box.querySelector(".ahelp")) return;
+  const d = document.createElement("div"); d.className = "ahelp"; d.textContent = admHelpNow;
+  const h = box.querySelector("h3");
+  h ? h.after(d) : box.prepend(d);
+}
+function bindAdminHelp(){
+  Object.entries(ADM_HELP).forEach(([id, [kind, text]]) => {
+    const b = document.getElementById(id);
+    if(!b || b._help) return;
+    b._help = true;
+    b.addEventListener("click", () => {
+      if(kind === "toast"){
+        if(id === "selbtn" && !selMode) return;      /* ביציאה ממצב בחירה – בלי הסבר */
+        setTimeout(() => toast(text, 4200), 120);
+      } else {
+        admHelpNow = text;
+        setTimeout(putAdminHelp, 30);
+      }
+    });
+  });
+  /* חלונות שנטענים בהדרגה (כמו הסטטיסטיקה) – מחזירים את ההסבר אחרי כל עדכון */
+  const m = document.getElementById("modal");
+  if(m && !m._helpObs){
+    m._helpObs = new MutationObserver(() => {
+      if(!m.classList.contains("show")) { admHelpNow = ""; return; }
+      putAdminHelp();
+    });
+    m._helpObs.observe(m, {childList: true, subtree: true, attributes: true, attributeFilter: ["class"]});
+  }
 }
 /* ---------- הנחות אוטומטיות וקופונים ---------- */
 function promoCfg(){
@@ -2255,7 +2311,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 102</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 103</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2371,6 +2427,7 @@ function renderAdmin(){
   $("#settings").onclick = openSettings;
   $("#statsbtn").onclick = openStatsDash;
   $("#t_promo").onclick = openPromo;
+  setTimeout(bindAdminHelp, 0);
   $("#t_story").onclick = openStorySettings;
   $("#t_quick").onclick = openQuickPicker;
   $("#t_ordsale").onclick = () => openOrderManager("sale");
@@ -2831,7 +2888,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 102 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 103 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -3588,7 +3645,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 102</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 103</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -4136,7 +4193,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "102";
+const APP_VER = "103";
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
