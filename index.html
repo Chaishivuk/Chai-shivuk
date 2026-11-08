@@ -2,12 +2,33 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>try{if(matchMedia("(display-mode: standalone)").matches||navigator.standalone===true)document.documentElement.className+=" app-start"}catch(e){}</script>
+<style>
+html.app-start,html.app-start body{background:#14213D}
+#splash{display:none}
+html.app-start #splash{display:flex;position:fixed;inset:0;z-index:9999;background:#14213D;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .3s ease}
+#splash.out{opacity:0;pointer-events:none}
+.sp-road{position:relative;width:260px;height:110px;direction:ltr;overflow:visible}
+.sp-car{position:absolute;left:82px;top:6px;width:96px;height:96px;animation:spDrive 1s cubic-bezier(.25,.9,.3,1) both}
+.sp-cart{width:96px;height:96px;background:#fff;border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(0,0,0,.35);animation:spBump .26s 1s ease-in-out 2}
+.sp-cart img{width:76px;height:76px}
+.sp-lines{position:absolute;right:104px;top:26px;width:70px;animation:spLines 1s ease-out both}
+.sp-lines i{display:block;height:5px;border-radius:5px;background:#4ADE80;margin:7px 0 7px auto}
+.sp-lines i:nth-child(1){width:44px}.sp-lines i:nth-child(2){width:66px}.sp-lines i:nth-child(3){width:32px}
+.sp-name{font:800 30px 'Rubik','Assistant',Arial,sans-serif;color:#fff;opacity:0;animation:spName .45s .7s ease-out forwards}
+.sp-name span{color:#4ADE80}
+@keyframes spDrive{0%{transform:translateX(-230px) rotate(-6deg)}70%{transform:translateX(14px) rotate(4deg)}86%{transform:translateX(-4px) rotate(-1deg)}100%{transform:translateX(0) rotate(0)}}
+@keyframes spBump{50%{transform:translateY(-5px)}}
+@keyframes spLines{0%,55%{opacity:.95}100%{opacity:0}}
+@keyframes spName{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.sp-car,.sp-cart,.sp-name{animation:none;opacity:1}.sp-lines{display:none}}
+</style>
 <script>try{window.__dataP=fetch("data.json?t="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()});window.__dataP.catch(function(){})}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>חי שיווק – קטלוג מוצרים</title>
-<link rel="manifest" href="manifest.json?v=3">
+<link rel="manifest" href="manifest.json?v=4">
 <link rel="apple-touch-icon" href="apple-touch-icon-v3.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v3.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512-v3.png">
@@ -564,6 +585,7 @@ body:has(.modal.show) .a11yfab{
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="sp-road"><div class="sp-car"><div class="sp-lines"><i></i><i></i><i></i></div><div class="sp-cart"><img src="logo-v3-128.webp" alt=""></div></div></div><div class="sp-name">חי <span>שיווק</span></div></div>
 <a href="#app" class="skiplink">דלג לתוכן הראשי</a>
 <button id="a11ybtn" class="a11yfab" aria-label="תפריט נגישות" title="נגישות">
   <svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><circle cx="12" cy="4" r="2"/><path d="M12 7c-2.8 0-5.5.5-7.6 1.4-.9.4-1.2 1.5-.7 2.3.4.7 1.3.9 2 .6 1-.4 2.1-.7 3.3-.9v3.1L6.4 20a1.6 1.6 0 0 0 2.9 1.3l2.4-5.1h.6l2.4 5.1a1.6 1.6 0 0 0 2.9-1.3L15 13.5v-3.1c1.2.2 2.3.5 3.3.9.7.3 1.6.1 2-.6.5-.8.2-1.9-.7-2.3C17.5 7.5 14.8 7 12 7z"/></svg>
@@ -1300,6 +1322,7 @@ async function shareStatusImage(p){
 }
 
 function render(){
+  setTimeout(hideSplash, 0);
   cardSeq = 0;
   if(isAdminRoute()){ renderAdmin(); return; }
   if(view.page === "product"){ renderProduct(); return; }
@@ -2276,7 +2299,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 106</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 107</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2851,7 +2874,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 106 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 107 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -3608,7 +3631,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 106</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 107</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -4156,7 +4179,19 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "106";
+const APP_VER = "107";
+function hideSplash(){
+  const sp = document.getElementById("splash");
+  if(!sp || sp._going) return;
+  if(!document.documentElement.classList.contains("app-start")){ sp.remove(); return; }
+  sp._going = true;
+  setTimeout(() => {
+    sp.classList.add("out");
+    document.documentElement.classList.remove("app-start");
+    setTimeout(() => sp.remove(), 320);
+  }, Math.max(0, 1350 - performance.now()));
+}
+setTimeout(hideSplash, 6000);   /* רשת ביטחון – לא להיתקע על מסך הפתיחה */
 /* אם פורסמה גרסה חדשה – טוענים אותה מיד, בלי שהמשתמש יצטרך לרענן */
 async function ensureLatest(){
   try{
