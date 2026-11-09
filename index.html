@@ -2026,12 +2026,38 @@ function loadOrders(){ try{ return JSON.parse(localStorage.getItem("chai-orders"
 function saveOrders(a){ try{ localStorage.setItem("chai-orders", JSON.stringify(a.slice(0, 30))); }catch(e){} }
 /* יומן הזמנות וחיפושים – נשלח לגשר הסטטיסטיקה. רק מספרים ומוצרים, בלי פרטי לקוח */
 const LOG_URL = "https://chai-stats.ys0533126330.workers.dev/e";
+function sendLog(obj){
+  const body = JSON.stringify(obj);
+  let ok = false;
+  try{ ok = navigator.sendBeacon && navigator.sendBeacon(LOG_URL, new Blob([body], {type: "text/plain"})); }catch(e){}
+  if(!ok){ try{ fetch(LOG_URL, {method: "POST", body, keepalive: true, mode: "no-cors", headers: {"Content-Type": "text/plain"}}); }catch(e){} }
+}
 function logEvent(obj){
   try{
     if(isAdminRoute() || isOwnerDevice()) return;   /* הפעולות שלך לא נספרות */
-    navigator.sendBeacon(LOG_URL, new Blob([JSON.stringify(obj)], {type: "text/plain"}));
+    sendLog(obj);
   }catch(e){}
 }
+/* הזמנות נשמרות גם בטלפון של הלקוח ונשלחות שוב בכניסה הבאה – הגשר מסנן כפילויות לפי מזהה ההזמנה */
+function outbox(){ try{ return JSON.parse(localStorage.getItem("chai-outbox") || "[]"); }catch(e){ return []; } }
+function saveOutbox(a){ try{ localStorage.setItem("chai-outbox", JSON.stringify(a.slice(-20))); }catch(e){} }
+function logOrderEvent(ev){
+  if(isAdminRoute() || isOwnerDevice()) return;
+  ev.eid = ev.eid || (Date.now().toString(36) + Math.random().toString(36).slice(2, 9));
+  const ob = outbox(); ob.push({t: Date.now(), n: 0, ev}); saveOutbox(ob);
+  sendLog(ev);
+}
+function flushOutbox(){
+  try{
+    if(isAdminRoute() || isOwnerDevice()) return;
+    const now = Date.now();
+    const keep = outbox().filter(x => now - x.t < 3 * 864e5 && x.n < 4);
+    keep.forEach(x => { x.n++; sendLog(x.ev); });
+    saveOutbox(keep);
+  }catch(e){}
+}
+const OUTBOX_RESEND = false;   /* יופעל אחרי עדכון הגשר לגרסה 9 (מסנן כפילויות) */
+if(OUTBOX_RESEND) setTimeout(flushOutbox, 4000);
 /* מקור ההגעה (?src=status/qr/ad...) – נשמר 7 ימים ומצורף להזמנה */
 (function(){
   try{
@@ -2094,7 +2120,7 @@ function recordOrder(){
   /* שליחה כפולה תוך דקה (למשל וואטסאפ ואז מייל) נשמרת פעם אחת */
   if(list[0] && now - list[0].t < 60000 && list[0].sig === JSON.stringify(cart)) return;
   const cu = loadCust();
-  logEvent({t: "order", total: Math.round(k.total * 100) / 100, sid: cartSid(), src: curSrc(),
+  logOrderEvent({t: "order", total: Math.round(k.total * 100) / 100, sid: cartSid(), src: curSrc(),
     cust: {name: String(cu.name || "").slice(0, 60), phone: normPhone(cu.phone).slice(0, 15)},
     items: items.slice(0, 100).map(({p, qty}) => ({pid: p.id, qty, price: effPrice(p, qty)}))});
   try{ localStorage.setItem("chai-cart-sent", JSON.stringify(cart)); }catch(e){}
@@ -2244,9 +2270,9 @@ function sendWA(){
   const lines = orderLines();
   if(!lines) return;
   const txt = lines.map(l => "\u200F" + l).join("\n");
-  window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(txt), "_blank");
   markCouponUsed();
-  afterOrderSent();
+  afterOrderSent();          /* קודם רושמים את ההזמנה – ורק אז פותחים את וואטסאפ */
+  window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(txt), "_blank");
 }
 function buildMailParts(){
   if(!custOk()) return null;
@@ -2300,7 +2326,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 109</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 110</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2826,6 +2852,7 @@ function drawStatsDash(d){
       <div><div class="stsec">חיפושים בלי תוצאות</div><div class="stsub">מה לקוחות חיפשו ולא מצאו</div>${stList(nsRows)}</div>
     </div>
     <div class="hint">נספרות לחיצות על "שליחת הזמנה" (וואטסאפ או מייל) – לא בהכרח הזמנות שאושרו. ההזמנות שלך מהמכשירים המחוברים לא נספרות.</div>
+    ${recentOrdersHTML(lg.recent)}
     ${custSection(lg.customers || [])}
     ${abandonSection(lg)}
     ${notifySection(lg.notify || [])}
@@ -2875,7 +2902,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 109 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 110 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -2889,6 +2916,11 @@ function drawStatsDash(d){
   $("#sd_ref").onclick = openStatsDash;
   $("#sd_img").onclick = () => statsExportImage(m.querySelector(".mbox"));
   if($("#sd_csv")) $("#sd_csv").onclick = exportCustCsv;
+  if($("#sd_addorder")) $("#sd_addorder").onclick = openAddOrder;
+  m.querySelectorAll("[data-delorder]").forEach(b => b.onclick = async () => {
+    if(!confirm("למחוק את ההזמנה הידנית?")) return;
+    try{ await statsAct({act: "delorder", oid: b.dataset.delorder}); toast("נמחקה"); openStatsDash(); }catch(e){ toast("לא הצלחתי למחוק"); }
+  });
   m.querySelectorAll("[data-nfdone]").forEach(b => b.onclick = () => { if(confirm("לסמן שעדכנת את כולם ולהסיר מהרשימה?")) notifyDone(b.dataset.nfdone); });
   m.querySelectorAll("[data-cplink]").forEach(b => b.onclick = async () => {
     try{ await navigator.clipboard.writeText(b.dataset.cplink); toast("הקישור הועתק"); }catch(e){ prompt("העתיקו את הקישור:", b.dataset.cplink); }
@@ -3011,6 +3043,53 @@ async function notifyDone(pid){
     if(!r.ok) throw 0;
     toast("הוסר מהרשימה"); openStatsDash();
   }catch(e){ toast("לא הצלחתי לעדכן – נסה שוב"); }
+}
+function recentOrdersHTML(rows){
+  const add = `<button class="abtn" id="sd_addorder" style="margin-top:8px">➕ הוספת הזמנה ידנית (טלפון / וואטסאפ)</button>`;
+  if(!rows) return `<div class="stsec">📋 הזמנות אחרונות</div><div class="hint">כדי לראות את רשימת ההזמנות צריך לעדכן את הגשר לגרסה 9.</div>`;
+  const when = t => new Date(t).toLocaleString("he-IL", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+  const src = r => r.src === "manual" ? "נוספה ידנית" : (SRC_NAMES[r.src || ""] || r.src);
+  return `<div class="stsec">📋 הזמנות אחרונות</div><div class="stsub">כל הזמנה שנשלחה מהאתר, ומה שהוספת ידנית</div>
+    ${rows.length ? rows.slice(0, 20).map(r => `<div style="${rowCss}">
+      <span style="flex:1;min-width:0"><b>${esc(r.name || "לקוח לא מזוהה")}</b> <span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(r.phone || "")}</span><br>
+        <span style="color:var(--muted);font-size:12.5px">${when(r.ts)} · ${esc(src(r))}${r.items ? " · " + r.items + " מוצרים" : ""}</span></span>
+      <b>${nis(Math.round(r.total || 0))}</b>
+      ${r.src === "manual" ? `<button class="dl" data-delorder="${esc(r.oid)}" title="מחיקה" style="color:#9CA3AF;font-size:16px;padding:4px 6px">🗑</button>` : ""}
+    </div>`).join("") : `<div class="hint">עוד אין הזמנות</div>`}
+    ${add}`;
+}
+async function statsAct(params){
+  const link = getStatsLink(); if(!link) throw 0;
+  const u = new URL(link); Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+  const r = await fetch(u.toString(), {cache: "no-store"}); const j = await r.json();
+  if(!r.ok || j.error) throw j.error || 0;
+  return j;
+}
+function openAddOrder(){
+  const m = ensureModal();
+  const today = new Date(); const pad = n => String(n).padStart(2, "0");
+  const dval = today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate());
+  m.innerHTML = `<div class="mbox"><h3>➕ הוספת הזמנה ידנית</h3>
+    <div class="hint" style="margin-bottom:10px">להזמנות שהגיעו בטלפון או בוואטסאפ, או להשלמת הזמנה שלא נרשמה. היא תיספר בסטטיסטיקה ובלקוחות.</div>
+    <div class="custbox" style="margin-top:0">
+      <input id="ao_name" placeholder="שם החנות / הלקוח *" maxlength="60">
+      <input id="ao_phone" type="tel" inputmode="tel" dir="ltr" placeholder="טלפון *" maxlength="20">
+      <input id="ao_total" type="number" inputmode="decimal" placeholder="סכום ההזמנה ₪ *">
+      <input id="ao_date" type="date" value="${dval}">
+    </div>
+    <div class="mact"><button class="save" id="ao_ok">שמירה</button><button class="cancel" id="ao_no">ביטול</button></div></div>`;
+  m.classList.add("show");
+  $("#ao_no").onclick = () => openStatsDash();
+  $("#ao_ok").onclick = async () => {
+    const name = $("#ao_name").value.trim(), phone = normPhone($("#ao_phone").value), total = parseFloat($("#ao_total").value);
+    const bad = [["#ao_name", name.length < 2], ["#ao_phone", !/^0\d{8,9}$/.test(phone)], ["#ao_total", !(total > 0)]];
+    bad.forEach(([id, b]) => $(id).classList.toggle("bad", b));
+    if(bad.some(x => x[1])){ toast("נא למלא שם, טלפון וסכום"); return; }
+    const d = $("#ao_date").value ? new Date($("#ao_date").value + "T12:00:00") : new Date();
+    const ts = (d.toDateString() === new Date().toDateString()) ? Date.now() : d.getTime();
+    try{ await statsAct({act: "addorder", name, phone, total, ts}); toast("ההזמנה נוספה"); openStatsDash(); }
+    catch(e){ toast("לא הצלחתי לשמור – צריך לעדכן את הגשר לגרסה 9"); }
+  };
 }
 function exportCustCsv(){
   const q = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
@@ -3632,7 +3711,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 109</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 110</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -4182,7 +4261,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "109";
+const APP_VER = "110";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
