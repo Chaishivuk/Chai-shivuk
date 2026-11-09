@@ -1071,6 +1071,16 @@ function setOrder(kind, ids){
   DB.settings.order = DB.settings.order || {};
   DB.settings.order[kind] = ids;
 }
+/* מבצעים – הסדר מתחלף אוטומטית כל יום (אותו סדר לכל הלקוחות באותו יום, מתחלף בחצות) */
+function saleDaily(){ return !(DB.settings && DB.settings.saleDaily === false); }
+function dailyMix(list){
+  const day = new Date().toLocaleDateString("en-CA", {timeZone: "Asia/Jerusalem"});
+  let h = 2166136261; for(const ch of day) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const rnd = () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+  const a = list.slice();
+  for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
 function groupList(kind){
   return orderList(kind, DB.products.filter(kind === "sale" ? (p => p.sale != null) : (p => p.isNew)));
 }
@@ -1348,7 +1358,7 @@ function render(){
       : `<div class="empty">לא מצאנו מוצרים עבור "${esc(q)}".<br>נסו מילה אחרת, או
          <a href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent("שלום, אני מחפש: " + q)}" target="_blank" rel="noopener" style="color:var(--green);font-weight:700">שאלו אותנו בוואטסאפ</a></div>`;
   } else if(view.cat === "home"){
-    const sale = groupList("sale");
+    const sale = saleDaily() ? dailyMix(groupList("sale")) : groupList("sale");
     const nw = groupList("new");
     body =
       (sale.length ? section("מבצעים", "sale", sale, true) : "") +
@@ -3642,7 +3652,9 @@ function openOrderManager(kind){
     </div>`).join("");
   m.innerHTML = `<div class="mbox">
     <h3>${title} (${list.length})</h3>
-    <div class="hint" style="margin-bottom:8px">הסדר כאן הוא הסדר שהלקוח רואה בעמוד הראשי</div>
+    ${kind === "sale" ? `<label style="display:flex;align-items:center;gap:8px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:9px 11px;margin-bottom:8px;font-size:13.5px;font-weight:700;cursor:pointer">
+      <input type="checkbox" id="orddaily" ${saleDaily() ? "checked" : ""} style="width:18px;height:18px"> 🔀 הסדר מתחלף אוטומטית כל יום</label>` : ""}
+    <div class="hint" style="margin-bottom:8px">${kind === "sale" && saleDaily() ? "כשהערבוב היומי פועל, הלקוח רואה כל יום סדר אחר. כדי לקבוע סדר קבוע – מבטלים את הסימון." : "הסדר כאן הוא הסדר שהלקוח רואה בעמוד הראשי"}</div>
     <div style="max-height:46vh;overflow:auto">${rows || '<div class="empty" style="padding:18px">אין מוצרים בקבוצה הזאת</div>'}</div>
     <div class="mact">
       <button class="save" id="ordsave">שמירת הסדר</button>
@@ -3652,6 +3664,11 @@ function openOrderManager(kind){
   </div>`;
   m.classList.add("show");
   $("#ordback").onclick = openSettings;
+  if($("#orddaily")) $("#orddaily").onchange = async e => {
+    DB.settings = DB.settings || {};
+    DB.settings.saleDaily = e.target.checked;
+    if(await saveDB()){ toast(e.target.checked ? "הסדר יתחלף כל יום" : "הסדר הקבוע חזר"); openOrderManager(kind); render(); }
+  };
   const move = (id, d) => {
     const ids = groupList(kind).map(p => p.id);
     const i = ids.indexOf(id), j = i + d;
@@ -4261,7 +4278,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "111";
+const APP_VER = "112";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
