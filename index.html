@@ -923,7 +923,7 @@ function loadCoupon(){ try{ return localStorage.getItem("chai-coupon") || ""; }c
 function saveCoupon(v){ try{ v ? localStorage.setItem("chai-coupon", v) : localStorage.removeItem("chai-coupon"); }catch(e){} }
 let couponCode = loadCoupon();
 /* מוצר שהמחיר שלו אינו כולל מע"מ – כל מה שאינו מכשיר, וכן מכשיר שסומן ידנית */
-function needsVat(p){ return p.cat !== "phones" || p.novat === true; }
+function needsVat(p){ if(p.vatIncl === true) return false; return p.cat !== "phones" || p.novat === true; }
 function vatRate(){
   const r = DB && DB.settings ? DB.settings.vatRate : null;
   return (r > 0 && r < 100) ? r / 100 : 0.18;
@@ -1075,6 +1075,7 @@ function groupList(kind){
   return orderList(kind, DB.products.filter(kind === "sale" ? (p => p.sale != null) : (p => p.isNew)));
 }
 function vatNote(p){
+  if(p.vatIncl) return `<div class="vatnote">המחיר כולל מע"מ</div>`;
   if(p.novat) return `<div class="vatnote">המחיר לא כולל מע"מ</div>`;
   return p.cat === "phones" ? `<div class="vatnote">המחיר כולל מע"מ</div>` : "";
 }
@@ -2299,7 +2300,7 @@ function renderAdmin(){
   const app = $("#app");
   if(!adminAuthed){
     app.innerHTML = `
-      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 108</div>
+      <div class="adminbar">אזור ניהול – חי שיווק · גרסה 109</div>
       <div class="loginbox">
         <h2>כניסת מנהל</h2>
         <input id="pw" type="password" inputmode="numeric" placeholder="סיסמה">
@@ -2874,7 +2875,7 @@ function drawStatsDash(d){
       <div><div class="stsec">מדינות</div>${stList(ctryRows)}</div>
     </div>
     ${errs}
-    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 108 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
+    <div class="hint" style="margin-top:12px">נתוני מוצרים וסטורי נאספים מגרסה 109 והלאה. "ביקור" = כניסה לאתר. "צפייה" = כל עמוד או מוצר שנפתח במהלך הביקור. המספרים זהים לאלה שב-Cloudflare. כניסות מהמכשירים שלך (שנכנסו לניהול) לא נספרות, והנתונים מתעדכנים בהשהיה של כמה דקות.</div>
     <div class="mact" style="flex-wrap:wrap">
       <button class="save" id="sd_ref">רענון</button>
       <button class="abtn" id="sd_img">📷 תמונה</button>
@@ -3631,7 +3632,7 @@ function openHistory(){
 }
 function renderTokenGate(){
   $("#app").innerHTML = `
-    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 108</div>
+    <div class="adminbar">אזור ניהול – חי שיווק · גרסה 109</div>
     <div class="loginbox">
       <h2>חיבור ראשוני</h2>
       <p style="font-size:14px;color:var(--muted);margin-bottom:10px">במכשיר הזה צריך פעם אחת להדביק את מפתח הגישה (מתחיל ב-github_pat)</p>
@@ -3670,6 +3671,7 @@ function openEditor(id){
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
     <div class="chk"><input type="checkbox" id="f_new" ${p && p.isNew ? "checked" : ""}><label for="f_new">מוצר חדש</label></div>
     <div class="chk"><input type="checkbox" id="f_novat" ${p && p.novat ? "checked" : ""}><label for="f_novat">המחיר לא כולל מע"מ</label></div>
+    <div class="chk"><input type="checkbox" id="f_vatincl" ${p && p.vatIncl ? "checked" : ""}><label for="f_vatincl">המחיר כבר כולל מע"מ (בלי תוספת בעגלה)</label></div>
     <div class="chk"><input type="checkbox" id="f_issale" ${p && p.sale != null ? "checked" : ""}><label for="f_issale">במבצע</label></div>
     <div class="fld" id="salewrap" style="display:${p && p.sale != null ? "block" : "none"}"><label>מחיר מבצע (₪)</label><input id="f_sale" type="number" inputmode="decimal" value="${p && p.sale != null ? p.sale : ""}"></div>
     <div class="chk"><input type="checkbox" id="f_istier" ${p && p.tier ? "checked" : ""}><label for="f_istier">מחיר מיוחד לכמות</label></div>
@@ -3786,6 +3788,7 @@ function openEditor(id){
       isNew: $("#f_new").checked,
       kw: $("#f_kw").value.trim(),
       novat: $("#f_novat").checked,
+      vatIncl: $("#f_vatincl").checked,
       sale: $("#f_issale").checked ? (parseFloat($("#f_sale").value) || null) : null,
       tier: $("#f_istier").checked ? {
         qty: parseInt($("#f_tqty").value) || 0,
@@ -4179,7 +4182,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "108";
+const APP_VER = "109";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
