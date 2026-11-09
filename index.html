@@ -2056,7 +2056,7 @@ function flushOutbox(){
     saveOutbox(keep);
   }catch(e){}
 }
-const OUTBOX_RESEND = false;   /* יופעל אחרי עדכון הגשר לגרסה 9 (מסנן כפילויות) */
+const OUTBOX_RESEND = true;    /* הגשר בגרסה 9 מסנן כפילויות לפי eid */
 if(OUTBOX_RESEND) setTimeout(flushOutbox, 4000);
 /* מקור ההגעה (?src=status/qr/ad...) – נשמר 7 ימים ומצורף להזמנה */
 (function(){
@@ -4261,7 +4261,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "110";
+const APP_VER = "111";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
