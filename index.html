@@ -1092,9 +1092,10 @@ function vatNote(p){
   return p.cat === "phones" ? `<div class="vatnote">המחיר כולל מע"מ</div>` : "";
 }
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
-/* מחיר לצרכן – מוצג רק כשהוא גבוה מהמחיר שלנו */
+/* מחיר לצרכן (כולל מע"מ) – מוצג רק כשהוא גבוה מהמחיר שלנו כולל מע"מ */
 function msrpLine(p, full){
-  if(!(p.msrp > basePrice(p))) return "";
+  const ours = basePrice(p) * (needsVat(p) ? 1 + vatRate() : 1);
+  if(!(p.msrp > ours * 1.05)) return "";
   return `<div class="pmsrp">מחיר לצרכן <b>${nis(p.msrp)}</b>${full ? " (כולל מע\"מ)" : ""}</div>`;
 }
 function sortList(ps){
@@ -3773,7 +3774,7 @@ function openEditor(id){
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
     <div class="fld"><label>מחיר לצרכן (₪) – לא חובה</label><input id="f_msrp" type="number" inputmode="decimal" value="${p && p.msrp ? p.msrp : ""}" placeholder="ריק = לא מוצג">
-      <div class="hint">מחיר השוק בחנויות, כולל מע"מ. מוצג ללקוח מתחת למחיר, רק אם הוא גבוה מהמחיר שלנו.${p && p.msrpSrc ? `<br>מקור: ${esc(p.msrpSrc)}` : ""}</div></div>
+      <div class="hint">מחיר השוק בחנויות, כולל מע"מ. מוצג ללקוח מתחת למחיר, רק אם הוא גבוה ביותר מ-5% מהמחיר שלנו כולל מע"מ.${p && p.msrpSrc ? `<br>מקור: ${esc(p.msrpSrc)}` : ""}</div></div>
     <div class="fld" id="subfld" style="display:none"><label>תת קטגוריה</label><select id="f_sub"></select></div>
     <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku(p ? p.cat : (DB.categories[0] || {}).id)}"><div class="hint">נוצר אוטומטית לפי מספור הקטגוריה – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
