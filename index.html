@@ -1143,8 +1143,13 @@ function isAdminRoute(){ return adminMode || location.hash === "#admin"; }
 /* ---------- קישור ישיר למוצר ---------- */
 function hashKey(){
   try{
-    const q = new URLSearchParams(location.search).get("p");
+    const u = new URLSearchParams(location.search);
+    const q = u.get("p");
     if(q) return q;
+    /* קישור קצר: פרמטר בלי ערך הוא מק"ט, למשל ?5019 או ?5019&src=qr */
+    for(const [k, v] of u){
+      if(v === "" && k !== "new" && /^[A-Za-z0-9_-]{1,30}$/.test(k)) return k;
+    }
   }catch(e){}
   const pm = location.pathname.match(/\/product-([^\/]+)$/);
   if(pm) return decodeURIComponent(pm[1]);
@@ -1204,7 +1209,7 @@ function backToList(){
 function toTop(){ justReturned = false; window.scrollTo({top: 0, behavior: "smooth"}); }
 const BASE_PATH = location.pathname.replace(/[^\/]*$/, "");
 function productUrl(p){
-  return location.origin + BASE_PATH + "?p=" + encodeURIComponent(p.id);
+  return location.origin + BASE_PATH + "?" + encodeURIComponent(p.sku || p.id);   /* קישור קצר לפי מק"ט, למשל ?5019 */
 }
 async function shareProduct(p){
   const url = productUrl(p);
@@ -4308,7 +4313,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "116";
+const APP_VER = "117";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
