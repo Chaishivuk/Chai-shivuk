@@ -153,8 +153,6 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 /* Product grid */
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
 .rail{display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:8px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
-/* שורת המבצעים זורמת משמאל לימין בפריסה, כך שהגלילה האוטומטית מזיזה את המוצרים מימין לשמאל */
-.rail.ltr{direction:ltr} .rail.ltr > *{direction:rtl}
 .rail>.pcard{flex:0 0 40%; scroll-snap-align:center}
 .rail.auto{scroll-snap-type:none}
 .rail::-webkit-scrollbar{height:6px}
@@ -1463,7 +1461,7 @@ function section(title, tag, products, rail){
   const tg = tag ? `<span class="tag ${tag}">${tag==="sale"?"מבצע":"חדש"}</span>` : "";
   return `<div class="sect">
     <div class="secthead"><h2>${esc(title)}</h2>${tg}</div>
-    <div class="${rail ? (tag === "sale" ? "rail ltr" : "rail") : "grid"}"${rail ? ` data-rail="${esc(tag || title)}"` : ""}>${products.map(card).join("")}</div>
+    <div class="${rail ? "rail" : "grid"}"${rail ? ` data-rail="${esc(tag || title)}"` : ""}>${products.map(card).join("")}</div>
   </div>`;
 }
 
@@ -1526,6 +1524,21 @@ function autoRail(el){
   const maxOf = () => el.scrollWidth - el.clientWidth;
   if(maxOf() < 30) return;
   el.classList.add("auto");
+  /* פס מסתובב: עותק של כל המוצרים מתווסף בסוף השורה, ואחרי המוצר האחרון מגיע שוב הראשון בלי קפיצה */
+  if(!el.querySelector(".rclone")){
+    Array.from(el.children).forEach(c => {
+      const k = c.cloneNode(true);
+      k.classList.add("rclone");
+      k.setAttribute("aria-hidden", "true");
+      k.querySelectorAll("img").forEach(i => { i.loading = "lazy"; i.removeAttribute("fetchpriority"); });
+      k.querySelectorAll("button").forEach(b => b.tabIndex = -1);
+      el.appendChild(k);
+    });
+  }
+  const period = () => {                /* רוחב סט אחד של מוצרים – המרחק בין המוצר הראשון לעותק שלו */
+    const n = el.children.length / 2;
+    return n >= 1 ? Math.abs(el.children[n].offsetLeft - el.children[0].offsetLeft) : 0;
+  };
 
   /* נגיעה עוצרת מיד – וברגע שמרימים את האצבע התנועה חוזרת מאותו מקום */
   let paused = false, resumeT = null, holding = false;
@@ -1547,7 +1560,7 @@ function autoRail(el){
   el.addEventListener("mouseenter", pause);
   el.addEventListener("mouseleave", release);
 
-  let seen = true, back = false, last = 0;
+  let seen = true, last = 0;
   let dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;   /* לפי כיוון השורה; נבדק בפועל ומתוקן אם צריך */
   let pos = el.scrollLeft;
   let probeAt = 0, probeFrom = pos, tries = 0;
@@ -1562,7 +1575,7 @@ function autoRail(el){
     const dt = Math.min(60, ts - last);
     last = ts;
     if(paused){ pos = el.scrollLeft; return; }      /* מסתנכרנים למקום שהלקוח עצר בו */
-    if(document.hidden || !seen || back) return;
+    if(document.hidden || !seen) return;
     const max = maxOf();
     if(max < 30) return;
 
@@ -1577,15 +1590,8 @@ function autoRail(el){
     }
 
     pos += dir * SPEED * (dt / 16.7);
-    if(Math.abs(pos) >= max - 1){     /* הגענו לסוף – חוזרים להתחלה בלולאה */
-      back = true;
-      el.scrollLeft = dir * max;
-      setTimeout(() => {
-        el.scrollTo({left: 0, behavior: "smooth"});
-        setTimeout(() => { pos = 0; back = false; }, 1000);
-      }, 1000);
-      return;
-    }
+    const P = period();
+    if(P > 0 && Math.abs(pos) >= P) pos -= dir * P;   /* עברנו סט שלם – חוזרים לאותה נקודה בסט הראשון, נראה זהה */
     el.scrollLeft = pos;
     railScroll[el.dataset.rail] = pos;
   };
@@ -4302,7 +4308,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "115";
+const APP_VER = "116";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
