@@ -413,8 +413,9 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .stlist .bar{flex:0 0 32%; height:8px; background:#EEF2F8; border-radius:5px; overflow:hidden}
 .stlist .bar i{display:block; height:100%; background:var(--green); border-radius:5px}
 .stlist .c{flex:0 0 44px; text-align:left; font-weight:700; font-size:13.5px}
-.stgrid{display:grid; grid-template-columns:1fr; gap:4px 18px}
-@media(min-width:620px){.stgrid{grid-template-columns:1fr 1fr}}
+.stgrid{display:grid; grid-template-columns:minmax(0,1fr); gap:4px 18px}
+.stgrid > div{min-width:0}   /* שמות מוצרים ארוכים לא מרחיבים את העמודה מעבר למסך */
+@media(min-width:620px){.stgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .mbox h3{margin-bottom:14px; font-size:18px}
 .fld{margin-bottom:12px}
 .fld label{display:block; font-weight:700; font-size:13.5px; margin-bottom:5px}
@@ -4313,7 +4314,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "117";
+const APP_VER = "118";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
