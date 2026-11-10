@@ -153,6 +153,8 @@ main{max-width:1100px; margin:0 auto; padding:0 14px 110px}
 /* Product grid */
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
 .rail{display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:8px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
+/* שורת המבצעים זורמת משמאל לימין בפריסה, כך שהגלילה האוטומטית מזיזה את המוצרים מימין לשמאל */
+.rail.ltr{direction:ltr} .rail.ltr > *{direction:rtl}
 .rail>.pcard{flex:0 0 40%; scroll-snap-align:center}
 .rail.auto{scroll-snap-type:none}
 .rail::-webkit-scrollbar{height:6px}
@@ -1461,7 +1463,7 @@ function section(title, tag, products, rail){
   const tg = tag ? `<span class="tag ${tag}">${tag==="sale"?"מבצע":"חדש"}</span>` : "";
   return `<div class="sect">
     <div class="secthead"><h2>${esc(title)}</h2>${tg}</div>
-    <div class="${rail ? "rail" : "grid"}"${rail ? ` data-rail="${esc(tag || title)}"` : ""}>${products.map(card).join("")}</div>
+    <div class="${rail ? (tag === "sale" ? "rail ltr" : "rail") : "grid"}"${rail ? ` data-rail="${esc(tag || title)}"` : ""}>${products.map(card).join("")}</div>
   </div>`;
 }
 
@@ -1546,7 +1548,7 @@ function autoRail(el){
   el.addEventListener("mouseleave", release);
 
   let seen = true, back = false, last = 0;
-  let dir = -1;                       /* ברירת מחדל ל-RTL; נבדק בפועל ומתוקן אם צריך */
+  let dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;   /* לפי כיוון השורה; נבדק בפועל ומתוקן אם צריך */
   let pos = el.scrollLeft;
   let probeAt = 0, probeFrom = pos, tries = 0;
   if("IntersectionObserver" in window){
@@ -4300,7 +4302,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "114";
+const APP_VER = "115";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
