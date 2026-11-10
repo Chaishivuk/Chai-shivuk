@@ -444,6 +444,8 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .sharebtn{background:#fff; border:1.5px solid var(--line); border-radius:10px; padding:7px 13px; font-size:13.5px; font-weight:700; color:var(--ink); white-space:nowrap}
 .sharebtn:active{background:#F3F6FB}
 .vatnote{font-size:11px; color:var(--muted); margin:1px 0 3px; font-weight:600}
+.pmsrp{font-size:11.5px; color:var(--muted); font-weight:600}
+.pmsrp b{color:var(--ink, #1F2937); font-weight:700}
 .ppcolors{margin-top:12px}
 .ppcolors .cl{font-size:13px; color:var(--muted); font-weight:700; margin-bottom:6px}
 .colrow{display:flex; flex-wrap:wrap; gap:7px}
@@ -1090,6 +1092,11 @@ function vatNote(p){
   return p.cat === "phones" ? `<div class="vatnote">המחיר כולל מע"מ</div>` : "";
 }
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
+/* מחיר לצרכן – מוצג רק כשהוא גבוה מהמחיר שלנו */
+function msrpLine(p, full){
+  if(!(p.msrp > basePrice(p))) return "";
+  return `<div class="pmsrp">מחיר לצרכן <b>${nis(p.msrp)}</b>${full ? " (כולל מע\"מ)" : ""}</div>`;
+}
 function sortList(ps){
   if(view.sort === "asc")  return ps.slice().sort((a,b) => basePrice(a) - basePrice(b));
   if(view.sort === "desc") return ps.slice().sort((a,b) => basePrice(b) - basePrice(a));
@@ -1476,6 +1483,7 @@ function card(p){
         <div class="pname">${esc(p.name)}</div>
         <div class="psku">מק"ט ${p.sku}</div>
         <div class="prices">${prices}</div>
+        ${msrpLine(p)}
         ${vatNote(p)}
         <button class="notifybtn" data-notify="${p.id}">🔔 עדכנו אותי כשחוזר</button>
       </div>
@@ -1491,6 +1499,7 @@ function card(p){
       <div class="pname" data-open="${p.id}">${esc(p.name)}</div>
       <div class="psku">מק"ט ${p.sku}</div>
       <div class="prices">${prices}</div>
+      ${msrpLine(p)}
       ${vatNote(p)}
       ${tier}
       ${btn}
@@ -1718,6 +1727,7 @@ function renderProduct(){
         <div style="display:flex;align-items:center;gap:8px">${badge}<span class="psku">מק"ט ${p.sku}</span></div>
         <h1>${esc(p.name)}</h1>
         <div class="prices">${prices}</div>
+        ${msrpLine(p, true)}
         ${vatNote(p)}
         ${tier}
         ${colorsBox}
@@ -3762,6 +3772,8 @@ function openEditor(id){
       <div class="fld"><label>מחיר (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${p ? p.price : ""}"></div>
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
+    <div class="fld"><label>מחיר לצרכן (₪) – לא חובה</label><input id="f_msrp" type="number" inputmode="decimal" value="${p && p.msrp ? p.msrp : ""}" placeholder="ריק = לא מוצג">
+      <div class="hint">מחיר השוק בחנויות, כולל מע"מ. מוצג ללקוח מתחת למחיר, רק אם הוא גבוה מהמחיר שלנו.${p && p.msrpSrc ? `<br>מקור: ${esc(p.msrpSrc)}` : ""}</div></div>
     <div class="fld" id="subfld" style="display:none"><label>תת קטגוריה</label><select id="f_sub"></select></div>
     <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku(p ? p.cat : (DB.categories[0] || {}).id)}"><div class="hint">נוצר אוטומטית לפי מספור הקטגוריה – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
@@ -3892,6 +3904,11 @@ function openEditor(id){
       } : null
     };
     if(obj.tier && (!obj.tier.qty || !obj.tier.price)) obj.tier = null;
+    const msrp = parseFloat($("#f_msrp").value);
+    if(msrp > 0){
+      obj.msrp = msrp;
+      if(p && p.msrp === msrp && p.msrpSrc) obj.msrpSrc = p.msrpSrc;   /* המקור נשמר רק אם המחיר לא שונה ידנית */
+    }
     if(imgData && imgData.startsWith("data:")){
       const path = "images/" + obj.id + "-" + Date.now() + ".jpg";
       pendingImgs[path] = imgData.split(",")[1];
@@ -4278,7 +4295,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "112";
+const APP_VER = "113";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
