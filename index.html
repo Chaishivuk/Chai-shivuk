@@ -1093,7 +1093,9 @@ function vatNote(p){
 }
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
 /* מחיר לצרכן (כולל מע"מ) – מוצג רק כשהוא גבוה מהמחיר שלנו כולל מע"מ */
+function showMsrp(){ return !!(DB && DB.settings && DB.settings.showMsrp); }   /* כבוי כברירת מחדל – מדליקים בהגדרות */
 function msrpLine(p, full){
+  if(!showMsrp()) return "";
   const ours = basePrice(p) * (needsVat(p) ? 1 + vatRate() : 1);
   if(!(p.msrp > ours * 1.05)) return "";
   return `<div class="pmsrp">מחיר לצרכן <b>${nis(p.msrp)}</b>${full ? " (כולל מע\"מ)" : ""}</div>`;
@@ -3563,6 +3565,7 @@ function openSettings(){
       <textarea id="setvat" rows="3" style="width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;font-size:15px" placeholder='למשל: המחירים כוללים מע"מ'>${esc(vatText())}</textarea>
       <div class="hint">כל שורה חדשה (Enter) תופיע כשורה נוספת מתחת · השאר ריק כדי להסתיר לגמרי</div>
     </div>
+    <div class="chk" style="margin-bottom:12px"><input type="checkbox" id="setmsrp" ${showMsrp() ? "checked" : ""}><label for="setmsrp">הצג "מחיר לצרכן" ללקוחות</label></div>
     <div class="fld"><label>סיסמה חדשה לניהול</label><input id="np1" type="password" placeholder="השאר ריק כדי לא לשנות"></div>
     <div class="fld"><label>אימות סיסמה</label><input id="np2" type="password"></div>
     <button class="abtn" id="setquick" style="width:100%;margin-bottom:8px">⚡ עריכה מהירה</button>
@@ -3591,6 +3594,7 @@ function openSettings(){
       if(a !== b){ toast("הסיסמאות לא זהות"); return; }
       DB.settings.passHash = await sha256(a);
     }
+    DB.settings.showMsrp = $("#setmsrp").checked;
     DB.settings.vatText = $("#setvat").value.replace(/[ \t]+$/gm, "").replace(/^\n+|\n+$/g, "");
     if(await saveDB()){ m.classList.remove("show"); toast("ההגדרות נשמרו"); render(); }
   };
@@ -3774,7 +3778,7 @@ function openEditor(id){
       <div class="fld"><label>קטגוריה</label><select id="f_cat">${cats}</select></div>
     </div>
     <div class="fld"><label>מחיר לצרכן (₪) – לא חובה</label><input id="f_msrp" type="number" inputmode="decimal" value="${p && p.msrp ? p.msrp : ""}" placeholder="ריק = לא מוצג">
-      <div class="hint">מחיר השוק בחנויות, כולל מע"מ. מוצג ללקוח מתחת למחיר, רק אם הוא גבוה ביותר מ-5% מהמחיר שלנו כולל מע"מ.${p && p.msrpSrc ? `<br>מקור: ${esc(p.msrpSrc)}` : ""}</div></div>
+      <div class="hint">מחיר השוק בחנויות, כולל מע"מ. מוצג ללקוח מתחת למחיר (כשהאפשרות מופעלת בהגדרות), רק אם הוא גבוה ביותר מ-5% מהמחיר שלנו כולל מע"מ.${p && p.msrpSrc ? `<br>מקור: ${esc(p.msrpSrc)}` : ""}</div></div>
     <div class="fld" id="subfld" style="display:none"><label>תת קטגוריה</label><select id="f_sub"></select></div>
     <div class="fld"><label>מק"ט</label><input id="f_sku" value="${p ? p.sku : newSku(p ? p.cat : (DB.categories[0] || {}).id)}"><div class="hint">נוצר אוטומטית לפי מספור הקטגוריה – אפשר לשנות</div></div>
     <div class="chk"><input type="checkbox" id="f_stock" ${!p || p.stock ? "checked" : ""}><label for="f_stock">קיים במלאי</label></div>
