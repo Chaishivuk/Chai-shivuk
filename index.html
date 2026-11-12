@@ -1999,6 +1999,30 @@ function recsHTML(items){
       <div class="n">${esc(p.name)}</div><div class="p">${nis(effPrice(p, 1))}</div>
       <button data-radd="${p.id}">+ הוסף</button></div>`).join("")}</div></div>`;
 }
+/* הצעת מגן בסל: לכל פלאפון בהזמנה מוצעים המגנים שמתאימים לו (שדה fit באפשרויות של מוצר המגן), בכמות של הפלאפונים */
+function caseOffers(items){
+  const phones = {};
+  items.forEach(({p, qty}) => { phones[p.id] = (phones[p.id] || 0) + qty; });
+  const out = [];
+  (DB.products || []).forEach(cp => {
+    if(!cp.stock || !Array.isArray(cp.colors)) return;
+    cp.colors.forEach(c => {
+      if(c.s === false || !Array.isArray(c.fit)) return;
+      const q = c.fit.reduce((t, id) => t + (phones[id] || 0), 0);
+      const k = ckey(cp.id, c.n);
+      if(q > 0 && !cart[k]) out.push({cp, c, q, k});
+    });
+  });
+  return out.slice(0, 8);
+}
+function caseOffersHTML(items){
+  const o = caseOffers(items);
+  if(!o.length) return "";
+  return `<div class="recs"><h4>🛡️ מגן לפלאפונים שבהזמנה</h4><div class="rr">${o.map(x => `
+    <div class="rc">${(x.c.img || x.cp.img) ? `<img src="${x.c.img || x.cp.img}" alt="" loading="lazy">` : ""}
+      <div class="n">מגן ${esc(x.c.n)}</div><div class="p">${nis(effPrice(x.cp, x.q))} ליח'</div>
+      <button data-caseadd="${esc(x.k)}" data-caseq="${x.q}">+ הוסף ${x.q}</button></div>`).join("")}</div></div>`;
+}
 function openCart(){
   const list = $("#dlist");
   const _items = cartItems();
@@ -2015,8 +2039,9 @@ function openCart(){
       <div class="qty">
         <button data-cadd="${esc(key)}">+</button><b>${qty}</b><button data-csub="${esc(key)}">−</button>
       </div>
-    </div>`).join("") + (_items.length ? recsHTML(_items) : `<div class="cempty"><b>🛒 העגלה ריקה</b>מוסיפים מוצרים מהקטלוג בלחיצה על "הוסף לסל"</div>`);
+    </div>`).join("") + (_items.length ? caseOffersHTML(_items) + recsHTML(_items) : `<div class="cempty"><b>🛒 העגלה ריקה</b>מוסיפים מוצרים מהקטלוג בלחיצה על "הוסף לסל"</div>`);
   list.querySelectorAll("[data-radd]").forEach(b => b.onclick = () => { bump(b.dataset.radd, 1); saveCart(); openCart(); updateCartUI(); toast("נוסף להזמנה"); });
+  list.querySelectorAll("[data-caseadd]").forEach(b => b.onclick = () => { const q = +b.dataset.caseq || 1; bump(b.dataset.caseadd, q); saveCart(); openCart(); updateCartUI(); toast(q + " מגנים נוספו להזמנה"); });
   const sb = $("#dsumbox");
   if(sb){ sb.innerHTML = sumBoxHTML(); bindSumBox(); }
   list.querySelectorAll("[data-cadd]").forEach(b => b.onclick = () => { bump(b.dataset.cadd, 1); openCart(); updateCartUI(); });
@@ -3891,7 +3916,7 @@ function openEditor(id){
     for(const f of e.target.files){ extraImgs.push(await shrinkImage(f)); }
     e.target.value = ""; paintMore();
   };
-  let colors = (p && Array.isArray(p.colors)) ? p.colors.map(c => ({n: c.n, s: c.s !== false})) : [];
+  let colors = (p && Array.isArray(p.colors)) ? p.colors.map(c => ({n: c.n, s: c.s !== false, fit: c.fit, img: c.img})) : [];
   function paintColors(){
     const box = $("#colorslist");
     if(!box) return;
@@ -3974,7 +3999,12 @@ function openEditor(id){
       obj.img = imgData;
     }
     obj.colors = $("#f_iscolors").checked
-      ? colors.filter(c => c.n && c.n.trim()).map(c => ({n: c.n.trim(), s: !!c.s}))
+      ? colors.filter(c => c.n && c.n.trim()).map(c => {
+          const o = {n: c.n.trim(), s: !!c.s};
+          if(Array.isArray(c.fit) && c.fit.length) o.fit = c.fit;   /* לאיזה פלאפון המגן מתאים – להצעה בסל */
+          if(c.img) o.img = c.img;
+          return o;
+        })
       : [];
     const optLabel = ($("#f_optlabel") && $("#f_optlabel").value.trim()) || "";
     if(obj.colors.length && optLabel) obj.optLabel = optLabel;
@@ -4355,7 +4385,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "120";
+const APP_VER = "121";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
