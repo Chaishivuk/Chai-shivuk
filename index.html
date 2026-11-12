@@ -2900,7 +2900,7 @@ function drawStatsDash(d){
 
   const refName = h => {
     h = String(h || "").toLowerCase();
-    if(!h || h === "chaishivuk.github.io") return "כניסה ישירה";
+    if(!h || h === location.hostname || /^(chaishivuk\.github\.io|(www\.)?chaishivuk\.co\.il)$/.test(h)) return "כניסה ישירה";
     if(/whatsapp|wa\.me|wl\.co/.test(h)) return "וואטסאפ";
     if(/google/.test(h)) return "גוגל";
     if(/facebook|fb\./.test(h)) return "פייסבוק";
@@ -3036,7 +3036,7 @@ function custSection(rows){
   const row = (r, call) => `<div class="r" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F0F2F5;font-size:14px">
       <span style="flex:1;min-width:0"><b>${esc(r.name || "ללא שם")}</b><br><span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(r.phone)}</span></span>
       <span style="text-align:left;font-size:12.5px;color:var(--muted)">${r.n} הזמנות · ${nis(Math.round(r.s || 0))}<br>${ago(r.last)}</span>
-      ${call ? `<a href="${waLink(r.phone, "שלום " + (r.name || "") + ", מה שלומך? רצינו לעדכן שיש מוצרים חדשים באתר חי שיווק: https://chaishivuk.github.io/Chai-shivuk/")}" target="_blank" rel="noopener" style="background:var(--green);color:#fff;border-radius:8px;padding:6px 9px;font-weight:700;font-size:12.5px;text-decoration:none">וואטסאפ</a>` : ""}
+      ${call ? `<a href="${waLink(r.phone, "שלום " + (r.name || "") + ", מה שלומך? רצינו לעדכן שיש מוצרים חדשים באתר חי שיווק: " + BASE_URL)}" target="_blank" rel="noopener" style="background:var(--green);color:#fff;border-radius:8px;padding:6px 9px;font-weight:700;font-size:12.5px;text-decoration:none">וואטסאפ</a>` : ""}
     </div>`;
   return `
     <div class="stsec">👥 לקוחות</div>
@@ -3051,7 +3051,7 @@ function custSection(rows){
     ${rows.length ? `<button class="abtn" id="sd_csv" style="margin-top:10px">📥 ייצוא לקוחות לאקסל</button>` : ""}`;
 }
 const SRC_NAMES = {app: "📲 האפליקציה (מסך הבית)", status: "סטטוס וואטסאפ", qr: "שלט QR בחנות", ad: "מודעה", broadcast: "רשימת תפוצה", group: "קבוצת וואטסאפ", "": "ישיר / לא מסומן"};
-const BASE_URL = "https://chaishivuk.github.io/Chai-shivuk/";
+const BASE_URL = location.origin + BASE_PATH;   /* כתובת האתר הנוכחית – עובד גם בדומיין chaishivuk.co.il וגם בכתובת הישנה */
 function agoTxt(t){ const x = Math.floor((Date.now() - t) / 864e5); return x <= 0 ? "היום" : x === 1 ? "אתמול" : "לפני " + x + " ימים"; }
 function waBtn(phone, text){
   return phone ? `<a href="${waLink(phone, text)}" target="_blank" rel="noopener" style="background:var(--green);color:#fff;border-radius:8px;padding:6px 9px;font-weight:700;font-size:12.5px;text-decoration:none;white-space:nowrap">וואטסאפ</a>` : "";
@@ -4386,7 +4386,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "122";
+const APP_VER = "123";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
