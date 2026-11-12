@@ -2020,7 +2020,7 @@ function caseOffersHTML(items){
   if(!o.length) return "";
   return `<div class="recs"><h4>🛡️ מגן לפלאפונים שבהזמנה</h4><div class="rr">${o.map(x => `
     <div class="rc">${(x.c.img || x.cp.img) ? `<img src="${x.c.img || x.cp.img}" alt="" loading="lazy">` : ""}
-      <div class="n">מגן ${esc(x.c.n)}</div><div class="p">${nis(effPrice(x.cp, x.q))} ליח'</div>
+      <div class="n">${esc(x.cp.offerName || "מגן")} ${esc(x.c.n)}</div><div class="p">${nis(effPrice(x.cp, x.q))} ליח'</div>
       <button data-caseadd="${esc(x.k)}" data-caseq="${x.q}">+ הוסף ${x.q}</button></div>`).join("")}</div></div>`;
 }
 function openCart(){
@@ -4009,6 +4009,7 @@ function openEditor(id){
     const optLabel = ($("#f_optlabel") && $("#f_optlabel").value.trim()) || "";
     if(obj.colors.length && optLabel) obj.optLabel = optLabel;
     if(obj.colors.length && $("#f_optreq") && $("#f_optreq").checked) obj.optRequired = true;
+    if(p && p.offerName) obj.offerName = p.offerName;      /* השם בהצעה בסל, למשל "מגן מסך" */
     obj.sub = ($("#f_sub") && $("#f_sub").value) ? $("#f_sub").value : null;
     obj.desc = $("#f_desc").value.trim();
     obj.imgs = extraImgs.map((s, i) => {
@@ -4385,7 +4386,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "121";
+const APP_VER = "122";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
