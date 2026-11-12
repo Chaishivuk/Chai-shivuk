@@ -454,6 +454,13 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .colchip.on{background:var(--ink); color:#fff; border-color:var(--ink)}
 .colchip.off{opacity:.45; text-decoration:line-through}
 .dcol{font-size:12px; color:var(--muted); font-weight:600}
+.optlist{margin-top:12px; border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.optlist .oh{background:#F6F7F9; padding:8px 12px; font-weight:800; font-size:14px}
+.optrow{display:flex; align-items:center; gap:10px; padding:8px 12px; border-top:1px solid var(--line)}
+.optrow .on{flex:1; min-width:0; font-weight:700; font-size:15px}
+.optrow .addbtn{margin-top:0; flex:0 0 132px; padding:7px}
+.optrow.off .on{color:var(--muted); font-weight:600}
+.optsum{padding:8px 12px; border-top:1px solid var(--line); font-size:13.5px; color:var(--green-dark); font-weight:700; background:#EAF7EF}
 .crow{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed var(--line)}
 .crow:last-child{border-bottom:0}
 .crow .cn{flex:1}
@@ -1093,6 +1100,9 @@ function vatNote(p){
   return p.cat === "phones" ? `<div class="vatnote">המחיר כולל מע"מ</div>` : "";
 }
 function basePrice(p){ return (p.sale != null) ? p.sale : p.price; }
+/* אפשרויות למוצר: ברירת מחדל "צבע". מוצר עם optRequired (למשל מגן לפי דגם) – הלקוח חייב לבחור, וכמות נפרדת לכל אפשרות */
+function optName(p){ return (p && p.optLabel) || "צבע"; }
+function optReq(p){ return !!(p && p.optRequired && Array.isArray(p.colors) && p.colors.length); }
 /* מחיר לצרכן (כולל מע"מ) – מוצג רק כשהוא גבוה מהמחיר שלנו כולל מע"מ */
 function showMsrp(){ return !!(DB && DB.settings && DB.settings.showMsrp); }   /* כבוי כברירת מחדל – מדליקים בהגדרות */
 function msrpLine(p, full){
@@ -1498,7 +1508,9 @@ function card(p){
       </div>
     </div>`;
   }
-  const btn = qty === 0
+  const btn = optReq(p)
+    ? `<button class="addbtn" data-open="${p.id}">${qty ? `בסל: ${qty} · שינוי` : `בחירת ${esc(optName(p))}`}</button>`
+    : qty === 0
     ? `<button class="addbtn" data-add="${p.id}">הוסף לסל</button>`
     : `<div class="addbtn inc"><button data-add="${p.id}" style="font-size:19px;font-weight:800;padding:2px 12px">+</button><b>${qty}</b><button data-sub="${p.id}" style="font-size:19px;font-weight:800;padding:2px 12px">−</button></div>`;
   return `<div class="pcard">
@@ -1702,8 +1714,9 @@ function renderProduct(){
   if(view.color && !cols.some(c => c.n === view.color && c.s !== false)) view.color = null;
   const key = ckey(p.id, view.color);
   const qty = cart[key] || 0;
-  const colorsBox = cols.length ? `<div class="ppcolors">
-      <div class="cl">צבע:</div>
+  const req = optReq(p);
+  const colorsBox = req ? "" : cols.length ? `<div class="ppcolors">
+      <div class="cl">${esc(optName(p))}:</div>
       <div class="colrow">
         <button class="colchip ${!view.color ? "on" : ""}" data-col="">לא משנה</button>
         ${cols.map(c => c.s === false
@@ -1717,10 +1730,22 @@ function renderProduct(){
     ? `<span class="pprice" style="font-size:22px">${nis(p.sale)}</span><span class="pold">${nis(p.price)}</span>`
     : `<span class="pprice" style="font-size:22px">${nis(basePrice(p))}</span>`;
   const tier = p.tier ? `<div class="ptier" style="margin-top:6px">מעל ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</div>` : "";
-  const tierBtn = (p.tier && p.stock && qty < p.tier.qty)
+  const tierBtn = (p.tier && p.stock && qty < p.tier.qty && !optReq(p))
     ? `<button class="tierbtn" data-tierk="${esc(key)}" data-tierq="${p.tier.qty}">⚡ הוסף ${p.tier.qty} יח' – ${nis(p.tier.price)} ליח'</button>` : "";
   let btn;
   if(!p.stock) btn = `<button class="oosbtn" disabled>אזל במלאי</button><button class="notifybtn" data-notify="${p.id}">🔔 עדכנו אותי כשהמוצר חוזר למלאי</button>`;
+  else if(req){
+    const tot = pidQty(p.id);
+    btn = `<div class="optlist"><div class="oh">בחרו ${esc(optName(p))} וכמות לכל אחד:</div>
+      ${cols.map(c => {
+        const k = ckey(p.id, c.n), q = cart[k] || 0;
+        if(c.s === false) return `<div class="optrow off"><span class="on">${esc(c.n)}</span><span class="hint">אזל</span></div>`;
+        return `<div class="optrow"><span class="on">${esc(c.n)}</span>${q === 0
+          ? `<button class="addbtn" data-addk="${esc(k)}">הוסף</button>`
+          : `<div class="addbtn inc"><button data-addk="${esc(k)}" style="font-size:20px;font-weight:800;padding:0 12px">+</button><b>${q}</b><button data-subk="${esc(k)}" style="font-size:20px;font-weight:800;padding:0 12px">−</button></div>`}</div>`;
+      }).join("")}
+      ${tot ? `<div class="optsum">✓ בסל: ${tot} יח' מהמוצר הזה</div>` : ""}</div>`;
+  }
   else btn = qty === 0
     ? `<button class="addbtn" data-addk="${esc(key)}">הוסף לסל</button>`
     : `<div class="addbtn inc"><button data-addk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">+</button><b>${qty}</b><button data-subk="${esc(key)}" style="font-size:20px;font-weight:800;padding:2px 14px">−</button></div>`;
@@ -1984,7 +2009,7 @@ function openCart(){
     <div class="drow">
       ${p.img ? `<img src="${p.img}">` : `<div style="width:52px;height:52px;border:1px solid var(--line);border-radius:9px"></div>`}
       <div class="dinfo">
-        <div class="n">${esc(p.name)}${color ? ` <span class="dcol">צבע: ${esc(color)}</span>` : ""}</div>
+        <div class="n">${esc(p.name)}${color ? ` <span class="dcol">${esc(optName(p))}: ${esc(color)}</span>` : ""}</div>
         <div class="s">מק"ט ${p.sku} · ${nis(effPrice(p, qty))} ליח'${needsVat(p) ? ' · לא כולל מע"מ' : ""}</div>
       </div>
       <div class="qty">
@@ -2290,7 +2315,7 @@ function orderLines(){
   lines.push("――――――――――――");
   const fromStory = storyKeys();
   items.forEach(({p, qty, color, key}, i) => {
-    lines.push(`${i + 1}. ${p.name}${color ? " – צבע: " + color : ""}${fromStory.has(key) ? " 📸 מהסטטוס" : ""}`);
+    lines.push(`${i + 1}. ${p.name}${color ? " – " + optName(p) + ": " + color : ""}${fromStory.has(key) ? " 📸 מהסטטוס" : ""}`);
     lines.push(`    מק"ט ${p.sku} | ${qty} יח' × ${nis(effPrice(p, qty))} = ${nis(effPrice(p, qty) * qty)}`);
   });
   const k = cartCalc();
@@ -3374,6 +3399,12 @@ function svCart(bump){
 function svBuy(pop){
   const box = $("#sv-buy");
   if(!box) return;
+  const sp = sv.list[sv.i];
+  if(optReq(sp)){                       /* מוצר עם בחירת דגם – בוחרים בעמוד המוצר */
+    box.innerHTML = `<button class="sv-add" id="sv-pick">בחירת ${esc(optName(sp))} ←</button>`;
+    $("#sv-pick").onclick = () => { closeStories(); openProduct(sp.id); };
+    return;
+  }
   const inCart = cart[svKey()] || 0;
   if(!inCart){
     box.innerHTML = `<div class="sv-qty"><button id="sv-plus" aria-label="הוספת יחידה">+</button><b id="sv-q">${sv.qty}</b><button id="sv-minus" aria-label="הפחתת יחידה">−</button></div>
@@ -3821,6 +3852,8 @@ function openEditor(id){
           <button class="abtn" id="f_cadd" style="flex:0 0 auto;padding:8px 14px">+ הוסף</button>
         </div>
         <div class="hint">צבע שלא מסומן "במלאי" יוצג ללקוח באפור ולא ניתן לבחירה</div>
+        <div class="fld" style="margin-top:10px"><label>כותרת האפשרויות</label><input id="f_optlabel" value="${p && p.optLabel ? esc(p.optLabel) : ""}" placeholder="צבע (ברירת מחדל) – למשל: דגם"></div>
+        <div class="chk"><input type="checkbox" id="f_optreq" ${p && p.optRequired ? "checked" : ""}><label for="f_optreq">הלקוח חייב לבחור, עם כמות לכל אפשרות (למשל מגן לפי דגם)</label></div>
       </div>
     </div>
     <div class="fld"><label>תמונה ראשית</label><input id="f_img" type="file" accept="image/*">
@@ -3943,6 +3976,9 @@ function openEditor(id){
     obj.colors = $("#f_iscolors").checked
       ? colors.filter(c => c.n && c.n.trim()).map(c => ({n: c.n.trim(), s: !!c.s}))
       : [];
+    const optLabel = ($("#f_optlabel") && $("#f_optlabel").value.trim()) || "";
+    if(obj.colors.length && optLabel) obj.optLabel = optLabel;
+    if(obj.colors.length && $("#f_optreq") && $("#f_optreq").checked) obj.optRequired = true;
     obj.sub = ($("#f_sub") && $("#f_sub").value) ? $("#f_sub").value : null;
     obj.desc = $("#f_desc").value.trim();
     obj.imgs = extraImgs.map((s, i) => {
@@ -4319,7 +4355,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "119";
+const APP_VER = "120";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
