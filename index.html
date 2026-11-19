@@ -414,6 +414,8 @@ footer .big{color:#fff; font-weight:700; font-size:16px; margin-bottom:5px}
 .stlist .bar i{display:block; height:100%; background:var(--green); border-radius:5px}
 .stlist .c{flex:0 0 44px; text-align:left; font-weight:700; font-size:13.5px}
 .stgrid{display:grid; grid-template-columns:minmax(0,1fr); gap:4px 18px}
+.anoncarts{margin-top:8px; border:1px solid var(--line); border-radius:10px; padding:0 10px}
+.anoncarts summary{cursor:pointer; padding:10px 0; font-weight:700; font-size:14px; color:var(--muted)}
 .stgrid > div{min-width:0}   /* שמות מוצרים ארוכים לא מרחיבים את העמודה מעבר למסך */
 @media(min-width:620px){.stgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .mbox h3{margin-bottom:14px; font-size:18px}
@@ -3012,6 +3014,7 @@ function drawStatsDash(d){
     if(!confirm("למחוק את ההזמנה הידנית?")) return;
     try{ await statsAct({act: "delorder", oid: b.dataset.delorder}); toast("נמחקה"); openStatsDash(); }catch(e){ toast("לא הצלחתי למחוק"); }
   });
+  m.querySelectorAll("[data-rename]").forEach(b => b.onclick = () => openRename(b.dataset.rename, b.dataset.roid || "", b.dataset.rname || ""));
   m.querySelectorAll("[data-nfdone]").forEach(b => b.onclick = () => { if(confirm("לסמן שעדכנת את כולם ולהסיר מהרשימה?")) notifyDone(b.dataset.nfdone); });
   m.querySelectorAll("[data-cplink]").forEach(b => b.onclick = async () => {
     try{ await navigator.clipboard.writeText(b.dataset.cplink); toast("הקישור הועתק"); }catch(e){ prompt("העתיקו את הקישור:", b.dataset.cplink); }
@@ -3036,6 +3039,7 @@ function custSection(rows){
   const row = (r, call) => `<div class="r" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F0F2F5;font-size:14px">
       <span style="flex:1;min-width:0"><b>${esc(r.name || "ללא שם")}</b><br><span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(r.phone)}</span></span>
       <span style="text-align:left;font-size:12.5px;color:var(--muted)">${r.n} הזמנות · ${nis(Math.round(r.s || 0))}<br>${ago(r.last)}</span>
+      <button class="dl" data-rename="${esc(r.phone || "")}" data-rname="${esc(r.name || "")}" style="color:#6B7280;font-size:15px;padding:4px 6px" title="תיקון שם הלקוח" aria-label="תיקון שם הלקוח">✏️</button>
       ${call ? `<a href="${waLink(r.phone, "שלום " + (r.name || "") + ", מה שלומך? רצינו לעדכן שיש מוצרים חדשים באתר חי שיווק: " + BASE_URL)}" target="_blank" rel="noopener" style="background:var(--green);color:#fff;border-radius:8px;padding:6px 9px;font-weight:700;font-size:12.5px;text-decoration:none">וואטסאפ</a>` : ""}
     </div>`;
   return `
@@ -3061,6 +3065,14 @@ function abandonSection(lg){
   const carts = lg.abandoned || [], items = lg.abandonedItems || [];
   const byId = Object.fromEntries((DB.products || []).map(p => [p.id, p.name]));
   const sumV = carts.reduce((t, c) => t + (c.total || 0), 0);
+  /* עגלות בלי שם ובלי טלפון מקופלות בשורה אחת – אי אפשר לחזור ללקוח, אז הן לא תופסות את המסך */
+  const known = carts.filter(c => c.name || c.phone), anon = carts.filter(c => !c.name && !c.phone);
+  const anonV = anon.reduce((t, c) => t + (c.total || 0), 0);
+  const cartRow = c => `<div style="${rowCss}">
+          <span style="flex:1;min-width:0"><b>${esc(c.name || (c.phone ? "ללא שם" : "לקוח לא מזוהה"))}</b>${c.phone ? ` <span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(c.phone)}</span>` : ""}<br><span style="color:var(--muted);font-size:12.5px">${c.items} מוצרים · ${agoTxt(c.ts)}</span></span>
+          <b>${nis(Math.round(c.total || 0))}</b>
+          ${waBtn(c.phone, "שלום " + (c.name || "") + ", ראינו שהתחלת הזמנה באתר חי שיווק ולא סיימת 🙂 אפשר לעזור במשהו? " + BASE_URL)}
+        </div>`;
   return `
     <div class="stsec">🛒 עגלות נטושות</div><div class="stsub">הכניסו מוצרים לעגלה ויצאו בלי לשלוח (30 יום, לפחות שעה אחורה)</div>
     <div class="stcards">
@@ -3069,11 +3081,9 @@ function abandonSection(lg){
     </div>
     <div class="stgrid">
       <div><div class="stsec">העגלות האחרונות</div>
-        ${carts.length ? carts.slice(0, 15).map(c => `<div style="${rowCss}">
-          <span style="flex:1;min-width:0"><b>${esc(c.name || "לקוח לא מזוהה")}</b><br><span style="color:var(--muted);font-size:12.5px">${c.items} מוצרים · ${agoTxt(c.ts)}</span></span>
-          <b>${nis(Math.round(c.total || 0))}</b>
-          ${waBtn(c.phone, "שלום " + (c.name || "") + ", ראינו שהתחלת הזמנה באתר חי שיווק ולא סיימת 🙂 אפשר לעזור במשהו? " + BASE_URL)}
-        </div>`).join("") : `<div class="hint">אין עגלות נטושות</div>`}</div>
+        ${carts.length ? `${known.length ? known.slice(0, 15).map(cartRow).join("") : `<div class="hint">אין כרגע עגלות של לקוחות מזוהים</div>`}
+          ${anon.length ? `<details class="anoncarts"><summary>${anon.length} עגלות של לקוחות לא מזוהים · ${nis(Math.round(anonV))}</summary>${anon.slice(0, 30).map(cartRow).join("")}</details>` : ""}`
+        : `<div class="hint">אין עגלות נטושות</div>`}</div>
       <div><div class="stsec">המוצרים שהכי ננטשים</div>${stList(items.map(r => ({n: byId[r.pid] || ("מוצר " + r.pid), v: r.q})))}</div>
     </div>`;
 }
@@ -3145,6 +3155,7 @@ function recentOrdersHTML(rows){
       <span style="flex:1;min-width:0"><b>${esc(r.name || "לקוח לא מזוהה")}</b> <span style="color:var(--muted);font-size:12.5px" dir="ltr">${esc(r.phone || "")}</span><br>
         <span style="color:var(--muted);font-size:12.5px">${when(r.ts)} · ${esc(src(r))}${r.items ? " · " + r.items + " מוצרים" : ""}</span></span>
       <b>${nis(Math.round(r.total || 0))}</b>
+      <button class="dl" data-rename="${esc(r.phone || "")}" data-roid="${esc(r.oid || "")}" data-rname="${esc(r.name || "")}" style="color:#6B7280;font-size:15px;padding:4px 6px" title="תיקון שם הלקוח" aria-label="תיקון שם הלקוח">✏️</button>
       ${r.src === "manual" ? `<button class="dl" data-delorder="${esc(r.oid)}" title="מחיקה" style="color:#9CA3AF;font-size:16px;padding:4px 6px">🗑</button>` : ""}
     </div>`).join("") : `<div class="hint">עוד אין הזמנות</div>`}
     ${add}`;
@@ -3182,8 +3193,29 @@ function openAddOrder(){
     catch(e){ toast("לא הצלחתי לשמור – צריך לעדכן את הגשר לגרסה 9"); }
   };
 }
+/* תיקון שם לקוח – לפי טלפון (מתעדכן בכל ההזמנות שלו), או לפי הזמנה בודדת כשאין טלפון */
+function openRename(phone, oid, cur){
+  const m = ensureModal();
+  m.innerHTML = `<div class="mbox"><h3>✏️ תיקון שם הלקוח</h3>
+    <div class="hint" style="margin-bottom:10px">${phone ? `השם יתעדכן בכל ההזמנות של הטלפון <b dir="ltr">${esc(phone)}</b>.` : "השם יתעדכן בהזמנה הזאת."}</div>
+    <div class="fld"><label>שם החנות / הלקוח</label><input id="rn_name" maxlength="60" value="${esc(cur)}"></div>
+    <div class="mact"><button class="save" id="rn_ok">שמירה</button><button class="cancel" id="rn_no">ביטול</button></div></div>`;
+  m.classList.add("show");
+  const inp = $("#rn_name"); inp.focus(); inp.select();
+  $("#rn_no").onclick = () => openStatsDash();
+  $("#rn_ok").onclick = async () => {
+    const name = inp.value.trim();
+    if(name.length < 2){ inp.classList.add("bad"); toast("נא לכתוב שם"); return; }
+    try{
+      const r = await statsAct(phone ? {act: "rename", phone, name} : {act: "rename", oid, name});
+      if(!r || r.ok !== true || !("changed" in r)) throw 0;
+      toast("השם עודכן"); openStatsDash();
+    }catch(e){ toast("לא הצלחתי לעדכן – צריך לעדכן את הגשר לגרסה 10", 3500); }
+  };
+}
 function exportCustCsv(){
-  const q = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
+  /* תא שמתחיל ב-= + - @ נפתח באקסל כנוסחה – מוסיפים גרש כדי שיישאר טקסט */
+  const q = x => { let v = String(x == null ? "" : x); if(/^[=+\-@\t\r]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
   const d = t => new Date(t).toLocaleDateString("he-IL");
   const lines = [["שם החנות", "טלפון", "מספר הזמנות", "סה\"כ ₪", "ממוצע ₪", "הזמנה ראשונה", "הזמנה אחרונה"].map(q).join(",")];
   custCache.forEach(r => lines.push([r.name, r.phone, r.n, Math.round(r.s || 0), r.n ? Math.round((r.s || 0) / r.n) : 0, d(r.first), d(r.last)].map(q).join(",")));
@@ -4386,7 +4418,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "123";
+const APP_VER = "124";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;

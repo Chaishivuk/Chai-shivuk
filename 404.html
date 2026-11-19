@@ -4,9 +4,11 @@
 <script>
 /* כתובות וירטואליות של האתר (מוצר / סטורי) – מפנים לכתובת האמיתית */
 (function(){
-  var p = location.pathname, base = p.replace(/[^\/]*$/, ""), m;
-  if((m = p.match(/\/product-([^\/]+)$/))) location.replace(base + "?p=" + m[1]);
-  else if(/\/story(-add)?-[^\/]+$/.test(p)) location.replace(base + "?new");
-  else location.replace("/Chai-shivuk/");
+  /* שורש האתר: בדומיין chaishivuk.co.il זה "/", בכתובת הישנה של GitHub זה "/Chai-shivuk/" */
+  var root = /\.github\.io$/.test(location.hostname) ? "/Chai-shivuk/" : "/";
+  var p = location.pathname, m;
+  if((m = p.match(/\/product-([^\/]+)$/))) location.replace(root + "?p=" + m[1]);
+  else if(/\/story(-add)?-[^\/]+$/.test(p)) location.replace(root + "?new");
+  else location.replace(root);
 })();
 </script></head><body></body></html>
