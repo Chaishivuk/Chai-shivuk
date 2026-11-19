@@ -3239,7 +3239,7 @@ function statsExportPdf(box){
 async function statsExportImage(box){
   toast("מכין תמונה…");
   try{
-    if(!window.html2canvas) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+    if(!window.html2canvas) await loadScript(BASE_PATH + "vendor/html2canvas-1.4.1.min.js");
     const wrap = document.createElement("div");
     wrap.style.cssText = "position:fixed;left:-10000px;top:0;width:760px;background:#fff;padding:16px;direction:rtl";
     wrap.className = "mbox wide stexport";
@@ -4191,7 +4191,7 @@ function loadScript(src){
 async function exportOrderForm(){
   toast("מכין קובץ הזמנה...");
   try{
-    if(!window.ExcelJS) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js");
+    if(!window.ExcelJS) await loadScript(BASE_PATH + "vendor/exceljs-4.4.0.min.js");
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("הזמנה", {views: [{rightToLeft: true}]});
     ws.columns = [{width: 13}, {width: 36}, {width: 10}, {width: 12}, {width: 14}, {width: 13}];
@@ -4265,7 +4265,7 @@ async function exportOrderForm(){
     note.height = 30;
     const out = await wb.xlsx.writeBuffer();
     // fix: some viewers (Google Sheets) read the image size from the shape, which ExcelJS leaves at 0x0
-    if(!window.JSZip) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    if(!window.JSZip) await loadScript(BASE_PATH + "vendor/jszip-3.10.1.min.js");
     const zip = await JSZip.loadAsync(out);
     const EMU = px => Math.round(px * 9525);
     const dnames = Object.keys(zip.files).filter(nm => /^xl\/drawings\/drawing\d+\.xml$/.test(nm));
@@ -4363,7 +4363,7 @@ function exportXLS(){
   };
   if(window.XLSX){ go(); return; }
   const s = document.createElement("script");
-  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.src = BASE_PATH + "vendor/xlsx-0.18.5.min.js";
   s.onload = go;
   s.onerror = () => toast("שגיאה בטעינת הייצוא");
   document.head.appendChild(s);
@@ -4418,7 +4418,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "124";
+const APP_VER = "125";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
