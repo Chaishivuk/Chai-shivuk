@@ -1010,34 +1010,46 @@ function giftPromo(){
   if(g.until && now > Date.parse(g.until)) return null;
   return g;
 }
-function giftChoice(){ try{ return localStorage.getItem("chai-gift") || ""; }catch(e){ return ""; } }
+/* מדרגות המבצע: [{min: סכום, n: כמה מתנות לבחירה}]. תומך גם במבנה הישן (one/both) */
+function giftTiers(g){
+  const n = (g.gifts || []).length;
+  const t = Array.isArray(g.tiers) && g.tiers.length ? g.tiers
+          : [{min: g.one, n: 1}, {min: g.both, n: n}];
+  return t.filter(x => x && x.min > 0 && x.n > 0).map(x => ({min: +x.min, n: Math.min(+x.n, n)})).sort((x, y) => x.min - y.min);
+}
+function giftPicks(){ try{ const a = JSON.parse(localStorage.getItem("chai-gifts") || "[]"); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+function saveGiftPicks(a){ try{ localStorage.setItem("chai-gifts", JSON.stringify(a)); }catch(e){} }
 function giftState(total){
   const g = giftPromo(); if(!g) return null;
-  const gifts = g.gifts || [];
-  if(total >= g.both) return {g, level: 2, gifts};
-  if(total >= g.one){
-    const ch = gifts.find(x => x.pid === giftChoice()) || null;
-    return {g, level: 1, gifts, choice: ch, toBoth: g.both - total};
-  }
-  return {g, level: 0, gifts, toOne: g.one - total};
+  const gifts = g.gifts || [], tiers = giftTiers(g);
+  if(!gifts.length || !tiers.length) return null;
+  const cur = tiers.filter(t => total >= t.min).pop() || null;
+  const next = tiers.find(t => total < t.min) || null;
+  const n = cur ? cur.n : 0;
+  const all = n >= gifts.length;
+  const picks = all ? gifts.slice() : giftPicks().map(pid => gifts.find(x => x.pid === pid)).filter(Boolean).slice(0, n);
+  return {g, gifts, tiers, n, all, picks, next, toNext: next ? next.min - total : 0};
 }
+function giftCount(n){ return n === 1 ? "מתנה אחת" : n + " מתנות"; }
 function giftBannerHTML(){
   const g = giftPromo(); if(!g) return "";
   const nb = t => `<span style="white-space:nowrap">${t}</span>`;
-  return `<button class="giftbar" id="giftbar">🎁 ${esc(g.title || "מבצע")}: ${nb("מעל " + nis(g.one) + " – מתנה")} · ${nb("מעל " + nis(g.both) + " – שתי מתנות")}${g.untilText ? " · " + nb(esc(g.untilText)) : ""}</button>`;
+  const parts = giftTiers(g).map(t => nb("מעל " + nis(t.min) + " – " + giftCount(t.n)));
+  return `<button class="giftbar" id="giftbar">🎁 ${esc(g.title || "מבצע")}: ${parts.join(" · ")}${g.untilText ? " · " + nb(esc(g.untilText)) : ""}</button>`;
 }
 function showGiftInfo(){
   const g = giftPromo(); if(!g) return;
   const m = ensureModal();
+  const gifts = g.gifts || [], tiers = giftTiers(g);
   const card = x => { const p = (DB.products || []).find(q => q.id === x.pid);
-    return `<div style="flex:1;text-align:center;border:1px solid var(--line);border-radius:12px;padding:8px">
-      ${p && p.img ? `<img src="${p.img}" alt="" style="width:110px;height:110px;object-fit:contain">` : ""}
-      <div style="font-weight:800;font-size:14px;margin-top:4px">${esc(x.label)}</div></div>`; };
+    return `<div style="flex:1 1 30%;min-width:96px;text-align:center;border:1px solid var(--line);border-radius:12px;padding:8px">
+      ${p && (p.th || p.img) ? `<img src="${p.th || p.img}" alt="" style="width:84px;height:84px;object-fit:contain">` : ""}
+      <div style="font-weight:800;font-size:13px;margin-top:4px;line-height:1.3">${esc(x.label)}</div></div>`; };
   m.innerHTML = `<div class="mbox"><h3>🎁 ${esc(g.title || "מבצע")}</h3>
-    <div class="hint" style="margin-bottom:10px">${g.untilText ? esc(g.untilText) + ". " : ""}המתנה מצורפת להזמנה אוטומטית לפי סכום ההזמנה.</div>
-    <div style="font-weight:800;margin:6px 0">מעל ${nis(g.one)} – מתנה אחת לבחירתכם:</div>
-    <div style="display:flex;gap:8px;align-items:center">${(g.gifts || []).map(card).join('<b style="flex:0 0 auto">או</b>')}</div>
-    <div style="font-weight:800;margin:12px 0 4px">מעל ${nis(g.both)} – מקבלים את שתיהן! 🎉</div>
+    <div class="hint" style="margin-bottom:10px">${g.untilText ? esc(g.untilText) + ". " : ""}בוחרים את המתנות בסל, לפני שליחת ההזמנה.</div>
+    ${tiers.map(t => `<div style="font-weight:800;margin:5px 0">מעל ${nis(t.min)} – ${t.n >= gifts.length ? "כל המתנות! 🎉" : giftCount(t.n) + " לבחירתכם"}</div>`).join("")}
+    <div style="font-weight:800;margin:12px 0 6px;color:var(--muted);font-size:13.5px">המתנות לבחירה:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">${gifts.map(card).join("")}</div>
     <div class="mact"><button class="save" id="gi_ok" style="width:100%">מעולה, לקניות</button></div></div>`;
   m.classList.add("show");
   $("#gi_ok").onclick = () => m.classList.remove("show");
@@ -1045,17 +1057,20 @@ function showGiftInfo(){
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("#giftbar"); if(b) showGiftInfo(); });
 function giftBoxHTML(total){
   const st = giftState(total); if(!st) return "";
-  const lbl = st.gifts.map(x => x.label);
-  if(st.level === 2) return `<div class="giftbox">🎉 <b>מגיעות לך שתי המתנות:</b> ${esc(lbl.join(" + "))}</div>`;
-  if(st.level === 1) return `<div class="giftbox">🎁 <b>מגיעה לך מתנה – בחרו אחת:</b>
-      ${st.gifts.map(x => `<label><input type="radio" name="giftpick" value="${esc(x.pid)}" ${st.choice && st.choice.pid === x.pid ? "checked" : ""}>${esc(x.label)}</label>`).join("")}
-      <div class="more">עוד ${nis(Math.ceil(st.toBoth))} ומקבלים את שתי המתנות!</div></div>`;
-  return `<div class="giftbox">🎁 חסרים לך <b>${nis(Math.ceil(st.toOne))}</b> למתנה! (${esc(lbl.join(" או "))})</div>`;
+  const more = st.next ? `<div class="more">עוד ${nis(Math.ceil(st.toNext))} ומקבלים ${st.next.n >= st.gifts.length ? "את כל המתנות" : giftCount(st.next.n)}!</div>` : "";
+  if(st.n === 0) return `<div class="giftbox">🎁 חסרים לך <b>${nis(Math.ceil(st.toNext))}</b> כדי לקבל ${giftCount(st.next.n)} לבחירה!</div>`;
+  if(st.all) return `<div class="giftbox">🎉 <b>מגיעות לך כל המתנות:</b> ${esc(st.gifts.map(x => x.label).join(" + "))}</div>`;
+  const picked = new Set(st.picks.map(x => x.pid)), full = picked.size >= st.n;
+  return `<div class="giftbox">🎁 <b>מגיעות לך ${giftCount(st.n)} – בחרו ${st.n === 1 ? "אחת" : st.n}:</b>
+      ${st.gifts.map(x => { const on = picked.has(x.pid);
+        return `<label${!on && full ? ' style="opacity:.45"' : ""}><input type="checkbox" name="giftpick" value="${esc(x.pid)}" ${on ? "checked" : ""} ${!on && full ? "disabled" : ""}>${esc(x.label)}</label>`; }).join("")}
+      <div class="more" style="font-weight:700">${full ? "✓ נבחרו " + giftCount(st.n) : "נבחרו " + picked.size + " מתוך " + st.n}</div>${more}</div>`;
 }
 function giftLines(total){
-  const st = giftState(total); if(!st || st.level === 0) return [];
-  if(st.level === 2) return ["🎁 מתנה (" + (st.g.title || "מבצע") + "): " + st.gifts.map(x => x.label).join(" + ")];
-  return ["🎁 מתנה (" + (st.g.title || "מבצע") + "): " + (st.choice ? st.choice.label : "לבחירה – " + st.gifts.map(x => x.label).join(" או "))];
+  const st = giftState(total); if(!st || st.n === 0) return [];
+  const names = st.picks.map(x => x.label), left = st.n - st.picks.length;
+  if(left > 0) names.push("עוד " + giftCount(left) + " לבחירה");
+  return ["🎁 " + (st.n === 1 ? "מתנה" : st.n + " מתנות") + " (" + (st.g.title || "מבצע") + "): " + names.join(" + ")];
 }
 function vatBanner(){
   const t = vatText();
@@ -1926,7 +1941,11 @@ function sumBoxHTML(){
 }
 function bindSumBox(){
   document.querySelectorAll("input[name=giftpick]").forEach(r => r.onchange = () => {
-    try{ localStorage.setItem("chai-gift", r.value); }catch(e){}
+    const st = giftState(cartCalc().total); if(!st) return;
+    let a = st.picks.map(x => x.pid).filter(pid => pid !== r.value);
+    if(r.checked) a.push(r.value);
+    saveGiftPicks(a.slice(0, st.n));
+    const sb = $("#dsumbox"); if(sb){ sb.innerHTML = sumBoxHTML(); bindSumBox(); }   /* מעדכן את המונה ונועל את השאר כשהבחירה מלאה */
   });
   const ap = $("#cpapply"), cl = $("#cpclear"), inp = $("#cpin");
   if(ap) ap.onclick = () => {
@@ -4418,7 +4437,7 @@ document.addEventListener("pointerdown", () => {
     history.pushState({}, "");
   }
 }, true);
-const APP_VER = "125";
+const APP_VER = "126";
 function hideSplash(){
   const sp = document.getElementById("splash");
   if(!sp || sp._going) return;
